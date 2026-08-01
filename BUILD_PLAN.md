@@ -1,18 +1,26 @@
 # NaijaHandy Build Plan
 
-## Phase 0: Foundation
+## Phase 0: Foundation ✅ COMPLETE
 
-- Keep the project in one GitHub repository with `frontend/` and `backend/` applications.
-- Protect environment files, dependencies, build output, and local databases from Git.
-- Use the existing Next.js frontend and Express API as the working prototype.
-- Record every milestone with a focused commit and a passing validation command.
+- ✅ GitHub monorepo with `frontend/` and `backend/`
+- ✅ `.gitignore` protecting .env, node_modules, *.db, build output
+- ✅ Root `package.json` orchestrating both apps with `npm run dev`
+- ✅ NaijaHandy branding: logo mark, favicon, Brand component
+- ✅ All UI references updated to NaijaHandy
 
-## Phase 1: Product Core
+## Phase 1: Product Core ✅ COMPLETE
 
-1. Finalize the customer, artisan, and admin workflows.
-2. Define booking and payment states before adding more screens.
-3. Replace SQLite with PostgreSQL and add Prisma migrations.
-4. Add shared API contracts, DTO validation, and consistent errors.
+1. ✅ Booking state machine: PENDING → CONFIRMED → COMPLETED/CANCELLED (explicit transitions)
+2. ✅ Payment model with status tracking (PENDING, SUCCESS, FAILED, REFUNDED)
+3. ✅ Supabase PostgreSQL migration: Regenerated migrations with PostgreSQL-compatible syntax
+4. ✅ Connection pooler configured for reliable remote access
+5. ✅ Prisma seeding: 2 customers, 3 artisans, demo bookings with payment references
+6. ✅ API contracts validated:
+   - Ownership check: Customer cannot modify own bookings (403)
+   - Artisan can complete confirmed bookings (200)
+   - Terminal states enforced: Cannot transition from COMPLETED/CANCELLED (409)
+7. ✅ Backend fully connected to Supabase PostgreSQL
+8. ✅ All endpoints tested and passing: `/api/artisans`, `/api/bookings`, `/api/auth/login`
 
 ## Phase 2: Production Backend
 
