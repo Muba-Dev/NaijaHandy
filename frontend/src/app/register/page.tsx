@@ -1,0 +1,175 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Wrench } from 'lucide-react'
+import { CATEGORIES, NIGERIAN_CITIES } from '@/lib/data'
+import { register } from '@/lib/api'
+
+type Role = 'CUSTOMER' | 'ARTISAN'
+
+export default function RegisterPage() {
+  const router = useRouter()
+  const [role, setRole] = useState<Role>('CUSTOMER')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    name: '', email: '', phone: '', city: '', password: '', profession: '',
+  })
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const user = await register({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        city: form.city,
+        password: form.password,
+        role,
+        profession: role === 'ARTISAN' ? form.profession : undefined,
+        category: role === 'ARTISAN' ? form.profession : undefined,
+      })
+      router.push(role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-12 bg-gray-50">
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl p-8 md:p-10">
+        <Link href="/" className="flex items-center gap-2 mb-7">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#047857]">
+            <Wrench size={16} className="text-white" />
+          </div>
+          <span className="font-display text-lg font-bold text-gray-900">ArtisanNG</span>
+        </Link>
+
+        <h1 className="font-display text-3xl font-bold text-gray-900 mb-1">Create your account</h1>
+        <p className="text-gray-500 mb-6">Join thousands of Nigerians using ArtisanNG.</p>
+
+        {/* Role toggle */}
+        <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+          {(['CUSTOMER', 'ARTISAN'] as Role[]).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRole(r)}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${role === r ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+            >
+              {r === 'CUSTOMER' ? '👤 Customer' : '🔧 Artisan'}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+              <input
+                value={form.name}
+                onChange={set('name')}
+                placeholder="Amaka Okonkwo"
+                required
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+              <input
+                value={form.phone}
+                onChange={set('phone')}
+                placeholder="+234 801 234 5678"
+                required
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={set('email')}
+              placeholder="you@email.com"
+              required
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">City / State</label>
+            <select
+              value={form.city}
+              onChange={set('city')}
+              required
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors text-gray-700"
+            >
+              <option value="">Select your city</option>
+              {NIGERIAN_CITIES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+
+          {role === 'ARTISAN' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Profession / Skill</label>
+              <select
+                value={form.profession}
+                onChange={set('profession')}
+                required
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors text-gray-700"
+              >
+                <option value="">Select your profession</option>
+                {CATEGORIES.map((c) => <option key={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={set('password')}
+              placeholder="Min. 8 characters"
+              minLength={8}
+              required
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl text-white font-semibold text-sm bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-60 mt-2"
+          >
+            {loading ? 'Creating account…' : `Create ${role === 'ARTISAN' ? 'Artisan' : 'Customer'} Account`}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-gray-500 mt-5">
+          Already have an account?{' '}
+          <Link href="/login" className="font-semibold text-[#047857] hover:underline">Log in</Link>
+        </p>
+        <p className="text-center text-xs text-gray-400 mt-3">
+          By registering, you agree to our Terms of Service and Privacy Policy.
+        </p>
+      </div>
+    </div>
+  )
+}

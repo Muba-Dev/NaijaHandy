@@ -1,0 +1,139 @@
+// Prisma schema — ArtisanNG
+// Database: Neon PostgreSQL
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Seed
+// npx prisma db seed
+
+datasource db {
+  // Switch to "postgresql" for Neon Postgres in production
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+// SQLite-compatible — enums stored as String; for Postgres, restore `enum Role { ... }` / `enum BookingStatus { ... }`
+
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  city      String?
+  password  String
+  role      String   @default("CUSTOMER")
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  artisanProfile ArtisanProfile?
+  bookingsAsCustomer Booking[] @relation("CustomerBookings")
+  reviews        Review[]
+  savedArtisans  SavedArtisan[]
+
+  @@map("users")
+}
+
+model ArtisanProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  profession  String
+  category    String
+  bio         String
+  hourlyRate  Int      // in kobo (smallest NGN unit) or plain NGN
+  coverImage  String?
+  verified    Boolean  @default(false)
+  available   Boolean  @default(true)
+  avgRating   Float    @default(0)
+  totalReviews Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services  Service[]
+  portfolio PortfolioItem[]
+  bookings  Booking[] @relation("ArtisanBookings")
+  reviews   Review[]
+
+  @@map("artisan_profiles")
+}
+
+model Service {
+  id        String   @id @default(cuid())
+  artisanId String
+  name      String
+  rate      Int      // NGN
+  createdAt DateTime @default(now())
+
+  artisan ArtisanProfile @relation(fields: [artisanId], references: [id], onDelete: Cascade)
+
+  @@map("services")
+}
+
+model PortfolioItem {
+  id        String   @id @default(cuid())
+  artisanId String
+  imageUrl  String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  artisan ArtisanProfile @relation(fields: [artisanId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_items")
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  customerId  String
+  artisanId   String
+  date        DateTime
+  time        String
+  description String
+  amount      Int           // NGN
+  status      String   @default("PENDING")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  customer User           @relation("CustomerBookings", fields: [customerId], references: [id])
+  artisan  ArtisanProfile @relation("ArtisanBookings", fields: [artisanId], references: [id])
+  review   Review?
+
+  @@map("bookings")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  customerId String
+  artisanId  String
+  rating    Int      // 1–5
+  comment   String
+  createdAt DateTime @default(now())
+
+  booking  Booking        @relation(fields: [bookingId], references: [id])
+  customer User           @relation(fields: [customerId], references: [id])
+  artisan  ArtisanProfile @relation(fields: [artisanId], references: [id])
+
+  @@map("reviews")
+}
+
+model SavedArtisan {
+  id        String   @id @default(cuid())
+  userId    String
+  artisanId String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, artisanId])
+  @@map("saved_artisans")
+}

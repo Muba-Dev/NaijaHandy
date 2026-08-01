@@ -1,0 +1,18 @@
+import { Star } from 'lucide-react'
+
+interface Props {
+  value: number
+  count?: number
+}
+
+export default function StarRating({ value, count }: Props) {
+  return (
+    <span className="flex items-center gap-1">
+      <Star size={14} className="fill-amber-400 text-amber-400" />
+      <span className="font-semibold text-sm text-gray-900">{value.toFixed(1)}</span>
+      {count !== undefined && (
+        <span className="text-gray-500 text-sm">({count})</span>
+      )}
+    </span>
+  )
+}
