@@ -210,7 +210,7 @@ export default function HomePage() {
         <div className="relative px-8 md:px-14 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h2 className="font-display text-2xl md:text-3xl font-bold text-white mb-2">Are you a skilled artisan?</h2>
-            <p className="text-emerald-200 max-w-md">Join over 12,000 artisans earning more with ArtisanNG. Free to register. Get job requests from day one.</p>
+            <p className="text-emerald-200 max-w-md">Join over 12,000 artisans earning more with NaijaHandy. Free to register. Get job requests from day one.</p>
           </div>
           <div className="flex gap-3 shrink-0">
             <Link href="/register" className="px-6 py-3 bg-amber-400 text-gray-900 font-semibold rounded-xl hover:bg-amber-300 transition-colors">

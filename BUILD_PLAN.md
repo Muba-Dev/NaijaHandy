@@ -1,4 +1,4 @@
-# ArtisanNG Build Plan
+# NaijaHandy Build Plan
 
 ## Phase 0: Foundation
 
@@ -35,4 +35,10 @@
 
 ## Current Milestone
 
-The current prototype is connected locally: Next.js uses `NEXT_PUBLIC_API_URL` to call the backend, and the backend serves seeded artisan data from Prisma. The next implementation milestone is PostgreSQL plus a formal booking state model.
+The current prototype is connected locally: Next.js uses `NEXT_PUBLIC_API_URL` to call the backend, and the backend serves seeded artisan data from Prisma. Phase 1 now has a baseline Prisma migration, explicit booking/payment states, repeatable seed data, and role-based booking transition rules. The next implementation milestone is applying this migration to a PostgreSQL staging database.
+
+### Phase 1 State Contract
+
+Booking states are `PENDING -> CONFIRMED -> COMPLETED` or `CANCELLED`. A confirmed booking may be cancelled, but completed and cancelled bookings are terminal. Payment states are `PENDING`, `SUCCESS`, `FAILED`, and `REFUNDED`; booking payment state is `UNPAID`, `PAID`, or `REFUNDED`.
+
+The local SQLite schema now includes payment fields and a `Payment` model so the API contract can be tested before connecting a hosted PostgreSQL database. The next database step is to set a PostgreSQL `DATABASE_URL`, switch the Prisma provider, create a named migration, and run the seed against a disposable staging database.

@@ -83,10 +83,11 @@ async function main() {
   }
 
   // ── Bookings ──
+  await prisma.booking.deleteMany({ where: { customerId: customer1.id } })
   await prisma.booking.createMany({ data: [
-    { customerId: customer1.id, artisanId: emeka.id, date: new Date('2026-07-30'), time: '9:00 AM', description: 'Fix leaking kitchen sink pipe', amount: 17000, status: 'CONFIRMED' },
-    { customerId: customer1.id, artisanId: fatima.id, date: new Date('2026-08-02'), time: '2:00 PM', description: 'Install new electrical outlets in living room', amount: 15000, status: 'PENDING' },
-    { customerId: customer1.id, artisanId: chidi.id, date: new Date('2026-07-19'), time: '10:00 AM', description: 'Build custom bookshelf', amount: 26000, status: 'COMPLETED' },
+    { customerId: customer1.id, artisanId: emeka.id, date: new Date('2026-07-30'), time: '9:00 AM', description: 'Fix leaking kitchen sink pipe', amount: 17000, status: 'CONFIRMED', paymentStatus: 'PAID', paymentReference: 'seed-emeka-001', paidAt: new Date('2026-07-29') },
+    { customerId: customer1.id, artisanId: fatima.id, date: new Date('2026-08-02'), time: '2:00 PM', description: 'Install new electrical outlets in living room', amount: 15000, status: 'PENDING', paymentStatus: 'UNPAID' },
+    { customerId: customer1.id, artisanId: chidi.id, date: new Date('2026-07-19'), time: '10:00 AM', description: 'Build custom bookshelf', amount: 26000, status: 'COMPLETED', paymentStatus: 'PAID', paymentReference: 'seed-chidi-001', paidAt: new Date('2026-07-18') },
   ] })
 
   console.log('Database seeded successfully!')

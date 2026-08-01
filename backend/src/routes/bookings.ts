@@ -2,6 +2,7 @@ import { Router, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { z } from 'zod'
+import { BOOKING_STATUSES, canTransitionBookingStatus } from '../domain/booking'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -11,7 +12,7 @@ const createSchema = z.object({
   date: z.string(),
   time: z.string(),
   description: z.string().min(10),
-  amount: z.number(),
+  amount: z.number().int().positive(),
 })
 
 // POST /api/bookings — create booking (customer)
@@ -61,13 +62,35 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
 // PATCH /api/bookings/:id/status — accept/decline/complete
 router.patch('/:id/status', authenticate, async (req: AuthRequest, res: Response) => {
-  const { status } = req.body
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
-  const booking = await prisma.booking.update({
-    where: { id },
-    data: { status },
-  })
-  res.json({ data: booking })
+  try {
+    const { status } = z.object({ status: z.enum(BOOKING_STATUSES) }).parse(req.body)
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+    const current = await prisma.booking.findUnique({
+      where: { id },
+      include: { artisan: { select: { userId: true } } },
+    })
+    if (!current) return res.status(404).json({ message: 'Booking not found' })
+
+    const isCustomer = current.customerId === req.user!.id
+    const isArtisan = current.artisan.userId === req.user!.id
+    const customerCanCancel = isCustomer && status === 'CANCELLED'
+    const artisanCanUpdate = isArtisan && ['CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status)
+    if (!customerCanCancel && !artisanCanUpdate) {
+      return res.status(403).json({ message: 'You cannot update this booking' })
+    }
+    if (!canTransitionBookingStatus(current.status, status)) {
+      return res.status(409).json({ message: `Cannot change booking from ${current.status} to ${status}` })
+    }
+
+    const booking = await prisma.booking.update({
+      where: { id },
+      data: { status },
+    })
+    res.json({ data: booking })
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ errors: err.errors })
+    res.status(500).json({ message: 'Server error' })
+  }
 })
 
 export default router

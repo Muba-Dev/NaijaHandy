@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Wrench, Share2, Globe, AtSign } from 'lucide-react'
+import { Share2, Globe, AtSign } from 'lucide-react'
+import Brand from '@/components/Brand'
 
 export default function Footer() {
   return (
@@ -7,12 +8,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
         {/* Brand */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#047857]">
-              <Wrench size={16} className="text-white" />
-            </div>
-            <span className="font-display text-lg font-bold">ArtisanNG</span>
-          </div>
+          <div className="mb-4"><Brand compact /></div>
           <p className="text-gray-400 text-sm leading-relaxed">
             Nigeria&apos;s premier platform for connecting skilled artisans with customers who need quality work done right.
           </p>
@@ -74,7 +70,7 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-gray-800 px-6 py-5 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
-        <p className="text-gray-500 text-sm">© 2026 ArtisanNG. All rights reserved.</p>
+        <p className="text-gray-500 text-sm">© 2026 NaijaHandy. All rights reserved.</p>
         <div className="flex gap-4">
           {['Privacy Policy', 'Terms of Service', 'Contact'].map((l) => (
             <Link key={l} href="#" className="text-gray-500 hover:text-gray-300 text-sm">

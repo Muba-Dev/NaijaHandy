@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, Wrench, Menu, X } from 'lucide-react'
+import { Search, Menu, X } from 'lucide-react'
+import Brand from '@/components/Brand'
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -11,14 +12,7 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#047857]">
-            <Wrench size={16} className="text-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-gray-900">
-            Artisan<span className="text-[#047857]">NG</span>
-          </span>
-        </Link>
+        <Brand compact />
 
         {/* Center links */}
         <div className="hidden md:flex items-center gap-6">

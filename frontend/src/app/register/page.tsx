@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Wrench } from 'lucide-react'
+import Brand from '@/components/Brand'
 import { CATEGORIES, NIGERIAN_CITIES } from '@/lib/data'
 import { register } from '@/lib/api'
 
@@ -46,15 +46,12 @@ export default function RegisterPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-12 bg-gray-50">
       <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl p-8 md:p-10">
-        <Link href="/" className="flex items-center gap-2 mb-7">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#047857]">
-            <Wrench size={16} className="text-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-gray-900">ArtisanNG</span>
-        </Link>
+        <div className="mb-7">
+          <Brand />
+        </div>
 
         <h1 className="font-display text-3xl font-bold text-gray-900 mb-1">Create your account</h1>
-        <p className="text-gray-500 mb-6">Join thousands of Nigerians using ArtisanNG.</p>
+        <p className="text-gray-500 mb-6">Join thousands of Nigerians using NaijaHandy.</p>
 
         {/* Role toggle */}
         <div className="flex bg-gray-100 rounded-xl p-1 mb-6">

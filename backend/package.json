@@ -1,7 +1,7 @@
 {
-  "name": "artisanng-backend",
+  "name": "naijahandy-backend",
   "version": "1.0.0",
-  "description": "ArtisanNG REST API — Node.js + Express + Prisma + PostgreSQL",
+  "description": "NaijaHandy REST API — Node.js + Express + Prisma + PostgreSQL",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts",

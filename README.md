@@ -1,4 +1,4 @@
-# ArtisanNG — Developer Handoff Package
+# NaijaHandy — Developer Handoff Package
 
 Nigeria's premier artisan-finder marketplace. This package contains the complete source code your developer needs to build and deploy the full application.
 
@@ -91,7 +91,7 @@ npm run dev                          # starts on http://localhost:4000
 ### Environment Variables (backend/.env)
 
 ```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST/artisanng?sslmode=require"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/naijahandy?sslmode=require"
 JWT_SECRET="your-super-secret-key"
 FRONTEND_URL="http://localhost:3000"
 PORT=4000

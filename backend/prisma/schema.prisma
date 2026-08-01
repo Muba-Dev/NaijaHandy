@@ -11,7 +11,7 @@ generator client {
 
 datasource db {
   // Switch to "postgresql" for Neon Postgres in production
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -100,14 +100,34 @@ model Booking {
   description String
   amount      Int           // NGN
   status      String   @default("PENDING")
+  paymentStatus String      @default("UNPAID")
+  paymentReference String?  @unique
+  paidAt      DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   customer User           @relation("CustomerBookings", fields: [customerId], references: [id])
   artisan  ArtisanProfile @relation("ArtisanBookings", fields: [artisanId], references: [id])
   review   Review?
+  payment  Payment?
 
   @@map("bookings")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  reference   String   @unique
+  amount      Int
+  status      String   @default("PENDING")
+  provider    String   @default("PAYSTACK")
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
 }
 
 model Review {
