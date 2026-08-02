@@ -7,6 +7,7 @@ import { Calendar, Clock, MessageSquare, Star, Plus } from 'lucide-react'
 import { fetchBookings } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
+import AuthGuard from '@/components/AuthGuard'
 import type { Booking, BookingStatus } from '@/types'
 
 type FilterTab = 'All' | 'Active' | 'Completed' | 'Cancelled'
@@ -28,6 +29,7 @@ export default function BookingHistoryPage() {
   })
 
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
         <div className="flex items-center justify-between mb-7">
@@ -125,5 +127,6 @@ export default function BookingHistoryPage() {
           )}
       </div>
     </div>
+    </AuthGuard>
   )
 }

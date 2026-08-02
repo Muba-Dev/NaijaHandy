@@ -9,7 +9,7 @@ Nigeria's premier artisan-finder marketplace. This package contains the complete
 ```
 handoff/
 ├── frontend/          ← Next.js 15 + TypeScript + Tailwind CSS
-└── backend/           ← Node.js + Express + Prisma + PostgreSQL
+└── backend/           ← NestJS + Prisma + PostgreSQL
 ```
 
 ---
@@ -19,9 +19,9 @@ handoff/
 | Layer | Technology |
 |---|---|
 | Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS v3 |
-| Backend | Node.js, Express.js, TypeScript |
-| Database | PostgreSQL (Neon) + Prisma ORM |
-| Authentication | JWT + bcrypt |
+| Backend | Node.js, NestJS, TypeScript |
+| Database | PostgreSQL (Neon/Supabase) + Prisma ORM |
+| Authentication | JWT access + refresh tokens (rotated, revocable) + bcrypt |
 | Frontend Deploy | Vercel |
 | Backend Deploy | Render or Railway |
 | Database Host | Neon PostgreSQL |
@@ -125,7 +125,9 @@ PORT=4000
 | Method | Endpoint | Description |
 |---|---|---|
 | POST | `/api/auth/register` | Register new user (customer or artisan) |
-| POST | `/api/auth/login` | Login → returns JWT token |
+| POST | `/api/auth/login` | Login → returns access + refresh tokens |
+| POST | `/api/auth/refresh` | Rotate refresh token → new token pair |
+| POST | `/api/auth/logout` | Revoke refresh token (logout) |
 
 **Login response:**
 ```json
@@ -161,6 +163,13 @@ GET /api/artisans?category=Plumbing&city=Lagos&minRating=4.5&available=true&sort
 |---|---|---|
 | GET | `/api/users/me` | Get own profile (requires JWT) |
 | PATCH | `/api/users/me` | Update own profile (requires JWT) |
+
+### Saved Artisans
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/saved-artisans` | List my saved artisans (requires JWT) |
+| POST | `/api/saved-artisans/:artisanId` | Save an artisan (requires JWT) |
+| DELETE | `/api/saved-artisans/:artisanId` | Un-save an artisan (requires JWT) |
 
 **All protected routes:** Include header `Authorization: Bearer <token>`
 
@@ -245,11 +254,13 @@ frontend/
 
 backend/
 ├── prisma/schema.prisma        ← Full database schema
-├── src/index.ts                ← Express app entry point
-├── src/routes/auth.ts          ← Register + Login
-├── src/routes/artisans.ts      ← Artisan CRUD
-├── src/routes/bookings.ts      ← Booking CRUD
-└── src/middleware/auth.ts      ← JWT authentication middleware
+├── src/main.ts                 ← NestJS bootstrap (helmet, CORS, rate limit, validation)
+├── src/app.module.ts           ← Root module wiring
+├── src/auth/                   ← Auth module (JWT access/refresh, guards, roles)
+├── src/artisan/                ← Artisan module (list, profile, availability)
+├── src/booking/                ← Booking module (create, list, status transitions)
+├── src/user/                   ← User module (profile read/update)
+└── src/saved-artisan/          ← Saved-artisan module (save/un-save/list)
 ```
 
 ---

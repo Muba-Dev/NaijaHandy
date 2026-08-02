@@ -14,6 +14,8 @@ export default function SearchPage() {
   const [category, setCategory] = useState('All')
   const [minRating, setMinRating] = useState(0)
   const [sortBy, setSortBy] = useState('Rating')
+  const [keyword, setKeyword] = useState('')
+  const [availableOnly, setAvailableOnly] = useState(false)
   const [mobileFilter, setMobileFilter] = useState(false)
   const [artisans, setArtisans] = useState<Artisan[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,11 +23,13 @@ export default function SearchPage() {
   useEffect(() => {
     setLoading(true)
     const params: Record<string, string> = {}
+    if (keyword.trim()) params.q = keyword.trim()
     if (category !== 'All') params.category = category
     if (minRating > 0) params.minRating = String(minRating)
+    if (availableOnly) params.available = 'true'
     params.sortBy = sortBy === 'Rating' ? 'rating' : 'hourlyRate'
     fetchArtisans(params).then(setArtisans).catch(() => setArtisans([])).finally(() => setLoading(false))
-  }, [category, minRating, sortBy])
+  }, [category, minRating, sortBy, keyword, availableOnly])
 
   const filtered = artisans
 
@@ -36,7 +40,12 @@ export default function SearchPage() {
         <div className="max-w-7xl mx-auto flex items-center gap-4">
           <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-4 py-2.5">
             <Search size={16} className="text-gray-400 shrink-0" />
-            <input defaultValue="Plumber in Lagos" className="flex-1 text-sm outline-none bg-transparent text-gray-700" />
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Search by name, skill or category…"
+              className="flex-1 text-sm outline-none bg-transparent text-gray-700"
+            />
           </div>
           <button
             onClick={() => setMobileFilter(!mobileFilter)}
@@ -101,7 +110,12 @@ export default function SearchPage() {
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Availability</p>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded accent-emerald-600" />
+                <input
+                  type="checkbox"
+                  checked={availableOnly}
+                  onChange={(e) => setAvailableOnly(e.target.checked)}
+                  className="w-4 h-4 rounded accent-emerald-600"
+                />
                 <span className="text-sm text-gray-600">Available now only</span>
               </label>
             </div>

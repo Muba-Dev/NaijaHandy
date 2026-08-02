@@ -76,6 +76,7 @@ model ArtisanProfile {
   portfolio PortfolioItem[]
   bookings  Booking[] @relation("ArtisanBookings")
   reviews   Review[]
+  savedBy   SavedArtisan[]
 
   @@map("artisan_profiles")
 }
@@ -165,7 +166,8 @@ model SavedArtisan {
   artisanId String
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artisan ArtisanProfile @relation(fields: [artisanId], references: [id], onDelete: Cascade)
 
   @@unique([userId, artisanId])
   @@map("saved_artisans")

@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload } from '@/types'
-import { getAuthToken, getRefreshToken, setAuthTokens, clearAuthTokens } from '@/lib/utils'
+import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
@@ -124,12 +124,14 @@ function normalizeBooking(b: RawBooking): Booking {
 export async function login(credentials: LoginCredentials): Promise<AuthUser> {
   const { data } = await api.post('/auth/login', credentials)
   setAuthTokens(data.accessToken, data.refreshToken)
+  setStoredUser(data.user)
   return data.user
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthUser> {
   const { data } = await api.post('/auth/register', payload)
   setAuthTokens(data.accessToken, data.refreshToken)
+  setStoredUser(data.user)
   return data.user
 }
 
@@ -143,6 +145,7 @@ export async function logout(): Promise<void> {
 
 export async function fetchMe(): Promise<AuthUser> {
   const { data } = await api.get('/users/me')
+  setStoredUser(data.data)
   return data.data
 }
 
@@ -156,6 +159,21 @@ export async function fetchArtisans(params?: Record<string, string>): Promise<Ar
 export async function fetchArtisanById(id: string): Promise<Artisan> {
   const { data } = await api.get(`/artisans/${id}`)
   return normalizeArtisan(data.data)
+}
+
+export async function fetchSavedArtisans(): Promise<Artisan[]> {
+  const { data } = await api.get('/saved-artisans')
+  return data.data.map(normalizeArtisan)
+}
+
+export async function saveArtisan(artisanId: string) {
+  const { data } = await api.post(`/saved-artisans/${artisanId}`)
+  return data.data
+}
+
+export async function unsaveArtisan(artisanId: string) {
+  const { data } = await api.delete(`/saved-artisans/${artisanId}`)
+  return data.data
 }
 
 export async function fetchMyArtisanProfile(): Promise<Artisan> {

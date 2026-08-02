@@ -60,6 +60,7 @@ export interface AuthUser {
   name: string
   email: string
   role: 'CUSTOMER' | 'ARTISAN'
+  phone?: string
   avatar?: string
   city?: string
 }

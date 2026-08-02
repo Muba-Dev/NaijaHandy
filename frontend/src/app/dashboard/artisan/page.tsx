@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { TrendingUp, Briefcase, Calendar, CreditCard, Settings, LogOut, Bell, Users, CheckCircle, MapPin, ToggleLeft, ToggleRight, Plus } from 'lucide-react'
 import { fetchMyArtisanProfile, fetchBookings, updateArtisanProfile, updateBookingStatus, logout } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
+import AuthGuard from '@/components/AuthGuard'
 import type { Artisan, Booking } from '@/types'
 
 const navItems = [
@@ -47,6 +48,7 @@ export default function ArtisanDashboardPage() {
   const totalEarnings = bookings.filter((b) => b.status === 'Completed').reduce((s, b) => s + b.amount, 0)
 
   return (
+    <AuthGuard allowedRoles={['ARTISAN']}>
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-56 bg-white border-r border-gray-100 shrink-0">
@@ -186,5 +188,6 @@ export default function ArtisanDashboardPage() {
         </div>
       </main>
     </div>
+    </AuthGuard>
   )
 }

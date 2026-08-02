@@ -6,11 +6,22 @@ export class ArtisanService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(filters: any) {
-    const { category, city, minRating, available, sortBy = 'rating', page = 1, limit = 12 } = filters
+    const { q, category, city, minRating, available, sortBy = 'rating', page = 1, limit = 12 } = filters
     const skip = (Number(page) - 1) * Number(limit)
+
+    const keyword = typeof q === 'string' && q.trim() ? q.trim() : undefined
 
     return this.prisma.artisanProfile.findMany({
       where: {
+        ...(keyword
+          ? {
+              OR: [
+                { profession: { contains: keyword, mode: 'insensitive' } },
+                { category: { contains: keyword, mode: 'insensitive' } },
+                { user: { is: { name: { contains: keyword, mode: 'insensitive' } } } },
+              ],
+            }
+          : {}),
         ...(category ? { category: String(category) } : {}),
         ...(city ? { user: { city: String(city) } } : {}),
         ...(minRating ? { avgRating: { gte: Number(minRating) } } : {}),

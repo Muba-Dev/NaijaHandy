@@ -46,29 +46,42 @@
 
 ## Current Milestone
 
-The project is in late Phase 2. The backend has been migrated to NestJS and now supports:
+The project is in early Phase 3. The backend has been migrated to NestJS and now supports:
 - Prisma-backed user, artisan, booking, payment, review, and refresh token models.
 - JWT access + refresh token issuance.
 - Refresh token rotation and logout revocation.
-- Protected API endpoints for customers, artisans, and user data.
+- Protected API endpoints for customers, artisans, saved artisans, and user data.
+- Keyword + availability search on `/api/artisans` (q, category, city, minRating, available, sortBy).
+- Saved-artisan endpoints: `GET/POST/DELETE /api/saved-artisans`.
 
 The frontend now uses:
 - Axios-based API client with access token injection.
 - `401` refresh token retry logic.
 - Logout flow that revokes refresh tokens and clears local session state.
 - Dashboard pages wired to the API and auth flows instead of stale mock behavior.
+- `AuthGuard` route protection for `/dashboard/*`, `/bookings`, `/settings`, and `/saved`.
+- Auth-aware Navbar (dashboard link + logout for signed-in users).
+- API-driven settings page (GET/PATCH `/users/me`), saved-artisans page, and search refinements.
+
+### Phase 2 Cleanup — DONE
+
+- ✅ Legacy Express artifacts removed (`src/index.ts`, `src/routes/`, `src/middleware/`); NestJS-only startup verified.
+- ✅ Added `refresh_tokens` migration (table was missing from the DB) and `saved_artisans` FK migration.
+- ✅ Frontend route protection + auth redirects for dashboard/protected pages.
+- ✅ Refresh-token rotation, logout revocation, and session persistence verified end-to-end (login → /users/me → refresh → old-token reuse 401 → logout → reuse 401).
+- ✅ Booking state machine + ownership rules verified (accept/complete by artisan, customer cancel, terminal-state 403, ownership 403).
 
 ### Ready for Phase 3
 
-The repo is ready to move into Phase 3 once these Phase 2 cleanup items are confirmed:
-- Remove any remaining legacy Express artifacts from the backend package.
-- Add frontend route protection and auth redirects for dashboard/protected pages.
-- Verify refresh-token retry and session persistence end-to-end.
-- Ensure API-driven dashboard, search, bookings, and profile flows are working.
+- ✅ Replace remaining mock data with real API-driven UI flows (settings, saved artisans, search).
+- ✅ Add loading, empty, validation, and error states across pages.
+- 🔄 Profile settings, saved artisans, booking history, and search refinements (settings + saved artisans + search done; booking history pending polish).
+- Pending: improve responsive accessibility, mobile UX, SEO-ready content.
+- Pending: real media uploads, map/address selection, notification support.
 
 ### Next action for another developer
 
-1. Finish Phase 2 cleanup: remove old Express files, verify NestJS-only startup, and validate backend endpoints.
-2. Add authenticated route guards in the frontend and protect dashboard routes.
-3. Flesh out Phase 3 UI polish: bookings page, profile settings, saved artisans, search flow, and responsive state handling.
-4. Add targeted tests for auth refresh, protected routes, and booking transitions.
+1. Add targeted tests for auth refresh, protected routes, and booking transitions.
+2. Add Paystack transactions and verified, idempotent webhooks (Phase 2 item 5).
+3. Add artisan verification, service areas, reviews, and admin moderation (Phase 2 item 4).
+4. Phase 4: API documentation, CI checks, logging, monitoring, and backups.

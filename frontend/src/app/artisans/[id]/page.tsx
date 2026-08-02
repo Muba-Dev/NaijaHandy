@@ -3,15 +3,16 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench } from 'lucide-react'
-import { fetchArtisanById, createBooking } from '@/lib/api'
-import { formatNGN } from '@/lib/utils'
+import { fetchArtisanById, createBooking, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
+import { formatNGN, isAuthenticated } from '@/lib/utils'
 import StarRating from '@/components/StarRating'
 import type { Artisan } from '@/types'
 
 export default function ArtisanProfilePage() {
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const [artisan, setArtisan] = useState<Artisan | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('about')
@@ -21,6 +22,42 @@ export default function ArtisanProfilePage() {
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [bookingError, setBookingError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!params.id) return
+    setLoading(true)
+    fetchArtisanById(params.id).then(setArtisan).catch(() => setArtisan(null)).finally(() => setLoading(false))
+
+    if (isAuthenticated()) {
+      fetchSavedArtisans()
+        .then((list) => setSaved(list.some((a) => a.id === params.id)))
+        .catch(() => setSaved(false))
+    }
+  }, [params.id])
+
+  const toggleSave = async () => {
+    if (!artisan) return
+    if (!isAuthenticated()) {
+      router.push(`/login?redirect=${encodeURIComponent(`/artisans/${artisan.id}`)}`)
+      return
+    }
+    setSaving(true)
+    try {
+      if (saved) {
+        await unsaveArtisan(artisan.id)
+        setSaved(false)
+      } else {
+        await saveArtisan(artisan.id)
+        setSaved(true)
+      }
+    } catch {
+      setSaved(saved)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleBook = async () => {
     if (!artisan) return
@@ -41,12 +78,6 @@ export default function ArtisanProfilePage() {
       setBookingSubmitting(false)
     }
   }
-
-  useEffect(() => {
-    if (!params.id) return
-    setLoading(true)
-    fetchArtisanById(params.id).then(setArtisan).catch(() => setArtisan(null)).finally(() => setLoading(false))
-  }, [params.id])
 
   const tabs = ['about', 'services', 'portfolio', 'reviews']
 
@@ -123,8 +154,13 @@ export default function ArtisanProfilePage() {
             <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
               <MessageSquare size={15} />Message
             </button>
-            <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <Heart size={15} />Save
+            <button
+              onClick={toggleSave}
+              disabled={saving}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors disabled:opacity-60 ${saved ? 'border-[#047857] bg-[#ECFDF5] text-[#047857]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+            >
+              <Heart size={15} className={saved ? 'fill-current' : ''} />
+              {saved ? 'Saved' : 'Save'}
             </button>
           </div>
         </div>

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Brand from '@/components/Brand'
 import { CATEGORIES, NIGERIAN_CITIES } from '@/lib/data'
 import { register } from '@/lib/api'
+import { getStoredUser } from '@/lib/utils'
 
 type Role = 'CUSTOMER' | 'ARTISAN'
 
@@ -17,6 +18,13 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', city: '', password: '', profession: '',
   })
+
+  useEffect(() => {
+    const user = getStoredUser()
+    if (user) {
+      router.replace(user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
+    }
+  }, [router])
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
