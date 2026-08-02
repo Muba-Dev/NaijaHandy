@@ -1,4 +1,4 @@
-import type { Artisan, Category, Booking } from '@/types'
+import type { Artisan, Category } from '@/types'
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 // Replace all exports here with real API calls once the backend is live.
@@ -137,14 +137,6 @@ export const CATEGORIES: Category[] = [
   { name: 'Home Cleaning', count: 210 },
   { name: 'Tailoring', count: 84 },
   { name: 'Tiling & Flooring', count: 57 },
-]
-
-export const BOOKINGS: Booking[] = [
-  { id: 'BK-001', artisan: 'Emeka Okafor', profession: 'Plumber', date: 'Tue, 30 Jul 2026', time: '9:00 AM', amount: 17000, status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=48&h=48&fit=crop&auto=format' },
-  { id: 'BK-002', artisan: 'Fatima Aliyu', profession: 'Electrician', date: 'Fri, 2 Aug 2026', time: '2:00 PM', amount: 15000, status: 'Pending', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=48&h=48&fit=crop&auto=format' },
-  { id: 'BK-003', artisan: 'Amaka Okonkwo', profession: 'Painter', date: 'Mon, 12 Aug 2026', time: '8:00 AM', amount: 30000, status: 'Pending', avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=48&h=48&fit=crop&auto=format' },
-  { id: 'BK-004', artisan: 'Chidi Nwosu', profession: 'Carpenter', date: 'Sat, 19 Jul 2026', time: '10:00 AM', amount: 26000, status: 'Completed', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=48&h=48&fit=crop&auto=format' },
-  { id: 'BK-005', artisan: 'Yusuf Garba', profession: 'Auto Mechanic', date: 'Wed, 9 Jul 2026', time: '11:00 AM', amount: 11000, status: 'Cancelled', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=48&h=48&fit=crop&auto=format' },
 ]
 
 export const NIGERIAN_CITIES = [

@@ -50,7 +50,7 @@ The project is in early Phase 3. The backend has been migrated to NestJS and now
 - Prisma-backed user, artisan, booking, payment, review, dispute, saved-artisan, and refresh token models.
 - JWT access + refresh token issuance.
 - Refresh token rotation and logout revocation.
-- Protected API endpoints for customers, artisans, saved artisans, and user data.
+- Protected API endpoints for customers, artisans, saved artisans, user data, and payments.
 - Keyword + availability search on `/api/artisans` (q, category, city, minRating, available, sortBy).
 - Saved-artisan endpoints: `GET/POST/DELETE /api/saved-artisans`.
 
@@ -72,6 +72,16 @@ The frontend now uses:
 - ✅ Admin seeded at `admin@naijahandy.com` / `password123`; seed sets artisans to APPROVED/VERIFIED.
 - ✅ Admin dashboard at `/dashboard/admin` (AuthGuard `ADMIN`): Overview stats, Artisans (approve/reject/verify), Users (suspend/reactivate + search), Reviews (approve/hide), Bookings, Payments, Disputes (resolve/dismiss with resolution note). Navbar + AuthGuard route ADMIN users correctly.
 
+### Paystack payments — DONE
+
+- ✅ Payment module (`/api/payments/*`): `POST initialize` (owner-only, one payment per booking, generates Paystack reference + metadata), `GET verify/:reference` (owner/admin-only), `POST webhook` (public, HMAC-SHA512 `x-paystack-signature` verification with timing-safe compare).
+- ✅ `PAYSTACK_MOCK=true` mode: full flow runs offline (fake authorization_url) so the checkout works without real keys; flip it off with real test keys for live Paystack behavior. Env vars in `.env` + `.env.example` (`PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`, `PAYSTACK_BASE_URL`, `PAYSTACK_CALLBACK_URL`, `PAYSTACK_MOCK`).
+- ✅ Idempotent finalization: success marks `Payment SUCCESS` + `Booking paymentStatus=PAID`, sets `paymentReference`/`paidAt`; duplicate webhooks/verifies are no-ops (`{ received: true, duplicate: true }`); amount mismatches and non-success events mark `FAILED`.
+- ✅ Payment gating: `PENDING → CONFIRMED` is blocked (403) until the booking is PAID.
+- ✅ Booking API exposes `paymentStatus` + payment on `GET /api/bookings`.
+- ✅ Frontend: booking now redirects to Paystack checkout (`authorization_url`), `/bookings` shows Paid/Unpaid badges + a "Pay Now" button, and verifies the payment on return (`?reference=`). Seed creates real `Payment` rows for the seeded PAID bookings so admin revenue/payments populate.
+- ✅ Verified end-to-end (mock): create → unpaid gate 403 → non-owner 403 → initialize → verify → PAID → confirm 200 → re-init 400 → webhook finalize → duplicate idempotent → bad/missing/tampered signatures 401 → admin revenue populated.
+
 ### Phase 2 Cleanup — DONE
 
 - ✅ Legacy Express artifacts removed (`src/index.ts`, `src/routes/`, `src/middleware/`); NestJS-only startup verified.
@@ -89,8 +99,16 @@ The frontend now uses:
 - Pending: improve responsive accessibility, mobile UX, SEO-ready content.
 - Pending: real media uploads, map/address selection, notification support.
 
+### Targeted tests — DONE
+
+- ✅ Test tooling: `jest` + `ts-jest` + `supertest` + `@nestjs/testing@10` installed in `backend/`; `npm test` (unit, `test/unit/`) and `npm run test:e2e` (e2e, `test/e2e/`) scripts; `tsconfig.test.json` + `test/jest-e2e.json`.
+- ✅ Unit tests (33): booking state machine transitions (`domain/booking.ts`), `JwtStrategy.validate` suspension/deletion checks, `AuthService` login/refresh (suspension, expiry, rotation, revocation, logout), `BookingService.updateStatus` ownership + payment gate + transitions, `BookingService.raiseDispute` ownership + single-open-dispute, `PaymentService.handleWebhook` HMAC-SHA512 signature (missing/invalid/tampered/correct) + idempotency + amount-mismatch FAILED.
+- ✅ E2E tests (39) against the real app + Supabase, self-cleaning:
+  - Auth: register/duplicate/validation, login, wrong password, 401 on protected routes (no/garbage token), `/users/me`, refresh rotation + replay rejection, logout revocation, ARTISAN registration.
+  - Booking: auth gate, short description, ownership 403, UNPAID confirm gate 403, invalid status 400, customer cancel, terminal-state 403, own-bookings list, dispute + duplicate-dispute 403.
+  - Admin: non-admin 403, unauthenticated 401, stats/users/payments, suspend → token + login 401 → reactivate, cannot-suspend-admin 400, invalid status 400.
+  - Payments: non-owner/unauth initialize 403/401, mock initialize → verify → PAID + confirm 200, re-init 400, non-owner verify 403, duplicate webhook, amount-mismatch → FAILED (booking stays UNPAID).
+
 ### Next action for another developer
 
-1. Add targeted tests for auth refresh, protected routes, booking transitions, and admin flows.
-2. Add Paystack transactions and verified, idempotent webhooks (Phase 2 item 5).
-3. Phase 4: API documentation, CI checks, logging, monitoring, and backups.
+1. Phase 4: API documentation, CI checks, logging, monitoring, and backups.

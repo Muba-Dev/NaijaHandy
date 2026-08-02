@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, Clock, MessageSquare, Star, Plus } from 'lucide-react'
-import { fetchBookings } from '@/lib/api'
+import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2 } from 'lucide-react'
+import { fetchBookings, initializePayment, verifyPayment } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
@@ -16,11 +16,39 @@ export default function BookingHistoryPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('All')
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [payingId, setPayingId] = useState<string | null>(null)
+  const [paymentMsg, setPaymentMsg] = useState('')
 
-  useEffect(() => {
+  const loadBookings = () => {
     setLoading(true)
     fetchBookings().then(setBookings).catch(() => setBookings([])).finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadBookings()
+
+    const params = new URLSearchParams(window.location.search)
+    const reference = params.get('reference')
+    if (reference) {
+      verifyPayment(reference)
+        .then(() => {
+          setPaymentMsg('Payment successful — your booking is now paid.')
+          loadBookings()
+        })
+        .catch(() => setPaymentMsg('Payment could not be verified. Contact support if you were charged.'))
+      window.history.replaceState({}, '', window.location.pathname)
+    }
   }, [])
+
+  const handlePay = async (b: Booking) => {
+    setPayingId(b.id)
+    try {
+      const { authorization_url } = await initializePayment(b.id)
+      window.location.href = authorization_url
+    } catch {
+      setPayingId(null)
+    }
+  }
 
   const filtered = bookings.filter((b) => {
     if (activeTab === 'All') return true
@@ -44,6 +72,12 @@ export default function BookingHistoryPage() {
             <Plus size={16} /> New Booking
           </Link>
         </div>
+
+        {paymentMsg && (
+          <div className="mb-6 flex items-center gap-2 text-sm font-medium text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+            <CheckCircle2 size={16} className="shrink-0" /> {paymentMsg}
+          </div>
+        )}
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
@@ -85,7 +119,12 @@ export default function BookingHistoryPage() {
                       <p className="font-semibold text-gray-900">{b.artisan}</p>
                       <p className="text-sm text-gray-500">{b.profession}</p>
                     </div>
-                    <StatusBadge status={b.status as BookingStatus} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={b.status as BookingStatus} />
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${b.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {b.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-gray-500">
                     <span className="flex items-center gap-1"><Calendar size={13} />{b.date}</span>
@@ -101,9 +140,18 @@ export default function BookingHistoryPage() {
                         <Star size={13} />Leave Review
                       </button>
                     )}
+                    {b.paymentStatus === 'UNPAID' && (
+                      <button
+                        onClick={() => handlePay(b)}
+                        disabled={payingId === b.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
+                      >
+                        <CreditCard size={13} />{payingId === b.id ? 'Redirecting…' : 'Pay Now'}
+                      </button>
+                    )}
                     <Link
-                      href={`/artisans/1`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity"
+                      href={`/artisans/${b.id}`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-[#047857] bg-emerald-50 hover:bg-emerald-100 transition-colors"
                     >
                       Rebook
                     </Link>

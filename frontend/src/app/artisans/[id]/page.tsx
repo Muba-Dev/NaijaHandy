@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench } from 'lucide-react'
-import { fetchArtisanById, createBooking, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
+import { fetchArtisanById, createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
 import { formatNGN, isAuthenticated } from '@/lib/utils'
 import StarRating from '@/components/StarRating'
 import type { Artisan } from '@/types'
@@ -64,14 +64,20 @@ export default function ArtisanProfilePage() {
     setBookingSubmitting(true)
     setBookingError('')
     try {
-      await createBooking({
+      const booking = await createBooking({
         artisanId: artisan.id,
         date: bookingDate,
         time: bookingTime,
         description: jobDesc,
         amount: artisan.hourlyRate * 2 + 500,
       })
-      setBookingSuccess(true)
+      try {
+        const { authorization_url } = await initializePayment(booking.id)
+        window.location.href = authorization_url
+        return
+      } catch {
+        setBookingSuccess(true)
+      }
     } catch (err: any) {
       setBookingError(err.response?.data?.errors?.[0]?.message || 'Please log in first to book an artisan.')
     } finally {
@@ -355,10 +361,10 @@ export default function ArtisanProfilePage() {
                 disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
                 className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Confirmed ✓' : 'Proceed to Book'}
+                {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
               </button>
               {bookingError && <p className="text-center text-xs text-red-500 mt-2">{bookingError}</p>}
-              <p className="text-center text-xs text-gray-400 mt-2.5">Payment held securely until job is done</p>
+              <p className="text-center text-xs text-gray-400 mt-2.5">You&apos;ll be redirected to secure Paystack checkout to complete payment</p>
             </div>
           </div>
         </div>

@@ -34,6 +34,7 @@ export class BookingService {
       include: {
         artisan: { include: { user: { select: { name: true, avatar: true } } } },
         customer: { select: { name: true, avatar: true } },
+        payment: { select: { status: true, reference: true } },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -55,6 +56,9 @@ export class BookingService {
     }
     if (!canTransitionBookingStatus(current.status, status)) {
       throw new ForbiddenException(`Cannot change booking from ${current.status} to ${status}`)
+    }
+    if (status === 'CONFIRMED' && current.paymentStatus !== 'PAID') {
+      throw new ForbiddenException('Booking must be paid before it can be confirmed')
     }
 
     return this.prisma.booking.update({ where: { id: bookingId }, data: { status } })

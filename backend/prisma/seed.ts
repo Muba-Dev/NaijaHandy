@@ -100,6 +100,20 @@ async function main() {
     { customerId: customer1.id, artisanId: chidi.id, date: new Date('2026-07-19'), time: '10:00 AM', description: 'Build custom bookshelf', amount: 26000, status: 'COMPLETED', paymentStatus: 'PAID', paymentReference: 'seed-chidi-001', paidAt: new Date('2026-07-18') },
   ] })
 
+  // ── Payments (backing records for the PAID bookings) ──
+  const paidBookings = await prisma.booking.findMany({
+    where: { customerId: customer1.id, paymentStatus: 'PAID' },
+    select: { id: true, amount: true },
+  })
+  for (const b of paidBookings) {
+    const existing = await prisma.payment.findUnique({ where: { bookingId: b.id } })
+    if (!existing) {
+      await prisma.payment.create({
+        data: { bookingId: b.id, reference: `seed-pay-${b.id.slice(-6)}`, amount: b.amount, status: 'SUCCESS', provider: 'PAYSTACK', paidAt: new Date() },
+      })
+    }
+  }
+
   console.log('Database seeded successfully!')
   console.log('  Admin:     admin@naijahandy.com')
   console.log('  Customers: chisom@example.com / bayo@example.com')

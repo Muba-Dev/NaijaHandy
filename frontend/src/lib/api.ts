@@ -102,8 +102,11 @@ type RawBooking = {
   description: string
   amount: number
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+  paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
+  paymentReference?: string | null
   artisan: { profession: string; user: { name: string; avatar: string | null } }
   customer: { name: string; avatar: string | null }
+  payment?: { status: string; reference: string } | null
 }
 
 function normalizeBooking(b: RawBooking): Booking {
@@ -116,6 +119,8 @@ function normalizeBooking(b: RawBooking): Booking {
     amount: b.amount,
     status: (b.status.charAt(0) + b.status.slice(1).toLowerCase()) as Booking['status'],
     avatar: b.artisan.user.avatar || '',
+    paymentStatus: b.paymentStatus,
+    paymentReference: b.paymentReference,
   }
 }
 
@@ -206,6 +211,16 @@ export async function createBooking(payload: {
 
 export async function updateBookingStatus(id: string, status: string) {
   const { data } = await api.patch(`/bookings/${id}/status`, { status })
+  return data.data
+}
+
+export async function initializePayment(bookingId: string): Promise<{ authorization_url: string; reference: string }> {
+  const { data } = await api.post('/payments/initialize', { bookingId })
+  return data.data
+}
+
+export async function verifyPayment(reference: string) {
+  const { data } = await api.get(`/payments/verify/${encodeURIComponent(reference)}`)
   return data.data
 }
 
