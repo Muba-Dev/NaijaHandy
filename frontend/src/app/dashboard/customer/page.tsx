@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Calendar, CheckCircle, CreditCard, TrendingUp, Heart, Settings, LogOut, Plus } from 'lucide-react'
-import { fetchBookings, fetchMe } from '@/lib/api'
+import { fetchBookings, fetchMe, logout } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
 import type { Booking, BookingStatus } from '@/types'
@@ -18,6 +19,7 @@ const navItems = [
 ]
 
 export default function CustomerDashboardPage() {
+  const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [user, setUser] = useState<AuthUser | null>(null)
 
@@ -67,9 +69,9 @@ export default function CustomerDashboardPage() {
           })}
         </nav>
         <div className="p-3 border-t border-gray-100">
-          <Link href="/" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={async () => { await logout(); router.push('/login') }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
             <LogOut size={16} /> Log Out
-          </Link>
+          </button>
         </div>
       </aside>
 

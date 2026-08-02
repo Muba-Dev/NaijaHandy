@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { TrendingUp, Briefcase, Calendar, CreditCard, Settings, LogOut, Bell, Users, CheckCircle, MapPin, ToggleLeft, ToggleRight, Plus } from 'lucide-react'
-import { fetchMyArtisanProfile, fetchBookings, updateArtisanProfile, updateBookingStatus } from '@/lib/api'
+import { fetchMyArtisanProfile, fetchBookings, updateArtisanProfile, updateBookingStatus, logout } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import type { Artisan, Booking } from '@/types'
 
@@ -17,6 +18,7 @@ const navItems = [
 ]
 
 export default function ArtisanDashboardPage() {
+  const router = useRouter()
   const [available, setAvailable] = useState(true)
   const [activeNav, setActiveNav] = useState('overview')
   const [artisan, setArtisan] = useState<Artisan | null>(null)
@@ -73,9 +75,9 @@ export default function ArtisanDashboardPage() {
           })}
         </nav>
         <div className="p-3 border-t border-gray-100">
-          <Link href="/" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={async () => { await logout(); router.push('/login') }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
             <LogOut size={16} /> Log Out
-          </Link>
+          </button>
         </div>
       </aside>
 

@@ -8,18 +8,28 @@ export function formatNGN(amount: number): string {
   return `₦${amount.toLocaleString('en-NG')}`
 }
 
-// Replace with real token logic when backend is ready
+const ACCESS_TOKEN_KEY = 'naijahandy_access_token'
+const REFRESH_TOKEN_KEY = 'naijahandy_refresh_token'
+
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('naijahandy_token')
+  return localStorage.getItem(ACCESS_TOKEN_KEY)
 }
 
-export function setAuthToken(token: string): void {
-  localStorage.setItem('naijahandy_token', token)
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(REFRESH_TOKEN_KEY)
 }
 
-export function clearAuthToken(): void {
-  localStorage.removeItem('naijahandy_token')
+export function setAuthTokens(accessToken: string, refreshToken: string): void {
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+}
+
+export function clearAuthTokens(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
 export function isAuthenticated(): boolean {

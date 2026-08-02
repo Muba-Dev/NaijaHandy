@@ -17,7 +17,7 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: 'NaijaHandy — Find Trusted Local Artisans Near You',
+  title: 'NaijaHandy',
   description: "Nigeria's trusted marketplace for finding skilled local artisans.",
   keywords: ['artisan', 'Nigeria', 'plumber', 'electrician', 'carpenter', 'handyman'],
   icons: { icon: '/favicon.svg' },

@@ -25,15 +25,18 @@
 ## Phase 2: Production Backend
 
 1. Migrate Express modules to NestJS one bounded module at a time.
-2. Add secure authentication, refresh tokens, role authorization, and account recovery.
-3. Add artisan verification, service areas, reviews, and admin moderation.
-4. Add Paystack transactions and verified, idempotent webhooks.
+2. Add secure authentication with JWT access + refresh tokens, role authorization, and refresh token revocation.
+3. Wire backend auth into the frontend with token persistence and refresh retry.
+4. Add artisan verification, service areas, reviews, and admin moderation.
+5. Add Paystack transactions and verified, idempotent webhooks.
 
 ## Phase 3: Production Frontend
 
-1. Remove remaining mock data and use the API for every user-facing flow.
-2. Add loading, empty, validation, and error states to each workflow.
-3. Add image uploads, location search, notifications, and responsive accessibility.
+1. Replace remaining mock data with real API-driven UI flows.
+2. Add loading, empty, validation, and error states across pages.
+3. Add profile settings, saved artisans, booking history, and search refinements.
+4. Improve responsive accessibility, mobile UX, and SEO-ready content.
+5. Add real media uploads, map/address selection, and notification support.
 
 ## Phase 4: Quality And Release
 
@@ -43,10 +46,29 @@
 
 ## Current Milestone
 
-The current prototype is connected locally: Next.js uses `NEXT_PUBLIC_API_URL` to call the backend, and the backend serves seeded artisan data from Prisma. Phase 1 now has a baseline Prisma migration, explicit booking/payment states, repeatable seed data, and role-based booking transition rules. The next implementation milestone is applying this migration to a PostgreSQL staging database.
+The project is in late Phase 2. The backend has been migrated to NestJS and now supports:
+- Prisma-backed user, artisan, booking, payment, review, and refresh token models.
+- JWT access + refresh token issuance.
+- Refresh token rotation and logout revocation.
+- Protected API endpoints for customers, artisans, and user data.
 
-### Phase 1 State Contract
+The frontend now uses:
+- Axios-based API client with access token injection.
+- `401` refresh token retry logic.
+- Logout flow that revokes refresh tokens and clears local session state.
+- Dashboard pages wired to the API and auth flows instead of stale mock behavior.
 
-Booking states are `PENDING -> CONFIRMED -> COMPLETED` or `CANCELLED`. A confirmed booking may be cancelled, but completed and cancelled bookings are terminal. Payment states are `PENDING`, `SUCCESS`, `FAILED`, and `REFUNDED`; booking payment state is `UNPAID`, `PAID`, or `REFUNDED`.
+### Ready for Phase 3
 
-The local SQLite schema now includes payment fields and a `Payment` model so the API contract can be tested before connecting a hosted PostgreSQL database. The next database step is to set a PostgreSQL `DATABASE_URL`, switch the Prisma provider, create a named migration, and run the seed against a disposable staging database.
+The repo is ready to move into Phase 3 once these Phase 2 cleanup items are confirmed:
+- Remove any remaining legacy Express artifacts from the backend package.
+- Add frontend route protection and auth redirects for dashboard/protected pages.
+- Verify refresh-token retry and session persistence end-to-end.
+- Ensure API-driven dashboard, search, bookings, and profile flows are working.
+
+### Next action for another developer
+
+1. Finish Phase 2 cleanup: remove old Express files, verify NestJS-only startup, and validate backend endpoints.
+2. Add authenticated route guards in the frontend and protect dashboard routes.
+3. Flesh out Phase 3 UI polish: bookings page, profile settings, saved artisans, search flow, and responsive state handling.
+4. Add targeted tests for auth refresh, protected routes, and booking transitions.

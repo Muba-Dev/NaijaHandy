@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload } from '@/types'
-import { getAuthToken, setAuthToken, clearAuthToken } from '@/lib/utils'
+import { getAuthToken, getRefreshToken, setAuthTokens, clearAuthTokens } from '@/lib/utils'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
@@ -9,9 +9,40 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = getAuthToken()
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (token && config.headers) config.headers.Authorization = `Bearer ${token}`
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+    if (!originalRequest || originalRequest._retry) return Promise.reject(error)
+
+    if (error.response?.status === 401) {
+      const refreshToken = getRefreshToken()
+      if (!refreshToken) {
+        clearAuthTokens()
+        return Promise.reject(error)
+      }
+
+      originalRequest._retry = true
+      try {
+        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/auth/refresh`, {
+          refreshToken,
+        })
+        setAuthTokens(data.accessToken, data.refreshToken)
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`
+        return api(originalRequest)
+      } catch (refreshError) {
+        clearAuthTokens()
+        return Promise.reject(refreshError)
+      }
+    }
+
+    return Promise.reject(error)
+  },
+)
 
 // ─── Normalizers (backend shape → UI shape) ──────────────────────────────────
 
@@ -92,18 +123,22 @@ function normalizeBooking(b: RawBooking): Booking {
 
 export async function login(credentials: LoginCredentials): Promise<AuthUser> {
   const { data } = await api.post('/auth/login', credentials)
-  setAuthToken(data.token)
+  setAuthTokens(data.accessToken, data.refreshToken)
   return data.user
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthUser> {
   const { data } = await api.post('/auth/register', payload)
-  setAuthToken(data.token)
+  setAuthTokens(data.accessToken, data.refreshToken)
   return data.user
 }
 
-export function logout(): void {
-  clearAuthToken()
+export async function logout(): Promise<void> {
+  const refreshToken = getRefreshToken()
+  if (refreshToken) {
+    await api.post('/auth/logout', { refreshToken }).catch(() => undefined)
+  }
+  clearAuthTokens()
 }
 
 export async function fetchMe(): Promise<AuthUser> {
