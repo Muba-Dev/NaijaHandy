@@ -29,7 +29,8 @@ export default function AuthGuard({
       try {
         const user = getStoredUser<AuthUser>() ?? (await fetchMe())
         if (allowedRoles && !allowedRoles.includes(user.role)) {
-          router.replace(user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
+          const fallback = user.role === 'ADMIN' ? '/dashboard/admin' : user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer'
+          router.replace(fallback)
           return
         }
         if (!cancelled) setVerified(true)

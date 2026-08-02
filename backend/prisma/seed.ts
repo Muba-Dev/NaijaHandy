@@ -6,6 +6,13 @@ const prisma = new PrismaClient()
 async function main() {
   const password = await bcrypt.hash('password123', 12)
 
+  // ── Admin ──
+  await prisma.user.upsert({
+    where: { email: 'admin@naijahandy.com' },
+    update: {},
+    create: { name: 'NaijaHandy Admin', email: 'admin@naijahandy.com', phone: '+234 800 000 0000', city: 'Lagos', password, role: 'ADMIN' },
+  })
+
   // ── Customers ──
   const customer1 = await prisma.user.upsert({
     where: { email: 'chisom@example.com' },
@@ -33,6 +40,7 @@ async function main() {
       userId: emekaUser.id, profession: 'Master Plumber', category: 'Plumbing',
       bio: 'Over 12 years of experience fixing residential and commercial plumbing across Lagos. Specialise in pipe installations and emergency repairs.',
       hourlyRate: 8500, verified: true, available: true, avgRating: 4.9, totalReviews: 134,
+      approvalStatus: 'APPROVED', verificationStatus: 'VERIFIED',
     },
   })
 
@@ -50,6 +58,7 @@ async function main() {
       userId: fatimaUser.id, profession: 'Electrician', category: 'Electrical',
       bio: 'Certified electrical engineer with COREN accreditation. Residential wiring, industrial installations, and solar panel setups.',
       hourlyRate: 7500, verified: true, available: true, avgRating: 4.8, totalReviews: 89,
+      approvalStatus: 'APPROVED', verificationStatus: 'VERIFIED',
     },
   })
 
@@ -67,6 +76,7 @@ async function main() {
       userId: chidiUser.id, profession: 'Carpenter & Joiner', category: 'Carpentry',
       bio: 'Custom furniture design and woodworking for homes and offices. 9 years building bespoke pieces across the South-South.',
       hourlyRate: 6500, verified: true, available: false, avgRating: 4.7, totalReviews: 62,
+      approvalStatus: 'APPROVED', verificationStatus: 'VERIFIED',
     },
   })
 
@@ -91,6 +101,7 @@ async function main() {
   ] })
 
   console.log('Database seeded successfully!')
+  console.log('  Admin:     admin@naijahandy.com')
   console.log('  Customers: chisom@example.com / bayo@example.com')
   console.log('  Artisans:  emeka@example.com / fatima@example.com / chidi@example.com')
   console.log('  Password:  password123 (for all)')

@@ -59,4 +59,17 @@ export class BookingService {
 
     return this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
   }
+
+  async raiseDispute(userId: string, bookingId: string, reason: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new NotFoundException('Booking not found')
+    if (booking.customerId !== userId) throw new ForbiddenException('You cannot dispute this booking')
+
+    const open = await this.prisma.dispute.findFirst({ where: { bookingId, status: 'OPEN' } })
+    if (open) throw new ForbiddenException('A dispute for this booking is already open')
+
+    return this.prisma.dispute.create({
+      data: { bookingId, raisedBy: userId, reason },
+    })
+  }
 }

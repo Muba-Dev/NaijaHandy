@@ -13,6 +13,7 @@ export class ArtisanService {
 
     return this.prisma.artisanProfile.findMany({
       where: {
+        approvalStatus: 'APPROVED',
         ...(keyword
           ? {
               OR: [
@@ -38,8 +39,8 @@ export class ArtisanService {
   }
 
   async findOne(id: string) {
-    const artisan = await this.prisma.artisanProfile.findUnique({
-      where: { id },
+    const artisan = await this.prisma.artisanProfile.findFirst({
+      where: { id, approvalStatus: 'APPROVED' },
       include: {
         user: { select: { id: true, name: true, city: true, avatar: true, phone: true } },
         services: true,

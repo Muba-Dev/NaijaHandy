@@ -47,7 +47,7 @@
 ## Current Milestone
 
 The project is in early Phase 3. The backend has been migrated to NestJS and now supports:
-- Prisma-backed user, artisan, booking, payment, review, and refresh token models.
+- Prisma-backed user, artisan, booking, payment, review, dispute, saved-artisan, and refresh token models.
 - JWT access + refresh token issuance.
 - Refresh token rotation and logout revocation.
 - Protected API endpoints for customers, artisans, saved artisans, and user data.
@@ -63,6 +63,15 @@ The frontend now uses:
 - Auth-aware Navbar (dashboard link + logout for signed-in users).
 - API-driven settings page (GET/PATCH `/users/me`), saved-artisans page, and search refinements.
 
+### Admin features — DONE
+
+- ✅ Schema: `User.status` (ACTIVE/SUSPENDED), `ArtisanProfile.approvalStatus` (PENDING/APPROVED/REJECTED) + `verificationStatus` (UNVERIFIED/VERIFIED), `Review.status` (APPROVED/HIDDEN), new `Dispute` model (OPEN/RESOLVED/DISMISSED) with relations to Booking and the raising user. Applied via `20260802210757_admin_features` migration + backfill (existing artisans → APPROVED/VERIFIED).
+- ✅ Backend admin module (`/api/admin/*`) guarded by `JwtAuthGuard + RolesGuard` with `@Roles('ADMIN')`: stats, artisan approval/verification, user management/suspend (cannot suspend admins), review moderation, bookings + payments, dispute resolution.
+- ✅ Enforcement: suspended users are blocked at login, refresh, and every JWT-protected request (`jwt.strategy.ts` re-checks DB status); unapproved/REJECTED artisans are hidden from public search + profile detail (`/api/artisans`).
+- ✅ Customer dispute filing: `POST /api/bookings/:id/dispute` (owner-only, one open dispute per booking, reason ≥ 10 chars).
+- ✅ Admin seeded at `admin@naijahandy.com` / `password123`; seed sets artisans to APPROVED/VERIFIED.
+- ✅ Admin dashboard at `/dashboard/admin` (AuthGuard `ADMIN`): Overview stats, Artisans (approve/reject/verify), Users (suspend/reactivate + search), Reviews (approve/hide), Bookings, Payments, Disputes (resolve/dismiss with resolution note). Navbar + AuthGuard route ADMIN users correctly.
+
 ### Phase 2 Cleanup — DONE
 
 - ✅ Legacy Express artifacts removed (`src/index.ts`, `src/routes/`, `src/middleware/`); NestJS-only startup verified.
@@ -75,13 +84,13 @@ The frontend now uses:
 
 - ✅ Replace remaining mock data with real API-driven UI flows (settings, saved artisans, search).
 - ✅ Add loading, empty, validation, and error states across pages.
+- ✅ Admin platform (Phase 2 item 4): approvals, verification, user suspension, review moderation, bookings/payments, disputes.
 - 🔄 Profile settings, saved artisans, booking history, and search refinements (settings + saved artisans + search done; booking history pending polish).
 - Pending: improve responsive accessibility, mobile UX, SEO-ready content.
 - Pending: real media uploads, map/address selection, notification support.
 
 ### Next action for another developer
 
-1. Add targeted tests for auth refresh, protected routes, and booking transitions.
+1. Add targeted tests for auth refresh, protected routes, booking transitions, and admin flows.
 2. Add Paystack transactions and verified, idempotent webhooks (Phase 2 item 5).
-3. Add artisan verification, service areas, reviews, and admin moderation (Phase 2 item 4).
-4. Phase 4: API documentation, CI checks, logging, monitoring, and backups.
+3. Phase 4: API documentation, CI checks, logging, monitoring, and backups.

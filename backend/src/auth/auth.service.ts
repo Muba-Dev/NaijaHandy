@@ -60,6 +60,7 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } })
     if (!user) throw new UnauthorizedException('Invalid credentials')
+    if (user.status === 'SUSPENDED') throw new UnauthorizedException('Account suspended')
 
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new UnauthorizedException('Invalid credentials')
@@ -79,6 +80,12 @@ export class AuthService {
     const payload = this.jwtService.verify<{ id: string; role: string }>(refreshToken, {
       secret: process.env.JWT_SECRET || 'artisanng-dev-secret-key-change-in-production',
     })
+
+    const user = await this.prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, status: true } })
+    if (!user || user.status === 'SUSPENDED') {
+      await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } })
+      throw new UnauthorizedException('Account suspended')
+    }
 
     await this.prisma.refreshToken.delete({ where: { token: refreshToken } })
     return this.issueTokens({ id: payload.id, role: payload.role })

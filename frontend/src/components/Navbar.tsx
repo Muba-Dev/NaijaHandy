@@ -31,7 +31,7 @@ export default function Navbar() {
     router.push('/')
   }
 
-  const dashboardHref = user?.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer'
+  const dashboardHref = user?.role === 'ADMIN' ? '/dashboard/admin' : user?.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer'
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
