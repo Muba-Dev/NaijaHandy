@@ -7,8 +7,19 @@ import { SavedArtisanModule } from './saved-artisan/saved-artisan.module'
 import { AdminModule } from './admin/admin.module'
 import { PaymentModule } from './payment/payment.module'
 import { PrismaModule } from './prisma/prisma.module'
+import { HealthModule } from './health/health.module'
 
 @Module({
-  imports: [PrismaModule, AuthModule, ArtisanModule, BookingModule, UserModule, SavedArtisanModule, AdminModule, PaymentModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    ArtisanModule,
+    BookingModule,
+    UserModule,
+    SavedArtisanModule,
+    AdminModule,
+    PaymentModule,
+    HealthModule,
+  ],
 })
 export class AppModule {}

@@ -109,6 +109,19 @@ The frontend now uses:
   - Admin: non-admin 403, unauthenticated 401, stats/users/payments, suspend → token + login 401 → reactivate, cannot-suspend-admin 400, invalid status 400.
   - Payments: non-owner/unauth initialize 403/401, mock initialize → verify → PAID + confirm 200, re-init 400, non-owner verify 403, duplicate webhook, amount-mismatch → FAILED (booking stays UNPAID).
 
+### Phase 4 — Quality And Release
+
+- ✅ Unit + integration (e2e) test suites for the backend (see "Targeted tests" above).
+- ✅ API documentation: Swagger/OpenAPI at `GET /api/docs` (docs JSON at `/api/docs-json`). `@nestjs/swagger@8` added to the backend.
+- ✅ CI checks: `.github/workflows/ci.yml` — backend build + unit tests, backend e2e (runs only when the `DATABASE_URL` secret is configured; seeds the DB, which is idempotent), frontend lint + build. Runs on push to `main` and pull requests.
+- ✅ Logging: `morgan('combined')` request logging in `main.ts` (skipped in tests) + Nest bootstrap logs.
+- ✅ Monitoring: `GET /api/health` — DB connectivity check returning `{ status, db, timestamp }`, 503 when the DB is down.
+- ✅ Backups: `backend/scripts/backup-db.sh` (timestamped `pg_dump`, keeps newest `BACKUP_KEEP` = 14) with cron example; `npm run db:backup`; `backups/` gitignored.
+- ✅ Frontend lint: ESLint 9 flat config (`eslint.config.mjs`) + `npm run lint`; fixed all `no-explicit-any` and unused-variable issues across the app.
+- 🔄 Frontend Playwright e2e — not yet added.
+- 🔄 Deployment (Vercel / Railway-or-Render / Neon-or-Supabase) — pending.
+
 ### Next action for another developer
 
-1. Phase 4: API documentation, CI checks, logging, monitoring, and backups.
+1. Frontend Playwright e2e tests (optional, can wait for deployment).
+2. Deployment: Next.js → Vercel, API → Railway/Render, PostgreSQL → Neon/Supabase; wire the CI e2e `DATABASE_URL` secret to the production/staging DB.

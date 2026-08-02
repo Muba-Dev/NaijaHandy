@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Shield } from 'lucide-react'
 import { login } from '@/lib/api'
-import { getStoredUser } from '@/lib/utils'
+import { getStoredUser, getApiErrorMessage } from '@/lib/utils'
 import Brand from '@/components/Brand'
 
 function LoginForm() {
@@ -37,8 +37,8 @@ function LoginForm() {
       } else {
         router.push(user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Check your credentials.')
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Login failed. Check your credentials.'))
       setLoading(false)
     }
   }

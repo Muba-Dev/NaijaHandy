@@ -11,17 +11,27 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "ts-node-dev prisma/seed.ts",
+    "db:backup": "bash scripts/backup-db.sh",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "jest": {
-    "moduleFileExtensions": ["ts", "js", "json"],
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
     "rootDir": ".",
     "testEnvironment": "node",
     "testRegex": "test/unit/.*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.ts$": ["ts-jest", { "tsconfig": "tsconfig.test.json" }]
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.test.json"
+        }
+      ]
     },
     "testTimeout": 30000
   },
@@ -34,6 +44,7 @@
     "@nestjs/jwt": "^10.0.0",
     "@nestjs/passport": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^8.1.1",
     "@prisma/client": "^6.0.0",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",

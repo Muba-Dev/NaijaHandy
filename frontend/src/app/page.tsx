@@ -6,13 +6,10 @@ import Image from 'next/image'
 import {
   Search, Briefcase, MapPin, ArrowRight, Calendar, Shield,
   Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers,
-  CheckCircle, Star,
 } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
 import { fetchArtisans } from '@/lib/api'
-import { formatNGN } from '@/lib/utils'
 import ArtisanCard from '@/components/ArtisanCard'
-import StarRating from '@/components/StarRating'
 import type { Artisan } from '@/types'
 
 export default function HomePage() {

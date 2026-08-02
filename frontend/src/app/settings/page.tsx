@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Users, Shield, CreditCard, Bell, Plus, CheckCircle2, AlertCircle } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import { fetchMe, updateProfile } from '@/lib/api'
-import { setStoredUser } from '@/lib/utils'
+import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
 import type { AuthUser } from '@/types'
 
 type SettingsTab = 'personal' | 'security' | 'payment' | 'notifications'
@@ -46,8 +46,8 @@ export default function ProfileSettingsPage() {
       setUser((u) => (u ? { ...u, ...updated } : u))
       setStoredUser(updated)
       setSaved(true)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save changes. Please try again.')
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to save changes. Please try again.'))
     } finally {
       setSaving(false)
     }

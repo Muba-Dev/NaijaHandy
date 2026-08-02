@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Brand from '@/components/Brand'
 import { CATEGORIES, NIGERIAN_CITIES } from '@/lib/data'
 import { register } from '@/lib/api'
-import { getStoredUser } from '@/lib/utils'
+import { getStoredUser, getApiErrorMessage } from '@/lib/utils'
 
 type Role = 'CUSTOMER' | 'ARTISAN'
 
@@ -34,7 +34,7 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
     try {
-      const user = await register({
+      await register({
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -45,8 +45,8 @@ export default function RegisterPage() {
         category: role === 'ARTISAN' ? form.profession : undefined,
       })
       router.push(role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.')
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Registration failed. Please try again.'))
       setLoading(false)
     }
   }

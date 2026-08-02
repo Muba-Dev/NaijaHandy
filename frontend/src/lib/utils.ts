@@ -8,6 +8,26 @@ export function formatNGN(amount: number): string {
   return `₦${amount.toLocaleString('en-NG')}`
 }
 
+export function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const data = (err as { response?: { data?: unknown } }).response?.data
+    if (data && typeof data === 'object' && 'message' in data) {
+      const msg = (data as { message?: unknown }).message
+      if (typeof msg === 'string' && msg) return msg
+      if (Array.isArray(msg) && msg.length) {
+        const first = msg[0]
+        if (typeof first === 'string') return first
+        if (first && typeof first === 'object' && 'message' in first) {
+          const nested = (first as { message?: unknown }).message
+          if (typeof nested === 'string') return nested
+        }
+        return String(first)
+      }
+    }
+  }
+  return fallback
+}
+
 const ACCESS_TOKEN_KEY = 'naijahandy_access_token'
 const REFRESH_TOKEN_KEY = 'naijahandy_refresh_token'
 const USER_KEY = 'naijahandy_user'

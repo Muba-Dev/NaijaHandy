@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench } from 'lucide-react'
 import { fetchArtisanById, createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
-import { formatNGN, isAuthenticated } from '@/lib/utils'
+import { formatNGN, isAuthenticated, getApiErrorMessage } from '@/lib/utils'
 import StarRating from '@/components/StarRating'
 import type { Artisan } from '@/types'
 
@@ -78,8 +78,8 @@ export default function ArtisanProfilePage() {
       } catch {
         setBookingSuccess(true)
       }
-    } catch (err: any) {
-      setBookingError(err.response?.data?.errors?.[0]?.message || 'Please log in first to book an artisan.')
+    } catch (err) {
+      setBookingError(getApiErrorMessage(err, 'Please log in first to book an artisan.'))
     } finally {
       setBookingSubmitting(false)
     }

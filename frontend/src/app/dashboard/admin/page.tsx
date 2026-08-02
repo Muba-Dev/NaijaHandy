@@ -49,13 +49,6 @@ function approvalTone(s: string): 'green' | 'amber' | 'red' | 'gray' {
   return 'gray'
 }
 
-function bookingTone(s: string): 'green' | 'amber' | 'red' | 'blue' {
-  if (s === 'CONFIRMED') return 'green'
-  if (s === 'PENDING') return 'amber'
-  if (s === 'CANCELLED') return 'red'
-  return 'blue'
-}
-
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
@@ -77,7 +70,7 @@ export default function AdminDashboardPage() {
   const [userFilter, setUserFilter] = useState('ALL')
   const [reviewFilter, setReviewFilter] = useState('ALL')
   const [bookingFilter, setBookingFilter] = useState('ALL')
-  const [disputeFilter, setDisputeFilter] = useState('ALL')
+  const [disputeFilter] = useState('ALL')
   const [userSearch, setUserSearch] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [resolving, setResolving] = useState<string | null>(null)
