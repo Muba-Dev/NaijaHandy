@@ -27,9 +27,7 @@ jobs:
   backend-e2e:
     name: Backend — e2e tests
     runs-on: ubuntu-latest
-    # Runs only when a seeded PostgreSQL (e.g. Supabase) connection is provided
-    # via the DATABASE_URL repository secret.
-    if: ${{ secrets.DATABASE_URL != '' }}
+    # Requires the DATABASE_URL repository secret.
     defaults:
       run:
         working-directory: backend
@@ -69,9 +67,7 @@ jobs:
   frontend-e2e:
     name: Frontend — Playwright e2e
     runs-on: ubuntu-latest
-    # Runs only when a seeded PostgreSQL (e.g. Supabase) connection is provided
-    # via the DATABASE_URL repository secret.
-    if: ${{ secrets.DATABASE_URL != '' }}
+    # Requires the DATABASE_URL repository secret.
     defaults:
       run:
         working-directory: frontend

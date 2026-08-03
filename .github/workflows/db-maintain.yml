@@ -12,11 +12,18 @@ jobs:
   migrate:
     name: Migrate + Seed
     runs-on: ubuntu-latest
-    if: ${{ secrets.DATABASE_URL != '' }}
     defaults:
       run:
         working-directory: backend
     steps:
+      - name: Check DATABASE_URL secret
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set — add it under repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
