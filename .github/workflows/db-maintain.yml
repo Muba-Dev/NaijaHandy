@@ -1,0 +1,34 @@
+name: DB Maintain
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: 'Also run the seed (idempotent): true/false'
+        required: false
+        default: 'true'
+
+jobs:
+  migrate:
+    name: Migrate + Seed
+    runs-on: ubuntu-latest
+    if: ${{ secrets.DATABASE_URL != '' }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Seed database
+        if: ${{ github.event.inputs.run_seed == 'true' }}
+        run: npx prisma db seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
