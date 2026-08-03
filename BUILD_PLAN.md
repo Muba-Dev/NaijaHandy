@@ -118,10 +118,67 @@ The frontend now uses:
 - ✅ Monitoring: `GET /api/health` — DB connectivity check returning `{ status, db, timestamp }`, 503 when the DB is down.
 - ✅ Backups: `backend/scripts/backup-db.sh` (timestamped `pg_dump`, keeps newest `BACKUP_KEEP` = 14) with cron example; `npm run db:backup`; `backups/` gitignored.
 - ✅ Frontend lint: ESLint 9 flat config (`eslint.config.mjs`) + `npm run lint`; fixed all `no-explicit-any` and unused-variable issues across the app.
-- 🔄 Frontend Playwright e2e — not yet added.
-- 🔄 Deployment (Vercel / Railway-or-Render / Neon-or-Supabase) — pending.
+- ✅ Frontend Playwright e2e (`frontend/e2e/`, `playwright.config.ts`, `npm run test:e2e`): 8 tests against the real app + DB, self-cleaning via `e2e/support/db.ts` (unique description marker → deletes bookings/payments/disputes):
+  - Auth: protected-route redirect, invalid-credentials error, customer login → dashboard, logout → home + protected pages locked.
+  - Browse: search lists artisans from the API, artisan profile shows details + booking form.
+  - Booking + payment: book on the profile page → mock Paystack redirect → `?reference=` verify → PAID; Pay Now on an API-created UNPAID booking → verify → PAID.
+  - CI job `frontend-e2e` in `.github/workflows/ci.yml` (Playwright install, DB seed, artifact upload), gated on the `DATABASE_URL` secret.
+- ✅ Deployment (Vercel / Railway-or-Render / Neon-or-Supabase) — pending.
 
 ### Next action for another developer
 
-1. Frontend Playwright e2e tests (optional, can wait for deployment).
-2. Deployment: Next.js → Vercel, API → Railway/Render, PostgreSQL → Neon/Supabase; wire the CI e2e `DATABASE_URL` secret to the production/staging DB.
+1. Deployment: Next.js → Vercel, API → Railway/Render, PostgreSQL → Neon/Supabase; wire the CI e2e `DATABASE_URL` secret to the production/staging DB.
+
+### Deployment — how to start
+
+Live stack: Next.js → Vercel · NestJS API → Render · PostgreSQL → Neon · Payments → Paystack (mock)
+
+#### 0. Accounts (done)
+- ✅ GitHub (`Muba-Dev/artisanng`), ✅ Vercel, ✅ Render, ✅ Neon
+- Neon pooled connection string (strip `&channel_binding=require`):
+  `postgresql://neondb_owner:npg_7o0aXKfvySHE@ep-shy-feather-axg4z1jt-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require`
+- Note: the local machine can't reach Neon on 5432 (ISP filters non-443 egress) → all DB operations (migrate/seed) run on Render's servers, not locally.
+
+#### 1. Repo prep (dev) — START HERE (done)
+- ✅ Deleted stale `frontend/pnpm-lock.yaml`.
+- ✅ `backend/package.json`: added `"postinstall": "prisma generate"` and `"db:deploy": "prisma migrate deploy"`.
+- ✅ Added `backend/render.yaml`:
+  ```yaml
+  services:
+    - type: web
+      name: naijahandy-api
+      env: node
+      plan: free
+      buildCommand: npm install && npm run build
+      preDeployCommand: npm run db:deploy
+      startCommand: npm run start
+      healthCheckPath: /api/health
+  ```
+- ✅ Added `backend/.nvmrc` and `frontend/.nvmrc` containing `22`.
+
+#### 2. Neon (you)
+- Create a second database `naijahandy_ci` (keeps CI e2e data off the production DB).
+
+#### 3. Render backend (you)
+- New → Web Service → connect GitHub → `Muba-Dev/artisanng`, root dir `backend/`.
+- Env vars:
+  - `DATABASE_URL` = the Neon pooled string above
+  - `JWT_SECRET` = strong random value (e.g. `openssl rand -base64 48`)
+  - `FRONTEND_URL` = `https://<frontend>.vercel.app`
+  - `PAYSTACK_MOCK` = `true`
+  - `PAYSTACK_BASE_URL` = `https://api.paystack.co`
+  - `PAYSTACK_CALLBACK_URL` = `https://<frontend>.vercel.app/bookings`
+- Migrations auto-run via `preDeployCommand`. Result: `https://<api>.onrender.com`.
+
+#### 4. Vercel frontend (you)
+- Add New → Project → import `Muba-Dev/artisanng`, root dir `frontend/`.
+- Env: `NEXT_PUBLIC_API_URL` = `https://<api>.onrender.com/api`. Result: `https://<frontend>.vercel.app`.
+
+#### 5. Wire + seed (dev)
+- Set backend `FRONTEND_URL` and `PAYSTACK_CALLBACK_URL` to the real Vercel URL.
+- Seed prod once via Render console: `npm run db:seed` (idempotent).
+- Verify `GET /api/health` → `{ status: 'ok', db: 'up' }`; smoke-test home / search / login / booking.
+
+#### 6. CI wiring (dev)
+- GitHub repo secrets: `DATABASE_URL` → `.../naijahandy_ci?sslmode=require`, `JWT_SECRET`.
+- Gated `backend-e2e` / `frontend-e2e` jobs then run on every push/PR.
