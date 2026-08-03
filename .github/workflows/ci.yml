@@ -67,6 +67,8 @@ jobs:
   frontend-e2e:
     name: Frontend — Playwright e2e
     runs-on: ubuntu-latest
+    # Serialize with backend-e2e: both seed the same shared DB, so they cannot run in parallel.
+    needs: [backend-e2e]
     # Requires the DATABASE_URL repository secret.
     defaults:
       run:
