@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt'
 import { PrismaService } from '../prisma/prisma.service'
 import * as bcrypt from 'bcrypt'
+import { randomBytes } from 'crypto'
 
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
@@ -12,7 +13,10 @@ export class AuthService {
 
   private async issueTokens(user: { id: string; role: string }) {
     const accessToken = this.jwtService.sign({ id: user.id, role: user.role }, { expiresIn: ACCESS_TOKEN_EXPIRY })
-    const refreshToken = this.jwtService.sign({ id: user.id, role: user.role }, { expiresIn: `${REFRESH_TOKEN_EXPIRY_DAYS}d` })
+    const refreshToken = this.jwtService.sign(
+      { id: user.id, role: user.role, nonce: randomBytes(16).toString('hex') },
+      { expiresIn: `${REFRESH_TOKEN_EXPIRY_DAYS}d` },
+    )
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS)
 
