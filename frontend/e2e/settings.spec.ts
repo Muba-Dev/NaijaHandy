@@ -24,6 +24,9 @@ test.describe('Profile settings', () => {
     await expect(page.getByRole('button', { name: 'Change Photo' })).toBeVisible({ timeout: 20_000 })
     await page.locator('input[type="file"]').setInputFiles('e2e/fixtures/avatar.png')
 
+    await expect(page.getByRole('button', { name: 'Uploading…' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('button', { name: 'Change Photo' })).toBeVisible({ timeout: 30_000 })
+
     const img = page.locator('form img[alt="Avatar Tester"]')
     await expect(img).toBeVisible({ timeout: 20_000 })
     await expect

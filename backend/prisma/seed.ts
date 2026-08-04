@@ -98,7 +98,7 @@ const ARTISANS: ArtisanSeed[] = [
 async function upsertArtisan(a: ArtisanSeed) {
   const user = await prisma.user.upsert({
     where: { email: a.email },
-    update: { avatar: AVATARS[a.key] },
+    update: { avatar: AVATARS[a.key], name: a.name, city: a.city },
     create: {
       name: a.name, email: a.email, phone: a.phone, city: a.city,
       password: await bcrypt.hash('password123', 12), role: 'ARTISAN', avatar: AVATARS[a.key],
@@ -121,19 +121,19 @@ async function main() {
   // ── Admin ──
   await prisma.user.upsert({
     where: { email: 'admin@naijahandy.com' },
-    update: {},
+    update: { name: 'NaijaHandy Admin', phone: '+234 800 000 0000', city: 'Lagos' },
     create: { name: 'NaijaHandy Admin', email: 'admin@naijahandy.com', phone: '+234 800 000 0000', city: 'Lagos', password, role: 'ADMIN' },
   })
 
   // ── Customers ──
   const customer1 = await prisma.user.upsert({
     where: { email: 'chisom@example.com' },
-    update: {},
+    update: { name: 'Chisom Eze', phone: '+234 803 456 7890', city: 'Lagos' },
     create: { name: 'Chisom Eze', email: 'chisom@example.com', phone: '+234 803 456 7890', city: 'Lagos', password, role: 'CUSTOMER' },
   })
   await prisma.user.upsert({
     where: { email: 'bayo@example.com' },
-    update: {},
+    update: { name: 'Bayo Adeleke', phone: '+234 802 345 6789', city: 'Abuja' },
     create: { name: 'Bayo Adeleke', email: 'bayo@example.com', phone: '+234 802 345 6789', city: 'Abuja', password, role: 'CUSTOMER' },
   })
 
