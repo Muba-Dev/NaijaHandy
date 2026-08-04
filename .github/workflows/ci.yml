@@ -33,7 +33,7 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret' }}
       PAYSTACK_MOCK: 'true'
     steps:
       - uses: actions/checkout@v5
@@ -75,7 +75,7 @@ jobs:
         working-directory: frontend
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret' }}
       PAYSTACK_MOCK: 'true'
     steps:
       - uses: actions/checkout@v5
