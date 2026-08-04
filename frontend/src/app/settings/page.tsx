@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Users, Shield, CreditCard, Bell, Plus, CheckCircle2, AlertCircle } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
-import { fetchMe, updateProfile } from '@/lib/api'
+import { fetchMe, updateProfile, updateAvatar } from '@/lib/api'
 import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
 import type { AuthUser } from '@/types'
 
@@ -26,6 +26,9 @@ export default function ProfileSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchMe().then((u) => {
@@ -50,6 +53,37 @@ export default function ProfileSettingsPage() {
       setError(getApiErrorMessage(err, 'Failed to save changes. Please try again.'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError('')
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please choose an image file (JPG, PNG or WebP).')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('Image is too large. Maximum size is 2MB.')
+      return
+    }
+    setUploading(true)
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Could not read the file'))
+        reader.readAsDataURL(file)
+      })
+      const updated = await updateAvatar(dataUrl)
+      setUser((u) => (u ? { ...u, avatar: updated.avatar } : u))
+      setStoredUser(updated)
+    } catch (err) {
+      setUploadError(getApiErrorMessage(err, 'Failed to upload your photo. Please try again.'))
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -92,13 +126,23 @@ export default function ProfileSettingsPage() {
                     className="rounded-2xl object-cover"
                   />
                   <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
                     <button
                       type="button"
-                      className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
                     >
-                      Change Photo
+                      {uploading ? 'Uploading…' : 'Change Photo'}
                     </button>
-                    <p className="text-xs text-gray-400 mt-1.5">JPG, PNG up to 2MB</p>
+                    <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, WebP up to 2MB</p>
+                    {uploadError && <p className="text-xs text-red-500 mt-1.5">{uploadError}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -30,3 +30,25 @@ export async function deleteE2EBookings(marker: string): Promise<void> {
     await client.end()
   }
 }
+
+export async function deleteE2EUsers(emailLike: string): Promise<void> {
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not set; cannot clean up e2e users')
+  }
+  const client = new Client({ connectionString })
+  try {
+    await client.connect()
+    await client.query('BEGIN')
+    await client.query('DELETE FROM "refresh_tokens" WHERE "userId" IN (SELECT id FROM "users" WHERE email LIKE $1)', [
+      `%${emailLike}%`,
+    ])
+    await client.query('DELETE FROM "users" WHERE email LIKE $1', [`%${emailLike}%`])
+    await client.query('COMMIT')
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => undefined)
+    throw err
+  } finally {
+    await client.end()
+  }
+}

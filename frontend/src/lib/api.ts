@@ -231,6 +231,11 @@ export async function updateProfile(payload: { name?: string; phone?: string; ci
   return data.data
 }
 
+export async function updateAvatar(image: string): Promise<AuthUser> {
+  const { data } = await api.post('/users/me/avatar', { image })
+  return data.data
+}
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export async function fetchAdminStats(): Promise<AdminStats> {
