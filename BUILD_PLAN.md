@@ -123,21 +123,26 @@ The frontend now uses:
   - Browse: search lists artisans from the API, artisan profile shows details + booking form.
   - Booking + payment: book on the profile page → mock Paystack redirect → `?reference=` verify → PAID; Pay Now on an API-created UNPAID booking → verify → PAID.
   - CI job `frontend-e2e` in `.github/workflows/ci.yml` (Playwright install, DB seed, artifact upload), gated on the `DATABASE_URL` secret.
-- ✅ Deployment (Vercel / Railway-or-Render / Neon-or-Supabase) — pending.
+- ✅ Deployment (Vercel / Render / Neon) — **DONE**: frontend live, backend live, DB migrated+seeded, Paystack mock, CI green.
 
 ### Next action for another developer
 
-1. Deployment: Next.js → Vercel, API → Railway/Render, PostgreSQL → Neon/Supabase; wire the CI e2e `DATABASE_URL` secret to the production/staging DB.
+1. (Done) Deployment: Next.js → Vercel, API → Render, PostgreSQL → Neon; wire the CI e2e `DATABASE_URL` secret to the production DB.
 
-### Deployment — how to start
+### Deployment — how to start (COMPLETE)
 
 Live stack: Next.js → Vercel · NestJS API → Render · PostgreSQL → Neon · Payments → Paystack (mock)
 
+Live URLs:
+- Frontend: `https://naija-handy.vercel.app` — `NEXT_PUBLIC_API_URL = https://naijahandy.onrender.com/api`
+- Backend: `https://naijahandy.onrender.com` — healthcheck `GET /api/health` → `{ status: 'ok', db: 'up' }`
+- DB: Neon (single DB shared by prod + CI e2e), migrated + seeded via the **DB Maintain** workflow.
+
 #### 0. Accounts (done)
-- ✅ GitHub (`Muba-Dev/artisanng`), ✅ Vercel, ✅ Render, ✅ Neon
+- ✅ GitHub (`Muba-Dev/NaijaHandy`), ✅ Vercel, ✅ Render, ✅ Neon
 - Neon pooled connection string (strip `&channel_binding=require`):
   `postgresql://neondb_owner:npg_7o0aXKfvySHE@ep-shy-feather-axg4z1jt-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require`
-- Note: the local machine can't reach Neon on 5432 (ISP filters non-443 egress) → all DB operations (migrate/seed) run on Render's servers, not locally.
+- Note: the local machine can't reach Neon on 5432 (ISP filters non-443 egress) → all DB operations (migrate/seed) run via the **DB Maintain** workflow on GitHub Actions (Render free tier has no shell/console).
 
 #### 1. Repo prep (dev) — START HERE (done)
 - ✅ Deleted stale `frontend/pnpm-lock.yaml`.
@@ -156,29 +161,39 @@ Live stack: Next.js → Vercel · NestJS API → Render · PostgreSQL → Neon �
   ```
 - ✅ Added `backend/.nvmrc` and `frontend/.nvmrc` containing `22`.
 
-#### 2. Neon (you)
-- Create a second database `naijahandy_ci` (keeps CI e2e data off the production DB).
+#### 2. Neon (you) — done
+- Used a single Neon DB for prod + CI e2e. (Optional later: add a separate `naijahandy_ci` DB so CI e2e data never touches prod.)
 
-#### 3. Render backend (you)
-- New → Web Service → connect GitHub → `Muba-Dev/artisanng`, root dir `backend/`.
+#### 3. Render backend (you) — done
+- New → Web Service → connect GitHub → `Muba-Dev/NaijaHandy`, **Root Directory `backend/`** (this was the original deploy bug — Render was building at the repo root).
+- Build `npm install && npm run build`, Start `npm run start`, `preDeployCommand: npm run db:deploy` (via `backend/render.yaml`).
 - Env vars:
   - `DATABASE_URL` = the Neon pooled string above
-  - `JWT_SECRET` = strong random value (e.g. `openssl rand -base64 48`)
-  - `FRONTEND_URL` = `https://<frontend>.vercel.app`
+  - `JWT_SECRET` = strong random value
+  - `FRONTEND_URL` = `https://naija-handy.vercel.app`
   - `PAYSTACK_MOCK` = `true`
   - `PAYSTACK_BASE_URL` = `https://api.paystack.co`
-  - `PAYSTACK_CALLBACK_URL` = `https://<frontend>.vercel.app/bookings`
-- Migrations auto-run via `preDeployCommand`. Result: `https://<api>.onrender.com`.
+  - `PAYSTACK_CALLBACK_URL` = `https://naija-handy.vercel.app/bookings`
+- Result: `https://naijahandy.onrender.com`.
 
-#### 4. Vercel frontend (you)
-- Add New → Project → import `Muba-Dev/artisanng`, root dir `frontend/`.
-- Env: `NEXT_PUBLIC_API_URL` = `https://<api>.onrender.com/api`. Result: `https://<frontend>.vercel.app`.
+#### 4. Vercel frontend (you) — done
+- Add New → Project → import `Muba-Dev/NaijaHandy`, root dir `frontend/`.
+- Env: `NEXT_PUBLIC_API_URL` = `https://naijahandy.onrender.com/api` (baked at build time — redeploy after changing). Result: `https://naija-handy.vercel.app`.
 
-#### 5. Wire + seed (dev)
-- Set backend `FRONTEND_URL` and `PAYSTACK_CALLBACK_URL` to the real Vercel URL.
-- Seed prod once via Render console: `npm run db:seed` (idempotent).
-- Verify `GET /api/health` → `{ status: 'ok', db: 'up' }`; smoke-test home / search / login / booking.
+#### 5. Wire + seed (dev) — done
+- Backend `FRONTEND_URL` / `PAYSTACK_CALLBACK_URL` set to the real Vercel URL.
+- Seeding/migrations run from the **DB Maintain** workflow: Actions → DB Maintain → Run workflow (`run_seed: true`). Render free tier has **no shell**, so DB ops must go through this workflow.
+- Verified `GET /api/health` → `{ status: 'ok', db: 'up' }`; CORS from the Vercel origin; real login → `201` ADMIN.
 
-#### 6. CI wiring (dev)
-- GitHub repo secrets: `DATABASE_URL` → `.../naijahandy_ci?sslmode=require`, `JWT_SECRET`.
-- Gated `backend-e2e` / `frontend-e2e` jobs then run on every push/PR.
+#### 6. CI wiring (dev) — done
+- GitHub repo secrets: `DATABASE_URL` (Neon string) and `JWT_SECRET`.
+- CI runs on every push: backend unit, backend e2e, frontend lint+build, frontend Playwright e2e — all green against Neon.
+- Gotchas fixed along the way (see git log):
+  - `secrets` context is **not allowed in job-level `if`** — guard inside a step instead.
+  - `working-directory: backend` default broke the step that ran before checkout — checkout first.
+  - Seed/env: `DATABASE_URL` must be set at **job level** so every step (including `db:seed`) gets it; frontend-e2e must `npm ci` in `backend/` before seeding.
+  - `frontend-e2e` has `needs: [backend-e2e]` — both jobs seed the **same shared DB**, so they can't run in parallel.
+  - `JWT_SECRET` fallback in CI: `${{ secrets.JWT_SECRET || 'ci-test-jwt-secret' }}`.
+  - App bug: refresh tokens were plain JWTs, so two logins of the same user in the same second collided on the `token` unique constraint — fixed with a random `nonce` in the token payload (`backend/src/auth/auth.service.ts`).
+  - App bug: `logout()` cleared localStorage only after the network call — a page unload mid-request leaked the session. Now clears tokens synchronously first (`frontend/src/lib/api.ts`).
+  - e2e tests: dropped racy assertions on the transient `/bookings?reference=` URL (the page strips the query via `replaceState`) and on the trivially-true post-logout URL.
