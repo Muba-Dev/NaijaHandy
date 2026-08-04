@@ -142,10 +142,10 @@ export async function register(payload: RegisterPayload): Promise<AuthUser> {
 
 export async function logout(): Promise<void> {
   const refreshToken = getRefreshToken()
+  clearAuthTokens()
   if (refreshToken) {
     await api.post('/auth/logout', { refreshToken }).catch(() => undefined)
   }
-  clearAuthTokens()
 }
 
 export async function fetchMe(): Promise<AuthUser> {

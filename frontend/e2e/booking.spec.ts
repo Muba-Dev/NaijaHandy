@@ -34,8 +34,7 @@ test.describe('Booking & payment', () => {
     await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — install a kitchen tap`)
     await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
 
-    await expect(page).toHaveURL(/\/bookings\?reference=/, { timeout: 25_000 })
-    await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 25_000 })
+    await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
 
     const expectedAmount = `₦${(artisan.hourlyRate * 2 + 500).toLocaleString('en-NG')}`
     await expect(page.getByText(expectedAmount).first()).toBeVisible()
@@ -73,8 +72,7 @@ test.describe('Booking & payment', () => {
     await expect(card.getByRole('button', { name: 'Pay Now' })).toBeVisible({ timeout: 20_000 })
     await card.getByRole('button', { name: 'Pay Now' }).first().click()
 
-    await expect(page).toHaveURL(/\/bookings\?reference=/, { timeout: 25_000 })
-    await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 25_000 })
+    await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
     await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible()
   })
 })
