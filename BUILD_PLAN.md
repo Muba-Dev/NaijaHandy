@@ -95,7 +95,7 @@ The frontend now uses:
 - ✅ Replace remaining mock data with real API-driven UI flows (settings, saved artisans, search).
 - ✅ Add loading, empty, validation, and error states across pages.
 - ✅ Admin platform (Phase 2 item 4): approvals, verification, user suspension, review moderation, bookings/payments, disputes.
-- 🔄 Profile settings, saved artisans, booking history, and search refinements (settings + saved artisans + search done; booking history pending polish).
+- ✅ Profile settings, saved artisans, booking history, and search refinements (booking history polished: fixed Rebook links, added Cancel + Raise Dispute flows, tab counts, error/retry states).
 - Pending: improve responsive accessibility, mobile UX, SEO-ready content.
 - Pending: real media uploads, map/address selection, notification support.
 
