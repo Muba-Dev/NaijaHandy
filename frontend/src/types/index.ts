@@ -37,10 +37,12 @@ export interface Category {
 
 export interface Booking {
   id: string
+  artisanId: string
   artisan: string
   profession: string
   date: string
   time: string
+  description: string
   amount: number
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
   avatar: string

@@ -104,7 +104,7 @@ type RawBooking = {
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
   paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
   paymentReference?: string | null
-  artisan: { profession: string; user: { name: string; avatar: string | null } }
+  artisan: { id: string; profession: string; user: { name: string; avatar: string | null } }
   customer: { name: string; avatar: string | null }
   payment?: { status: string; reference: string } | null
 }
@@ -112,10 +112,12 @@ type RawBooking = {
 function normalizeBooking(b: RawBooking): Booking {
   return {
     id: b.id,
+    artisanId: b.artisan.id,
     artisan: b.artisan.user.name,
     profession: b.artisan.profession,
     date: new Date(b.date).toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
     time: b.time,
+    description: b.description,
     amount: b.amount,
     status: (b.status.charAt(0) + b.status.slice(1).toLowerCase()) as Booking['status'],
     avatar: b.artisan.user.avatar || '',
@@ -218,6 +220,11 @@ export async function createBooking(payload: {
 
 export async function updateBookingStatus(id: string, status: string) {
   const { data } = await api.patch(`/bookings/${id}/status`, { status })
+  return data.data
+}
+
+export async function raiseDispute(bookingId: string, reason: string) {
+  const { data } = await api.post(`/bookings/${bookingId}/dispute`, { reason })
   return data.data
 }
 
