@@ -4,16 +4,16 @@ import bcrypt from 'bcrypt'
 const prisma = new PrismaClient()
 
 const AVATARS: Record<string, string> = {
-  emeka: 'https://randomuser.me/api/portraits/men/32.jpg',
-  fatima: 'https://randomuser.me/api/portraits/women/44.jpg',
-  chidi: 'https://randomuser.me/api/portraits/men/75.jpg',
-  amaka: 'https://randomuser.me/api/portraits/women/65.jpg',
-  yusuf: 'https://randomuser.me/api/portraits/men/11.jpg',
-  ngozi: 'https://randomuser.me/api/portraits/women/68.jpg',
-  musa: 'https://randomuser.me/api/portraits/men/41.jpg',
-  adaeze: 'https://randomuser.me/api/portraits/women/59.jpg',
-  tunde: 'https://randomuser.me/api/portraits/men/22.jpg',
-  halima: 'https://randomuser.me/api/portraits/women/90.jpg',
+  emeka: 'https://images.pexels.com/photos/35533370/pexels-photo-35533370.jpeg?auto=compress&cs=tinysrgb&w=800',
+  fatima: 'https://images.pexels.com/photos/38180101/pexels-photo-38180101.jpeg?auto=compress&cs=tinysrgb&w=800',
+  chidi: 'https://images.pexels.com/photos/35730557/pexels-photo-35730557.jpeg?auto=compress&cs=tinysrgb&w=800',
+  amaka: 'https://images.pexels.com/photos/36845523/pexels-photo-36845523.jpeg?auto=compress&cs=tinysrgb&w=800',
+  yusuf: 'https://images.pexels.com/photos/33242998/pexels-photo-33242998.jpeg?auto=compress&cs=tinysrgb&w=800',
+  ngozi: 'https://images.pexels.com/photos/32463149/pexels-photo-32463149.jpeg?auto=compress&cs=tinysrgb&w=800',
+  musa: 'https://images.pexels.com/photos/32757396/pexels-photo-32757396.jpeg?auto=compress&cs=tinysrgb&w=800',
+  adaeze: 'https://images.pexels.com/photos/38250933/pexels-photo-38250933.jpeg?auto=compress&cs=tinysrgb&w=800',
+  tunde: 'https://images.pexels.com/photos/36029380/pexels-photo-36029380.jpeg?auto=compress&cs=tinysrgb&w=800',
+  halima: 'https://images.pexels.com/photos/37347157/pexels-photo-37347157.jpeg?auto=compress&cs=tinysrgb&w=800',
 }
 
 type ArtisanSeed = {

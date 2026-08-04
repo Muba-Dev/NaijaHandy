@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'randomuser.me',
+        hostname: 'images.pexels.com',
       },
     ],
   },
