@@ -1,5 +1,8 @@
 import type { Artisan, Category } from '@/types'
 
+export const DEFAULT_AVATAR =
+  'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=80&h=80&fit=crop&auto=format'
+
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 // Replace all exports here with real API calls once the backend is live.
 // Example: export const fetchArtisans = () => axios.get('/api/artisans')

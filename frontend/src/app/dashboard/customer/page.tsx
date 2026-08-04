@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Calendar, CheckCircle, CreditCard, TrendingUp, Heart, Settings, LogOut, Plus } from 'lucide-react'
 import { fetchBookings, fetchMe, logout } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
 import type { Booking, BookingStatus } from '@/types'
@@ -125,7 +126,7 @@ export default function CustomerDashboardPage() {
             <div className="divide-y divide-gray-50">
               {active.map((b) => (
                 <div key={b.id} className="flex items-center gap-4 px-5 py-4">
-                  <Image src={b.avatar} alt={b.artisan} width={44} height={44} className="rounded-xl object-cover shrink-0" />
+                  <Image src={b.avatar || DEFAULT_AVATAR} alt={b.artisan} width={44} height={44} className="rounded-xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 text-sm">{b.artisan}</p>
                     <p className="text-xs text-gray-400">{b.profession} · {b.date} at {b.time}</p>

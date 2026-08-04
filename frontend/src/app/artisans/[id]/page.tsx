@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench } from 'lucide-react'
 import { fetchArtisanById, createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
 import { formatNGN, isAuthenticated, getApiErrorMessage } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import type { Artisan } from '@/types'
 
@@ -129,7 +130,7 @@ export default function ArtisanProfilePage() {
         {/* Profile header */}
         <div className="bg-white rounded-2xl border border-gray-100 -mt-14 relative z-10 p-6 mb-6 flex flex-col md:flex-row gap-5 items-start md:items-center">
           <Image
-            src={artisan.avatar}
+            src={artisan.avatar || DEFAULT_AVATAR}
             alt={artisan.name}
             width={96}
             height={96}
@@ -273,7 +274,7 @@ export default function ArtisanProfilePage() {
                       {artisan.reviews_list.map((r, i) => (
                         <div key={i} className="border-b border-gray-100 pb-4 last:border-0">
                           <div className="flex items-start gap-3">
-                            <Image src={r.avatar} alt={r.name} width={40} height={40} className="rounded-full object-cover" />
+                            <Image src={r.avatar || DEFAULT_AVATAR} alt={r.name} width={40} height={40} className="rounded-full object-cover" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <p className="font-semibold text-gray-900 text-sm">{r.name}</p>

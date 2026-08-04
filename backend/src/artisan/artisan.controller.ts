@@ -17,6 +17,11 @@ export class ArtisanController {
     return { data: await this.artisanService.findMe(req.user.id) }
   }
 
+  @Get('categories')
+  async categories() {
+    return { data: await this.artisanService.categoryCounts() }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return { data: await this.artisanService.findOne(id) }

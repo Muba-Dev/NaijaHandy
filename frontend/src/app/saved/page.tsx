@@ -8,6 +8,7 @@ import AuthGuard from '@/components/AuthGuard'
 import StarRating from '@/components/StarRating'
 import { fetchSavedArtisans, unsaveArtisan } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import type { Artisan } from '@/types'
 
 export default function SavedArtisansPage() {
@@ -74,7 +75,7 @@ export default function SavedArtisansPage() {
             {artisans.map((a) => (
               <div key={a.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col sm:flex-row gap-4 hover:shadow-lg transition-shadow">
                 <Image
-                  src={a.avatar}
+                  src={a.avatar || DEFAULT_AVATAR}
                   alt={a.name}
                   width={64}
                   height={64}

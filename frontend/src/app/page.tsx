@@ -8,16 +8,18 @@ import {
   Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers,
 } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
-import { fetchArtisans } from '@/lib/api'
+import { fetchArtisans, fetchCategoryCounts } from '@/lib/api'
 import ArtisanCard from '@/components/ArtisanCard'
 import type { Artisan } from '@/types'
 
 export default function HomePage() {
   const [searchProfession, setSearchProfession] = useState('')
   const [artisans, setArtisans] = useState<Artisan[]>([])
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    fetchArtisans({ sortBy: 'rating', limit: '6' }).then(setArtisans).catch(() => setArtisans([]))
+    fetchArtisans({ sortBy: 'rating', limit: '10' }).then(setArtisans).catch(() => setArtisans([]))
+    fetchCategoryCounts().then(setCategoryCounts).catch(() => setCategoryCounts({}))
   }, [])
 
   const CATEGORY_ICONS = [Wrench, Zap, Hammer, PaintBucket, Car, Home, Scissors, Layers]
@@ -131,6 +133,7 @@ export default function HomePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {CATEGORIES.map((cat, i) => {
             const Icon = CATEGORY_ICONS[i % CATEGORY_ICONS.length]
+            const count = categoryCounts[cat.name] ?? 0
             return (
               <Link
                 key={cat.name}
@@ -141,7 +144,9 @@ export default function HomePage() {
                   <Icon size={22} className="text-[#047857]" />
                 </div>
                 <p className="font-semibold text-gray-900 group-hover:text-[#047857] transition-colors">{cat.name}</p>
-                <p className="text-gray-400 text-sm mt-0.5">{cat.count} artisans</p>
+                <p className="text-gray-400 text-sm mt-0.5">
+                  {count.toLocaleString()} {count === 1 ? 'artisan' : 'artisans'}
+                </p>
               </Link>
             )
           })}

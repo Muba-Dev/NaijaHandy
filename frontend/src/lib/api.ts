@@ -186,6 +186,13 @@ export async function fetchMyArtisanProfile(): Promise<Artisan> {
   return normalizeArtisan(data.data)
 }
 
+export async function fetchCategoryCounts(): Promise<Record<string, number>> {
+  const { data } = await api.get('/artisans/categories')
+  const counts: Record<string, number> = {}
+  for (const item of data.data) counts[item.name] = item.count
+  return counts
+}
+
 export async function updateArtisanProfile(payload: Record<string, unknown>) {
   const { data } = await api.patch('/artisans/me', payload)
   return data.data

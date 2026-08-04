@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2 } from 'lucide-react'
 import { fetchBookings, initializePayment, verifyPayment } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
 import type { Booking, BookingStatus } from '@/types'
@@ -112,7 +113,7 @@ export default function BookingHistoryPage() {
           {filtered.map((b) => (
             <div key={b.id} className="bg-white rounded-2xl border border-gray-100 p-5">
               <div className="flex items-start gap-4">
-                <Image src={b.avatar} alt={b.artisan} width={48} height={48} className="rounded-xl object-cover shrink-0" />
+                <Image src={b.avatar || DEFAULT_AVATAR} alt={b.artisan} width={48} height={48} className="rounded-xl object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 flex-wrap">
                     <div>
