@@ -14,6 +14,7 @@ import type { Artisan } from '@/types'
 
 export default function HomePage() {
   const [searchProfession, setSearchProfession] = useState('')
+  const [searchCity, setSearchCity] = useState('')
   const [artisans, setArtisans] = useState<Artisan[]>([])
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
 
@@ -23,6 +24,14 @@ export default function HomePage() {
   }, [])
 
   const CATEGORY_ICONS = [Wrench, Zap, Hammer, PaintBucket, Car, Home, Scissors, Layers]
+
+  const searchHref = () => {
+    const params = new URLSearchParams()
+    if (searchProfession) params.set('q', searchProfession)
+    if (searchCity.trim()) params.set('city', searchCity.trim())
+    const qs = params.toString()
+    return qs ? `/search?${qs}` : '/search'
+  }
 
   return (
     <div>
@@ -69,10 +78,15 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-2 flex-1 px-3 py-2 border border-gray-100 rounded-xl">
                 <MapPin size={16} className="text-gray-400 shrink-0" />
-                <input placeholder="Enter city or area" className="flex-1 text-sm text-gray-700 outline-none placeholder-gray-400" />
+                <input
+                  value={searchCity}
+                  onChange={(e) => setSearchCity(e.target.value)}
+                  placeholder="Enter city or area"
+                  className="flex-1 text-sm text-gray-700 outline-none placeholder-gray-400"
+                />
               </div>
               <Link
-                href="/search"
+                href={searchHref()}
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white text-sm bg-[#047857] hover:opacity-90 transition-opacity shrink-0"
               >
                 <Search size={16} />
@@ -81,9 +95,9 @@ export default function HomePage() {
             </div>
             <p className="text-emerald-200 text-sm mt-3">
               Popular:{' '}
-              <Link href="/search" className="underline">Plumber</Link>,{' '}
-              <Link href="/search" className="underline">Electrician</Link>,{' '}
-              <Link href="/search" className="underline">Carpenter</Link>
+              <Link href="/search?q=plumber" className="underline">Plumber</Link>,{' '}
+              <Link href="/search?q=electrician" className="underline">Electrician</Link>,{' '}
+              <Link href="/search?q=carpenter" className="underline">Carpenter</Link>
             </p>
           </div>
 

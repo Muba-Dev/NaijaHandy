@@ -60,6 +60,16 @@ export default function ArtisanProfilePage() {
     }
   }
 
+  const ratingDistribution = (() => {
+    const counts = [0, 0, 0, 0, 0]
+    for (const r of artisan?.reviews_list || []) {
+      const idx = Math.min(4, Math.max(0, Math.round(r.rating) - 1))
+      counts[idx] += 1
+    }
+    const total = counts.reduce((s, c) => s + c, 0)
+    return total ? counts.map((c) => Math.round((c / total) * 100)) : counts
+  })()
+
   const handleBook = async () => {
     if (!artisan) return
     setBookingSubmitting(true)
@@ -194,12 +204,12 @@ export default function ArtisanProfilePage() {
                     <p className="text-gray-600 leading-relaxed">{artisan.bio}</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
                       {[
-                        { label: 'Years Experience', value: '12 years' },
-                        { label: 'Jobs Completed', value: '300+' },
-                        { label: 'Response Time', value: '< 1 hr' },
-                        { label: 'Languages', value: 'English, Igbo' },
-                        { label: 'Payment', value: 'Cash, Transfer' },
-                        { label: 'Guarantee', value: '90 days' },
+                        { label: 'Hourly Rate', value: formatNGN(artisan.hourlyRate) },
+                        { label: 'Jobs Completed', value: `${artisan.reviews}+` },
+                        { label: 'Avg. Rating', value: `${artisan.rating} / 5` },
+                        { label: 'Verification', value: artisan.verified ? 'Verified' : 'Pending' },
+                        { label: 'Availability', value: artisan.available ? 'Available now' : 'Currently busy' },
+                        { label: 'Location', value: artisan.city || 'Nigeria' },
                       ].map((s) => (
                         <div key={s.label} className="bg-gray-50 rounded-xl p-3">
                           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{s.label}</p>
@@ -264,7 +274,7 @@ export default function ArtisanProfilePage() {
                             <span className="text-xs text-gray-500 w-2">{n}</span>
                             <Star size={10} className="fill-amber-400 text-amber-400 shrink-0" />
                             <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div className="h-full rounded-full bg-[#047857]" style={{ width: `${[82, 14, 3, 1, 0][5 - n]}%` }} />
+                              <div className="h-full rounded-full bg-[#047857]" style={{ width: `${ratingDistribution[5 - n]}%` }} />
                             </div>
                           </div>
                         ))}

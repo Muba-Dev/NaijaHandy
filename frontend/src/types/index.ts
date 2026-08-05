@@ -51,6 +51,7 @@ export interface Booking {
   customerAvatar?: string
   paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
   paymentReference?: string | null
+  reviewed?: boolean
 }
 
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'

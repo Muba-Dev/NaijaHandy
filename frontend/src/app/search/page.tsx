@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Search, MapPin, CheckCircle, Filter, SlidersHorizontal, AlertTriangle, Star } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Search, MapPin, CheckCircle, Filter, SlidersHorizontal, AlertTriangle, Star, RefreshCw } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
 import { fetchArtisans } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
@@ -11,28 +12,43 @@ import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import type { Artisan } from '@/types'
 
-export default function SearchPage() {
+function SearchPage() {
+  const searchParams = useSearchParams()
+  const initialQ = searchParams.get('q') || ''
+  const initialCity = searchParams.get('city') || ''
   const [category, setCategory] = useState('All')
   const [minRating, setMinRating] = useState(0)
   const [sortBy, setSortBy] = useState('Rating')
-  const [keyword, setKeyword] = useState('')
+  const [keyword, setKeyword] = useState(initialQ)
+  const [debouncedKeyword, setDebouncedKeyword] = useState(initialQ)
+  const [city, setCity] = useState(initialCity)
   const [availableOnly, setAvailableOnly] = useState(false)
   const [mobileFilter, setMobileFilter] = useState(false)
   const [artisans, setArtisans] = useState<Artisan[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reload, setReload] = useState(0)
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedKeyword(keyword), 300)
+    return () => clearTimeout(t)
+  }, [keyword])
 
   useEffect(() => {
     setLoading(true)
+    setError('')
     const params: Record<string, string> = {}
-    if (keyword.trim()) params.q = keyword.trim()
+    if (debouncedKeyword.trim()) params.q = debouncedKeyword.trim()
     if (category !== 'All') params.category = category
+    if (city.trim()) params.city = city.trim()
     if (minRating > 0) params.minRating = String(minRating)
     if (availableOnly) params.available = 'true'
     params.sortBy = sortBy === 'Rating' ? 'rating' : 'hourlyRate'
-    fetchArtisans(params).then(setArtisans).catch(() => setArtisans([])).finally(() => setLoading(false))
-  }, [category, minRating, sortBy, keyword, availableOnly])
-
-  const filtered = artisans
+    fetchArtisans(params)
+      .then(setArtisans)
+      .catch(() => setError('Could not load artisans. Check your connection and try again.'))
+      .finally(() => setLoading(false))
+  }, [category, minRating, sortBy, debouncedKeyword, city, availableOnly, reload])
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50">
@@ -109,6 +125,19 @@ export default function SearchPage() {
             </div>
 
             <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Location</p>
+              <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                <MapPin size={14} className="text-gray-400 shrink-0" />
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="City or area"
+                  className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Availability</p>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -127,8 +156,8 @@ export default function SearchPage() {
         <main className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-gray-600">
-              Showing <span className="font-semibold text-gray-900">{loading ? '…' : filtered.length}</span> artisans
-              {category !== 'All' ? ` in ${category}` : ' in Lagos'}
+              Showing <span className="font-semibold text-gray-900">{loading ? '…' : artisans.length}</span> artisans
+              {category !== 'All' ? ` in ${category}` : city ? ` in ${city}` : ' across Nigeria'}
             </p>
           </div>
           {loading ? (
@@ -146,9 +175,20 @@ export default function SearchPage() {
                 </div>
               ))}
             </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">{error}</p>
+              <button
+                onClick={() => setReload((r) => r + 1)}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#047857]"
+              >
+                <RefreshCw size={14} /> Retry
+              </button>
+            </div>
           ) : (
           <div className="space-y-4">
-            {filtered.map((a) => (
+            {artisans.map((a) => (
               <div key={a.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col sm:flex-row gap-4 hover:shadow-lg transition-shadow">
                 <Image
                   src={a.avatar || DEFAULT_AVATAR}
@@ -204,12 +244,12 @@ export default function SearchPage() {
               </div>
             ))}
 
-            {filtered.length === 0 && !loading && (
+            {artisans.length === 0 && !loading && (
               <div className="text-center py-16">
                 <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 font-medium">No artisans match your filters</p>
                 <button
-                  onClick={() => { setCategory('All'); setMinRating(0) }}
+                  onClick={() => { setCategory('All'); setMinRating(0); setCity(''); setKeyword('') }}
                   className="mt-2 text-sm font-medium text-[#047857]"
                 >
                   Clear filters
@@ -221,5 +261,13 @@ export default function SearchPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function SearchPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-[calc(100vh-64px)] bg-gray-50" />}>
+      <SearchPage />
+    </Suspense>
   )
 }

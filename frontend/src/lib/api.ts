@@ -109,6 +109,7 @@ type RawBooking = {
   artisan: { id: string; profession: string; user: { name: string; avatar: string | null } }
   customer: { name: string; avatar: string | null }
   payment?: { status: string; reference: string } | null
+  review?: { id: string } | null
 }
 
 function normalizeBooking(b: RawBooking): Booking {
@@ -128,6 +129,7 @@ function normalizeBooking(b: RawBooking): Booking {
     customerAvatar: b.customer?.avatar || '',
     paymentStatus: b.paymentStatus,
     paymentReference: b.paymentReference,
+    reviewed: !!b.review,
   }
 }
 
@@ -169,6 +171,11 @@ export async function forgotPassword(email: string): Promise<{ success: boolean 
 
 export async function resetPassword(token: string, password: string): Promise<{ success: boolean }> {
   const { data } = await api.post('/auth/reset-password', { token, password })
+  return data
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean }> {
+  const { data } = await api.post('/auth/change-password', { currentPassword, newPassword })
   return data
 }
 
@@ -251,6 +258,11 @@ export async function initializePayment(bookingId: string): Promise<{ authorizat
 
 export async function verifyPayment(reference: string) {
   const { data } = await api.get(`/payments/verify/${encodeURIComponent(reference)}`)
+  return data.data
+}
+
+export async function createReview(bookingId: string, rating: number, comment: string) {
+  const { data } = await api.post(`/bookings/${encodeURIComponent(bookingId)}/review`, { rating, comment })
   return data.data
 }
 

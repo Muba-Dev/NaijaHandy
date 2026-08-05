@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2 } from 'lucide-react'
-import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute } from '@/lib/api'
+import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
@@ -28,6 +28,11 @@ export default function BookingHistoryPage() {
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeSubmitting, setDisputeSubmitting] = useState(false)
   const [disputeError, setDisputeError] = useState('')
+  const [reviewFor, setReviewFor] = useState<Booking | null>(null)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState('')
 
   const loadBookings = () => {
     setLoading(true)
@@ -96,6 +101,24 @@ export default function BookingHistoryPage() {
       setDisputeError(getApiErrorMessage(err, 'Could not raise the dispute. Please try again.'))
     } finally {
       setDisputeSubmitting(false)
+    }
+  }
+
+  const handleReview = async () => {
+    if (!reviewFor) return
+    setReviewSubmitting(true)
+    setReviewError('')
+    try {
+      await createReview(reviewFor.id, reviewRating, reviewComment)
+      setBookings((bs) => bs.map((b) => (b.id === reviewFor.id ? { ...b, reviewed: true } : b)))
+      setReviewFor(null)
+      setReviewComment('')
+      setReviewRating(0)
+      setPaymentMsg({ type: 'success', text: 'Thanks! Your review has been published.' })
+    } catch (err) {
+      setReviewError(getApiErrorMessage(err, 'Could not submit your review. Please try again.'))
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -215,13 +238,18 @@ export default function BookingHistoryPage() {
                       >
                         <MessageSquare size={13} />View Profile
                       </Link>
-                      {b.status === 'Completed' && (
-                        <Link
-                          href={`/artisans/${b.artisanId}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                      {b.status === 'Completed' && !b.reviewed && (
+                        <button
+                          onClick={() => { setReviewFor(b); setReviewRating(0); setReviewComment(''); setReviewError('') }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-amber-200 rounded-lg text-amber-700 hover:bg-amber-50 transition-colors"
                         >
                           <Star size={13} />Leave Review
-                        </Link>
+                        </button>
+                      )}
+                      {b.status === 'Completed' && b.reviewed && (
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600">
+                          <CheckCircle2 size={13} />Reviewed
+                        </span>
                       )}
                       {b.status === 'Pending' && (
                         <button
@@ -333,6 +361,65 @@ export default function BookingHistoryPage() {
                 className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {disputeSubmitting ? 'Submitting…' : 'Submit Dispute'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Review modal */}
+      {reviewFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setReviewFor(null)}>
+          <div role="dialog" aria-modal="true" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <h2 className="font-display text-lg font-bold text-gray-900">Review your booking</h2>
+              <button onClick={() => setReviewFor(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              How was your experience with{' '}
+              <span className="font-semibold text-gray-900">{reviewFor.artisan}</span>?
+            </p>
+
+            <div className="flex items-center gap-1 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setReviewRating(star)}
+                  className="p-0.5"
+                  aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                >
+                  <Star
+                    size={26}
+                    className={star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+                  />
+                </button>
+              ))}
+              <span className="ml-2 text-sm text-gray-500">{reviewRating ? `${reviewRating}/5` : 'Tap to rate'}</span>
+            </div>
+
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              rows={4}
+              placeholder="Share your experience (min 3 characters)..."
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors resize-none mb-4"
+            />
+            {reviewError && <p className="text-xs text-red-500 mb-3">{reviewError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setReviewFor(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReview}
+                disabled={reviewSubmitting || reviewRating === 0 || reviewComment.trim().length < 3}
+                className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {reviewSubmitting ? 'Submitting…' : 'Submit Review'}
               </button>
             </div>
           </div>

@@ -15,6 +15,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -23,6 +24,12 @@ export default function Navbar() {
       setUser(null)
     }
   }, [pathname])
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    router.push(q ? `/search?q=${encodeURIComponent(q)}` : '/search')
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -51,18 +58,30 @@ export default function Navbar() {
 
         {/* Right */}
         <div className="hidden md:flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 w-52">
+          <form onSubmit={submitSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 w-52">
             <Search size={14} className="text-gray-400 shrink-0" />
             <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search artisans…"
               className="bg-transparent text-sm outline-none flex-1 text-gray-700 placeholder-gray-400"
             />
-          </div>
+          </form>
           {user ? (
             <>
               <Link href={dashboardHref} className="text-sm font-medium text-gray-700 hover:text-[#047857] px-3 py-1.5 transition-colors">
                 Dashboard
               </Link>
+              {user.role === 'CUSTOMER' && (
+                <>
+                  <Link href="/bookings" className="text-sm font-medium text-gray-700 hover:text-[#047857] px-3 py-1.5 transition-colors">
+                    Bookings
+                  </Link>
+                  <Link href="/saved" className="text-sm font-medium text-gray-700 hover:text-[#047857] px-3 py-1.5 transition-colors">
+                    Saved
+                  </Link>
+                </>
+              )}
               <Link
                 href={dashboardHref}
                 className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
@@ -107,6 +126,15 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-3">
+          <form onSubmit={submitSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2.5">
+            <Search size={15} className="text-gray-400 shrink-0" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search artisans…"
+              className="bg-transparent text-sm outline-none flex-1 text-gray-700 placeholder-gray-400"
+            />
+          </form>
           <Link href="/search" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
             Find Artisans
           </Link>
@@ -114,7 +142,18 @@ export default function Navbar() {
             Become an Artisan
           </Link>
           {user ? (
-            <div className="flex gap-2 pt-2">
+            <>
+              {user.role === 'CUSTOMER' && (
+                <>
+                  <Link href="/bookings" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
+                    Bookings
+                  </Link>
+                  <Link href="/saved" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
+                    Saved
+                  </Link>
+                </>
+              )}
+              <div className="flex gap-2 pt-2">
               <Link
                 href={dashboardHref}
                 onClick={() => setMobileOpen(false)}
@@ -129,6 +168,7 @@ export default function Navbar() {
                 Log Out
               </button>
             </div>
+            </>
           ) : (
             <div className="flex gap-2 pt-2">
               <Link href="/login" onClick={() => setMobileOpen(false)} className="flex-1 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg py-2 text-center">

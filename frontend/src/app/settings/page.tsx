@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Users, Shield, CreditCard, Bell, Plus, CheckCircle2, AlertCircle } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
-import { fetchMe, updateProfile, updateAvatar } from '@/lib/api'
+import { fetchMe, updateProfile, updateAvatar, changePassword } from '@/lib/api'
 import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
 import type { AuthUser } from '@/types'
 
@@ -29,6 +29,11 @@ export default function ProfileSettingsPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
 
   useEffect(() => {
     fetchMe().then((u) => {
@@ -84,6 +89,31 @@ export default function ProfileSettingsPage() {
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordMessage('')
+    if (newPassword.length < 8) {
+      setPasswordMessage('New password must be at least 8 characters long.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('New passwords do not match.')
+      return
+    }
+    setChangingPassword(true)
+    try {
+      await changePassword(currentPassword, newPassword)
+      setPasswordMessage('updated')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      setPasswordMessage(getApiErrorMessage(err, 'Failed to update password.'))
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -209,21 +239,43 @@ export default function ProfileSettingsPage() {
             {activeTab === 'security' && (
               <div>
                 <h2 className="font-semibold text-gray-900 mb-5">Security & Password</h2>
-                <div className="space-y-4 max-w-sm">
-                  {['Current Password', 'New Password', 'Confirm New Password'].map((l) => (
-                    <div key={l}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">{l}</label>
+                <form onSubmit={handlePasswordChange} className="space-y-4 max-w-sm">
+                  {[
+                    { label: 'Current Password', value: currentPassword, setter: setCurrentPassword, key: 'current' },
+                    { label: 'New Password', value: newPassword, setter: setNewPassword, key: 'new' },
+                    { label: 'Confirm New Password', value: confirmPassword, setter: setConfirmPassword, key: 'confirm' },
+                  ].map((f) => (
+                    <div key={f.key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">{f.label}</label>
                       <input
                         type="password"
+                        value={f.value}
+                        onChange={(e) => f.setter(e.target.value)}
                         placeholder="••••••••"
+                        required
                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
                       />
                     </div>
                   ))}
-                  <button className="px-5 py-2.5 rounded-xl text-white font-semibold text-sm bg-[#047857] hover:opacity-90 transition-opacity">
-                    Update Password
+                  {passwordMessage && (
+                    passwordMessage === 'updated' ? (
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3">
+                        <CheckCircle2 size={16} /> Password updated. You may need to log in again on other devices.
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+                        <AlertCircle size={16} /> {passwordMessage}
+                      </div>
+                    )
+                  )}
+                  <button
+                    type="submit"
+                    disabled={changingPassword}
+                    className="px-5 py-2.5 rounded-xl text-white font-semibold text-sm bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-60"
+                  >
+                    {changingPassword ? 'Updating…' : 'Update Password'}
                   </button>
-                </div>
+                </form>
               </div>
             )}
 
