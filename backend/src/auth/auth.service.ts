@@ -117,6 +117,24 @@ export class AuthService {
     return { success: true }
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, password: true } })
+    if (!user) throw new UnauthorizedException('Account not found')
+    if (!user.password) {
+      throw new BadRequestException('This account uses Google sign-in and has no password.')
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.password)
+    if (!valid) throw new UnauthorizedException('Current password is incorrect')
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12)
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.deleteMany({ where: { userId } }),
+      this.prisma.user.update({ where: { id: userId }, data: { password: hashedPassword } }),
+    ])
+    return { success: true }
+  }
+
   getGoogleAuthUrl(state: string): string | null {
     const clientId = process.env.GOOGLE_CLIENT_ID
     const redirectUri = process.env.GOOGLE_REDIRECT_URI

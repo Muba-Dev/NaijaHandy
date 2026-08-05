@@ -35,6 +35,7 @@ export class BookingService {
         artisan: { include: { user: { select: { name: true, avatar: true } } } },
         customer: { select: { name: true, avatar: true } },
         payment: { select: { status: true, reference: true } },
+        review: { select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -74,6 +75,37 @@ export class BookingService {
 
     return this.prisma.dispute.create({
       data: { bookingId, raisedBy: userId, reason },
+    })
+  }
+
+  async createReview(userId: string, bookingId: string, rating: number, comment: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new NotFoundException('Booking not found')
+    if (booking.customerId !== userId) throw new ForbiddenException('You cannot review this booking')
+    if (booking.status !== 'COMPLETED') throw new ForbiddenException('You can only review completed bookings')
+
+    const existing = await this.prisma.review.findUnique({ where: { bookingId } })
+    if (existing) throw new ForbiddenException('This booking has already been reviewed')
+
+    return this.prisma.$transaction(async (tx) => {
+      const review = await tx.review.create({
+        data: { bookingId, customerId: userId, artisanId: booking.artisanId, rating, comment },
+      })
+
+      const profile = await tx.artisanProfile.findUnique({
+        where: { id: booking.artisanId },
+        select: { avgRating: true, totalReviews: true },
+      })
+      if (profile) {
+        const total = profile.totalReviews + 1
+        const newAvg = (profile.avgRating * profile.totalReviews + rating) / total
+        await tx.artisanProfile.update({
+          where: { id: booking.artisanId },
+          data: { totalReviews: total, avgRating: Math.round(newAvg * 100) / 100 },
+        })
+      }
+
+      return review
     })
   }
 }

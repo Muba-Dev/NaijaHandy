@@ -17,6 +17,11 @@ const updateSchema = z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'COMPLET
 
 const disputeSchema = z.object({ reason: z.string().min(10) })
 
+const reviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().min(3).max(500),
+})
+
 @Controller('api/bookings')
 export class BookingController {
   constructor(private bookingService: BookingService) {}
@@ -58,6 +63,19 @@ export class BookingController {
     try {
       const { reason } = disputeSchema.parse(body)
       return { data: await this.bookingService.raiseDispute(req.user.id, id, reason) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER')
+  @Post(':id/review')
+  async createReview(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    try {
+      const data = reviewSchema.parse(body)
+      return { data: await this.bookingService.createReview(req.user.id, id, data.rating, data.comment) }
     } catch (err) {
       if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
       throw err

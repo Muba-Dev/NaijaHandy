@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Get, Query, Res, BadRequestException, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common'
-import type { Response } from 'express'
+import { Controller, Post, Body, Get, Query, Res, Req, UseGuards, BadRequestException, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common'
+import type { Response, Request } from 'express'
 import { AuthService } from './auth.service'
+import { JwtAuthGuard } from './jwt-auth.guard'
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
 
@@ -31,6 +32,11 @@ const forgotPasswordSchema = z.object({
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
   password: z.string().min(8),
+})
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
 })
 
 @Controller('api/auth')
@@ -108,6 +114,20 @@ export class AuthController {
     } catch (err) {
       if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
       if (err instanceof BadRequestException) throw err
+      throw new BadRequestException('Invalid request')
+    }
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@Req() req: Request, @Body() body: any) {
+    try {
+      const data = changePasswordSchema.parse(body)
+      return await this.authService.changePassword((req.user as { id: string }).id, data.currentPassword, data.newPassword)
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      if (err instanceof UnauthorizedException || err instanceof BadRequestException) throw err
       throw new BadRequestException('Invalid request')
     }
   }
