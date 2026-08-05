@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { TrendingUp, Briefcase, Calendar, CreditCard, Settings, LogOut } from 'lucide-react'
 import { fetchMyArtisanProfile, logout } from '@/lib/api'
+import AuthGuard from '@/components/AuthGuard'
 import type { Artisan } from '@/types'
 
 const navItems = [
@@ -26,6 +27,7 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
   }, [])
 
   return (
+    <AuthGuard allowedRoles={['ARTISAN']}>
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-56 bg-white border-r border-gray-100 shrink-0 sticky top-0 h-screen">
@@ -98,5 +100,6 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
         <div className="max-w-4xl mx-auto md:mx-0">{children}</div>
       </main>
     </div>
+    </AuthGuard>
   )
 }
