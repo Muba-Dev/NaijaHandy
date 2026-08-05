@@ -1,6 +1,8 @@
 import { Controller, Post, Get, Patch, Body, Query, Param, Req, UseGuards, BadRequestException } from '@nestjs/common'
 import { BookingService } from './booking.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../auth/roles.guard'
+import { Roles } from '../auth/roles.decorator'
 import { z } from 'zod'
 
 const createSchema = z.object({
@@ -17,7 +19,8 @@ const updateSchema = z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'COMPLET
 export class BookingController {
   constructor(private bookingService: BookingService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER')
   @Post()
   async create(@Req() req: any, @Body() body: any) {
     try {

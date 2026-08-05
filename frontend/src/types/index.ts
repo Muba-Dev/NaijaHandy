@@ -40,10 +40,14 @@ export interface Booking {
   artisan: string
   profession: string
   date: string
+  dateISO: string
   time: string
   amount: number
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
   avatar: string
+  description?: string
+  customer?: string
+  customerAvatar?: string
 }
 
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'

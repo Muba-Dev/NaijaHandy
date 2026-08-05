@@ -192,6 +192,78 @@ const artisans = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/artisans`).then
 
 ---
 
+## Security — Supabase Row Level Security (RLS)
+
+### Architecture (confirmed)
+
+NaijaHandy uses **Architecture B**:
+
+```
+Frontend (Next.js)
+   ↓  HTTP + JWT (never talks to Supabase directly)
+NestJS API (backend/)
+   ↓  Prisma
+Supabase PostgreSQL
+```
+
+- The frontend never uses a Supabase client or anon/service key.
+- The backend connects via `DATABASE_URL` as the `postgres` superuser role, which has `BYPASSRLS` — so **RLS policies never block the application**.
+- RLS is a **defense-in-depth** boundary that locks tables against direct access through the `anon` / `authenticated` roles (e.g. a leaked anon key, PostgREST, or accidental client queries).
+- User IDs are Prisma CUIDs, not Supabase Auth UUIDs, and the app does **not** use Supabase Auth. `auth.uid()` ownership policies can therefore never match and are intentionally not used. Ownership + role authorization is enforced by the NestJS API.
+
+### Remediation files (`backend/supabase/`)
+
+| File | Purpose |
+|---|---|
+| `rls-migration.sql` | Enables RLS on every public table, deny-alls sensitive tables, grants read-only catalog policies, adds auto-RLS for new tables |
+| `rls-rollback.sql` | Reverts to the pre-remediation state |
+| `backup-db.sh` | Logical backup — auto-uses `pg_dump` or falls back to the Supabase CLI (`supabase db dump`). Run **before** applying |
+| `verify-rls.sql` | Confirms RLS state, policies, privileges, event trigger |
+
+### Applying the fix
+
+```bash
+# 1. Snapshot (rollback point) — auto-selects pg_dump or Supabase CLI
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/naijahandy?sslmode=require" \
+  bash backend/supabase/backup-db.sh
+
+#    Force a specific method if needed:
+#    bash backend/supabase/backup-db.sh --method pgdump     # needs Postgres client tools
+#    bash backend/supabase/backup-db.sh --method supabase   # needs: npm i -g supabase && supabase login
+
+# 2. Apply RLS remediation
+psql "$DATABASE_URL" -f backend/supabase/rls-migration.sql
+
+# 3. Verify
+psql "$DATABASE_URL" -f backend/supabase/verify-rls.sql
+
+# 4. Confirm in Supabase dashboard: Security Advisor findings cleared.
+```
+
+Alternatively, run the `.sql` files in the Supabase **SQL Editor** (Database → SQL Editor).
+
+### RLS model
+
+- **Sensitive — deny-all for anon/authenticated**: `users`, `refresh_tokens`, `bookings`, `payments`, `saved_artisans`, `disputes`, `_prisma_migrations`. No policies exist for these, and privileges were revoked from `anon`/`authenticated`. Only the trusted backend (`postgres` / `service_role`) can access them.
+- **Public catalog — read-only**: `artisan_profiles`, `services`, `portfolio_items`, `reviews` get a `SELECT`-only policy for `anon`/`authenticated`. This data is already served publicly by the unauthenticated API.
+- **Future tables**: an event trigger enables RLS automatically on any new `public` table.
+
+### Password & token handling
+
+- Passwords are hashed with **bcrypt (cost 12)** in `backend/src/auth/auth.service.ts` — never stored or returned in plaintext.
+- Refresh tokens live only in `public.refresh_tokens`, managed exclusively by the backend, and are revoked on rotation/logout. With RLS enabled and no policy, the `Sensitive Columns Exposed — public.refresh_tokens` finding is resolved.
+
+### Regression testing (after applying)
+
+1. Start backend: `npm run dev:backend` (needs `backend/.env` with `DATABASE_URL` + `JWT_SECRET`).
+2. Register customer + artisan, login, logout (refresh-token revocation).
+3. List/search artisans, open an artisan profile (services, portfolio, reviews).
+4. Create a booking as customer; accept/complete as artisan; cancel path.
+5. Update profile settings.
+6. Confirm direct `anon`-key queries against `users` / `refresh_tokens` return no rows.
+
+---
+
 ## Deployment
 
 ### Frontend → Vercel

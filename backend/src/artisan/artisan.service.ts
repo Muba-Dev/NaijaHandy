@@ -54,6 +54,11 @@ export class ArtisanService {
   }
 
   async updateMe(userId: string, data: any) {
-    return this.prisma.artisanProfile.update({ where: { userId }, data })
+    const allowed = ['profession', 'category', 'bio', 'hourlyRate', 'coverImage', 'available'] as const
+    const patch: Record<string, unknown> = {}
+    for (const key of allowed) {
+      if (data[key] !== undefined) patch[key] = data[key]
+    }
+    return this.prisma.artisanProfile.update({ where: { userId }, data: patch })
   }
 }

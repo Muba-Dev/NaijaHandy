@@ -112,10 +112,14 @@ function normalizeBooking(b: RawBooking): Booking {
     artisan: b.artisan.user.name,
     profession: b.artisan.profession,
     date: new Date(b.date).toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+    dateISO: b.date,
     time: b.time,
     amount: b.amount,
     status: (b.status.charAt(0) + b.status.slice(1).toLowerCase()) as Booking['status'],
     avatar: b.artisan.user.avatar || '',
+    description: b.description,
+    customer: b.customer?.name,
+    customerAvatar: b.customer?.avatar || '',
   }
 }
 

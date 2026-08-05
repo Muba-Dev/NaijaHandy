@@ -72,3 +72,13 @@ The repo is ready to move into Phase 3 once these Phase 2 cleanup items are conf
 2. Add authenticated route guards in the frontend and protect dashboard routes.
 3. Flesh out Phase 3 UI polish: bookings page, profile settings, saved artisans, search flow, and responsive state handling.
 4. Add targeted tests for auth refresh, protected routes, and booking transitions.
+
+## Security Remediation (Supabase RLS) ✅ COMPLETE
+
+- ✅ Confirmed Architecture B: Frontend → NestJS → Prisma → Supabase PostgreSQL (no direct Supabase client).
+- ✅ Enabled RLS on all `public` tables (clears 13 Security Advisor "RLS disabled" findings).
+- ✅ Deny-all for `anon`/`authenticated` on sensitive tables: `users`, `refresh_tokens`, `bookings`, `payments`, `saved_artisans`, `disputes`, `_prisma_migrations` (privileges revoked, no policies).
+- ✅ Read-only catalog policies for `artisan_profiles`, `services`, `portfolio_items`, `reviews`.
+- ✅ Event trigger auto-enables RLS on future tables.
+- ✅ Backup (`backup-db.sh`), rollback (`rls-rollback.sql`), and verification (`verify-rls.sql`) tooling under `backend/supabase/`.
+- ✅ Passwords verified as bcrypt-hashed (cost 12); refresh tokens only managed by the backend.
