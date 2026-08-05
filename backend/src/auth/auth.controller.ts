@@ -1,6 +1,8 @@
-import { Controller, Post, Body, BadRequestException, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common'
+import { Controller, Post, Body, Get, Query, Res, BadRequestException, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common'
+import type { Response } from 'express'
 import { AuthService } from './auth.service'
 import { z } from 'zod'
+import { randomBytes } from 'crypto'
 
 const registerSchema = z.object({
   name: z.string().min(2),
@@ -20,6 +22,15 @@ const loginSchema = z.object({
 
 const refreshSchema = z.object({
   refreshToken: z.string(),
+})
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+})
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8),
 })
 
 @Controller('api/auth')
@@ -73,6 +84,57 @@ export class AuthController {
     } catch (err) {
       if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
       throw new BadRequestException('Invalid request')
+    }
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() body: any) {
+    try {
+      const data = forgotPasswordSchema.parse(body)
+      return await this.authService.forgotPassword(data.email)
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw new BadRequestException('Invalid request')
+    }
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() body: any) {
+    try {
+      const data = resetPasswordSchema.parse(body)
+      return await this.authService.resetPassword(data.token, data.password)
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      if (err instanceof BadRequestException) throw err
+      throw new BadRequestException('Invalid request')
+    }
+  }
+
+  @Get('google')
+  async googleLogin(@Res() res: Response) {
+    const state = randomBytes(16).toString('hex')
+    const url = this.authService.getGoogleAuthUrl(state)
+    if (!url) {
+      throw new BadRequestException('Google sign-in is not configured. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI to the backend .env')
+    }
+    return res.redirect(url)
+  }
+
+  @Get('google/callback')
+  async googleCallback(@Query('code') code: string, @Res() res: Response) {
+    try {
+      const result = await this.authService.googleCallback(code)
+      const base = process.env.FRONTEND_URL || 'http://localhost:3000'
+      const url = `${base}/oauth-callback?accessToken=${encodeURIComponent(result.accessToken)}&refreshToken=${encodeURIComponent(result.refreshToken)}&role=${encodeURIComponent(result.user.role)}`
+      return res.redirect(url)
+    } catch (err) {
+      const base = process.env.FRONTEND_URL || 'http://localhost:3000'
+      const message = encodeURIComponent(
+        err instanceof Error ? err.message : 'Google sign-in failed',
+      )
+      return res.redirect(`${base}/oauth-callback?error=${message}`)
     }
   }
 }

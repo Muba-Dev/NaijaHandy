@@ -145,12 +145,12 @@ DECLARE
   obj record;
 BEGIN
   FOR obj IN
-    SELECT event_object_schema, event_object_name
+    SELECT schema_name, object_identity
     FROM pg_event_trigger_ddl_commands()
     WHERE command_tag = 'CREATE TABLE'
   LOOP
-    IF obj.event_object_schema = 'public' THEN
-      EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY', obj.event_object_schema, obj.event_object_name);
+    IF obj.schema_name = 'public' THEN
+      EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', obj.object_identity);
     END IF;
   END LOOP;
 END;

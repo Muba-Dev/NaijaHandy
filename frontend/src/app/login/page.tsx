@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Shield } from 'lucide-react'
-import { login } from '@/lib/api'
+import { login, API_BASE_URL } from '@/lib/api'
 import { getStoredUser, getApiErrorMessage } from '@/lib/utils'
 import Brand from '@/components/Brand'
 
@@ -145,6 +145,7 @@ function LoginForm() {
 
             <button
               type="button"
+              onClick={() => { window.location.href = `${API_BASE_URL}/auth/google` }}
               className="w-full py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 48 48">

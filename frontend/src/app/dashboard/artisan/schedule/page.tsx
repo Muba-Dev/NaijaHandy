@@ -81,7 +81,6 @@ export default function MySchedulePage() {
             const day = i + 1
             const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day
             const hasJobs = !!bookedDays[day]?.length
-            const jobCount = bookedDays[day]?.length || 0
             return (
               <button
                 key={day}

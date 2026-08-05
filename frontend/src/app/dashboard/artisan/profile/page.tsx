@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { BadgeCheck, MapPin, Star, Save, Loader2 } from 'lucide-react'
 import { fetchMyArtisanProfile, updateArtisanProfile } from '@/lib/api'
-import { formatNGN } from '@/lib/utils'
+import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { CATEGORIES } from '@/lib/data'
 import type { Artisan } from '@/types'
 
@@ -51,8 +51,8 @@ export default function MyProfilePage() {
       })
       setSaved(true)
       fetchMyArtisanProfile().then(setArtisan).catch(() => undefined)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save profile. Please try again.')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to save profile. Please try again.'))
     } finally {
       setSaving(false)
     }

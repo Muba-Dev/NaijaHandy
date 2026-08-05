@@ -1,9 +1,11 @@
 import axios from 'axios'
-import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminUser, AdminArtisan, AdminReview, AdminBooking, AdminPayment, AdminDispute } from '@/types'
+import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute } from '@/types'
 import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -28,7 +30,7 @@ api.interceptors.response.use(
 
       originalRequest._retry = true
       try {
-        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/auth/refresh`, {
+        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken,
         })
         setAuthTokens(data.accessToken, data.refreshToken)
@@ -122,14 +124,10 @@ function normalizeBooking(b: RawBooking): Booking {
     amount: b.amount,
     status: (b.status.charAt(0) + b.status.slice(1).toLowerCase()) as Booking['status'],
     avatar: b.artisan.user.avatar || '',
-<<<<<<< HEAD
-    description: b.description,
     customer: b.customer?.name,
     customerAvatar: b.customer?.avatar || '',
-=======
     paymentStatus: b.paymentStatus,
     paymentReference: b.paymentReference,
->>>>>>> b2868093eae5e26623da02565804cad13422632d
   }
 }
 
@@ -159,8 +157,19 @@ export async function logout(): Promise<void> {
 
 export async function fetchMe(): Promise<AuthUser> {
   const { data } = await api.get('/users/me')
-  setStoredUser(data.data)
   return data.data
+}
+
+// ─── Auth: Password reset ────────────────────────────────────────────────────
+
+export async function forgotPassword(email: string): Promise<{ success: boolean }> {
+  const { data } = await api.post('/auth/forgot-password', { email })
+  return data
+}
+
+export async function resetPassword(token: string, password: string): Promise<{ success: boolean }> {
+  const { data } = await api.post('/auth/reset-password', { token, password })
+  return data
 }
 
 // ─── Artisans ─────────────────────────────────────────────────────────────────

@@ -47,14 +47,10 @@ export interface Booking {
   amount: number
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
   avatar: string
-<<<<<<< HEAD
-  description?: string
   customer?: string
   customerAvatar?: string
-=======
   paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
   paymentReference?: string | null
->>>>>>> b2868093eae5e26623da02565804cad13422632d
 }
 
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'

@@ -27,7 +27,8 @@ model User {
   email     String   @unique
   phone     String?
   city      String?
-  password  String
+  password  String?
+  googleId  String?  @unique
   role      String   @default("CUSTOMER")
   status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
   avatar    String?
@@ -35,12 +36,13 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  artisanProfile   ArtisanProfile?
+  artisanProfile     ArtisanProfile?
   bookingsAsCustomer Booking[] @relation("CustomerBookings")
-  reviews          Review[]
-  savedArtisans    SavedArtisan[]
-  refreshTokens    RefreshToken[]
-  disputesRaised   Dispute[] @relation("RaisedDisputes")
+  reviews            Review[]
+  savedArtisans      SavedArtisan[]
+  refreshTokens      RefreshToken[]
+  disputesRaised     Dispute[] @relation("RaisedDisputes")
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -55,6 +57,19 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
 }
 
 model ArtisanProfile {
