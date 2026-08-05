@@ -96,6 +96,8 @@ The frontend now uses:
 - ✅ Add loading, empty, validation, and error states across pages.
 - ✅ Admin platform (Phase 2 item 4): approvals, verification, user suspension, review moderation, bookings/payments, disputes.
 - ✅ Profile settings, saved artisans, booking history, and search refinements (booking history polished: fixed Rebook links, added Cancel + Raise Dispute flows, tab counts, error/retry states).
+- ✅ Search flow wiring (navbar/hero/popular links deep-link `?q=`, debounce + error state), change-password (backend `POST /auth/change-password` + settings Security tab), review submission (backend `POST /bookings/:id/review` + bookings-page form), navbar Bookings/Saved links, and review-rating distribution derived from `reviews_list`.
+- ✅ Verified: backend build clean, 37 unit tests + 52 e2e tests passing (e2e now covers change-password revocation and review rules), frontend typecheck/build/lint clean.
 - Pending: improve responsive accessibility, mobile UX, SEO-ready content.
 - Pending: real media uploads, map/address selection, notification support.
 

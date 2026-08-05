@@ -7,7 +7,8 @@ describe('AuthService', () => {
   const user = { findUnique: jest.fn() }
   const prisma = { user, refreshToken } as any
   const jwtService = { sign: jest.fn(() => 'signed-token'), verify: jest.fn() } as any
-  const service = new AuthService(prisma, jwtService)
+  const emailService = { sendPasswordResetEmail: jest.fn() } as any
+  const service = new AuthService(prisma, jwtService, emailService)
 
   const future = new Date(Date.now() + 86_400_000)
   const past = new Date(Date.now() - 1_000)
