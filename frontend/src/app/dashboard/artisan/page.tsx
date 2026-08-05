@@ -2,10 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+<<<<<<< HEAD
 import Link from 'next/link'
 import { TrendingUp, Briefcase, Calendar, CreditCard, Bell, Users, CheckCircle, MapPin, ToggleLeft, ToggleRight, ChevronRight } from 'lucide-react'
 import { fetchMyArtisanProfile, fetchBookings, updateArtisanProfile, updateBookingStatus } from '@/lib/api'
+=======
+import { TrendingUp, Briefcase, Calendar, CreditCard, Settings, LogOut, Bell, Users, CheckCircle, MapPin, ToggleLeft, ToggleRight } from 'lucide-react'
+import { fetchMyArtisanProfile, fetchBookings, updateArtisanProfile, updateBookingStatus, logout } from '@/lib/api'
+>>>>>>> b2868093eae5e26623da02565804cad13422632d
 import { formatNGN } from '@/lib/utils'
+import AuthGuard from '@/components/AuthGuard'
 import type { Artisan, Booking } from '@/types'
 
 export default function ArtisanOverviewPage() {
@@ -37,11 +43,26 @@ export default function ArtisanOverviewPage() {
   const upcoming = bookings.filter((b) => b.status === 'Confirmed').slice(0, 3)
 
   return (
+<<<<<<< HEAD
     <>
       <div className="flex items-center justify-between mb-7 flex-wrap gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Artisan Dashboard</h1>
           <p className="text-gray-500 text-sm mt-0.5">Manage your jobs and schedule</p>
+=======
+    <AuthGuard allowedRoles={['ARTISAN']}>
+    <div className="min-h-screen flex bg-gray-50">
+      {/* Sidebar */}
+      <aside className="hidden md:flex flex-col w-56 bg-white border-r border-gray-100 shrink-0">
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <Image src={artisan?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=48&h=48&fit=crop&auto=format'} alt={artisan?.name || 'Artisan'} width={40} height={40} className="rounded-full object-cover" />
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">{artisan?.name || 'Loading…'}</p>
+              <p className="text-xs text-gray-400">{artisan?.profession || 'Artisan'}</p>
+            </div>
+          </div>
+>>>>>>> b2868093eae5e26623da02565804cad13422632d
         </div>
         <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-2.5">
           <span className="text-sm font-medium text-gray-700">Available for Work</span>
@@ -84,6 +105,7 @@ export default function ArtisanOverviewPage() {
             View all <ChevronRight size={14} />
           </Link>
         </div>
+<<<<<<< HEAD
         <div className="divide-y divide-gray-50">
           {pendingRequests.map((r) => (
             <div key={r.id} className="flex items-start gap-4 px-5 py-4">
@@ -164,5 +186,10 @@ export default function ArtisanOverviewPage() {
         })}
       </div>
     </>
+=======
+      </main>
+    </div>
+    </AuthGuard>
+>>>>>>> b2868093eae5e26623da02565804cad13422632d
   )
 }

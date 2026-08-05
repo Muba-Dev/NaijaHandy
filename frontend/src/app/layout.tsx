@@ -23,8 +23,6 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.svg' },
 }
 
-const NO_FOOTER_ROUTES = ['/login', '/register', '/dashboard/customer', '/dashboard/artisan']
-
 export default function RootLayout({
   children,
 }: {

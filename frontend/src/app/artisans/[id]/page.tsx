@@ -3,15 +3,17 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench } from 'lucide-react'
-import { fetchArtisanById, createBooking } from '@/lib/api'
-import { formatNGN } from '@/lib/utils'
+import { fetchArtisanById, createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
+import { formatNGN, isAuthenticated, getApiErrorMessage } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import type { Artisan } from '@/types'
 
 export default function ArtisanProfilePage() {
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const [artisan, setArtisan] = useState<Artisan | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('about')
@@ -21,32 +23,68 @@ export default function ArtisanProfilePage() {
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [bookingError, setBookingError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!params.id) return
+    setLoading(true)
+    fetchArtisanById(params.id).then(setArtisan).catch(() => setArtisan(null)).finally(() => setLoading(false))
+
+    if (isAuthenticated()) {
+      fetchSavedArtisans()
+        .then((list) => setSaved(list.some((a) => a.id === params.id)))
+        .catch(() => setSaved(false))
+    }
+  }, [params.id])
+
+  const toggleSave = async () => {
+    if (!artisan) return
+    if (!isAuthenticated()) {
+      router.push(`/login?redirect=${encodeURIComponent(`/artisans/${artisan.id}`)}`)
+      return
+    }
+    setSaving(true)
+    try {
+      if (saved) {
+        await unsaveArtisan(artisan.id)
+        setSaved(false)
+      } else {
+        await saveArtisan(artisan.id)
+        setSaved(true)
+      }
+    } catch {
+      setSaved(saved)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleBook = async () => {
     if (!artisan) return
     setBookingSubmitting(true)
     setBookingError('')
     try {
-      await createBooking({
+      const booking = await createBooking({
         artisanId: artisan.id,
         date: bookingDate,
         time: bookingTime,
         description: jobDesc,
         amount: artisan.hourlyRate * 2 + 500,
       })
-      setBookingSuccess(true)
-    } catch (err: any) {
-      setBookingError(err.response?.data?.errors?.[0]?.message || 'Please log in first to book an artisan.')
+      try {
+        const { authorization_url } = await initializePayment(booking.id)
+        window.location.href = authorization_url
+        return
+      } catch {
+        setBookingSuccess(true)
+      }
+    } catch (err) {
+      setBookingError(getApiErrorMessage(err, 'Please log in first to book an artisan.'))
     } finally {
       setBookingSubmitting(false)
     }
   }
-
-  useEffect(() => {
-    if (!params.id) return
-    setLoading(true)
-    fetchArtisanById(params.id).then(setArtisan).catch(() => setArtisan(null)).finally(() => setLoading(false))
-  }, [params.id])
 
   const tabs = ['about', 'services', 'portfolio', 'reviews']
 
@@ -92,7 +130,7 @@ export default function ArtisanProfilePage() {
         {/* Profile header */}
         <div className="bg-white rounded-2xl border border-gray-100 -mt-14 relative z-10 p-6 mb-6 flex flex-col md:flex-row gap-5 items-start md:items-center">
           <Image
-            src={artisan.avatar}
+            src={artisan.avatar || DEFAULT_AVATAR}
             alt={artisan.name}
             width={96}
             height={96}
@@ -123,8 +161,13 @@ export default function ArtisanProfilePage() {
             <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
               <MessageSquare size={15} />Message
             </button>
-            <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <Heart size={15} />Save
+            <button
+              onClick={toggleSave}
+              disabled={saving}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors disabled:opacity-60 ${saved ? 'border-[#047857] bg-[#ECFDF5] text-[#047857]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+            >
+              <Heart size={15} className={saved ? 'fill-current' : ''} />
+              {saved ? 'Saved' : 'Save'}
             </button>
           </div>
         </div>
@@ -231,7 +274,7 @@ export default function ArtisanProfilePage() {
                       {artisan.reviews_list.map((r, i) => (
                         <div key={i} className="border-b border-gray-100 pb-4 last:border-0">
                           <div className="flex items-start gap-3">
-                            <Image src={r.avatar} alt={r.name} width={40} height={40} className="rounded-full object-cover" />
+                            <Image src={r.avatar || DEFAULT_AVATAR} alt={r.name} width={40} height={40} className="rounded-full object-cover" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <p className="font-semibold text-gray-900 text-sm">{r.name}</p>
@@ -319,10 +362,10 @@ export default function ArtisanProfilePage() {
                 disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
                 className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Confirmed ✓' : 'Proceed to Book'}
+                {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
               </button>
               {bookingError && <p className="text-center text-xs text-red-500 mt-2">{bookingError}</p>}
-              <p className="text-center text-xs text-gray-400 mt-2.5">Payment held securely until job is done</p>
+              <p className="text-center text-xs text-gray-400 mt-2.5">You&apos;ll be redirected to secure Paystack checkout to complete payment</p>
             </div>
           </div>
         </div>

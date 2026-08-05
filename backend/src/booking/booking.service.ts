@@ -34,6 +34,7 @@ export class BookingService {
       include: {
         artisan: { include: { user: { select: { name: true, avatar: true } } } },
         customer: { select: { name: true, avatar: true } },
+        payment: { select: { status: true, reference: true } },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -56,7 +57,23 @@ export class BookingService {
     if (!canTransitionBookingStatus(current.status, status)) {
       throw new ForbiddenException(`Cannot change booking from ${current.status} to ${status}`)
     }
+    if (status === 'CONFIRMED' && current.paymentStatus !== 'PAID') {
+      throw new ForbiddenException('Booking must be paid before it can be confirmed')
+    }
 
     return this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
+  }
+
+  async raiseDispute(userId: string, bookingId: string, reason: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } })
+    if (!booking) throw new NotFoundException('Booking not found')
+    if (booking.customerId !== userId) throw new ForbiddenException('You cannot dispute this booking')
+
+    const open = await this.prisma.dispute.findFirst({ where: { bookingId, status: 'OPEN' } })
+    if (open) throw new ForbiddenException('A dispute for this booking is already open')
+
+    return this.prisma.dispute.create({
+      data: { bookingId, raisedBy: userId, reason },
+    })
   }
 }

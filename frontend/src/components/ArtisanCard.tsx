@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { MapPin, CheckCircle } from 'lucide-react'
 import type { Artisan } from '@/types'
 import { formatNGN } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from './StarRating'
 
 interface Props {
@@ -15,7 +16,7 @@ export default function ArtisanCard({ artisan }: Props) {
       <div className="p-5">
         <div className="flex items-start gap-3 mb-4">
           <Image
-            src={artisan.avatar}
+            src={artisan.avatar || DEFAULT_AVATAR}
             alt={artisan.name}
             width={56}
             height={56}

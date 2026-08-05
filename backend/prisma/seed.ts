@@ -3,72 +3,148 @@ import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
 
+const AVATARS: Record<string, string> = {
+  emeka: 'https://images.pexels.com/photos/35533370/pexels-photo-35533370.jpeg?auto=compress&cs=tinysrgb&w=800',
+  fatima: 'https://images.pexels.com/photos/38180101/pexels-photo-38180101.jpeg?auto=compress&cs=tinysrgb&w=800',
+  chidi: 'https://images.pexels.com/photos/35730557/pexels-photo-35730557.jpeg?auto=compress&cs=tinysrgb&w=800',
+  amaka: 'https://images.pexels.com/photos/36845523/pexels-photo-36845523.jpeg?auto=compress&cs=tinysrgb&w=800',
+  yusuf: 'https://images.pexels.com/photos/33242998/pexels-photo-33242998.jpeg?auto=compress&cs=tinysrgb&w=800',
+  ngozi: 'https://images.pexels.com/photos/32463149/pexels-photo-32463149.jpeg?auto=compress&cs=tinysrgb&w=800',
+  musa: 'https://images.pexels.com/photos/32757396/pexels-photo-32757396.jpeg?auto=compress&cs=tinysrgb&w=800',
+  adaeze: 'https://images.pexels.com/photos/38250933/pexels-photo-38250933.jpeg?auto=compress&cs=tinysrgb&w=800',
+  tunde: 'https://images.pexels.com/photos/36029380/pexels-photo-36029380.jpeg?auto=compress&cs=tinysrgb&w=800',
+  halima: 'https://images.pexels.com/photos/37347157/pexels-photo-37347157.jpeg?auto=compress&cs=tinysrgb&w=800',
+}
+
+type ArtisanSeed = {
+  key: string
+  name: string
+  email: string
+  phone: string
+  city: string
+  profession: string
+  category: string
+  bio: string
+  hourlyRate: number
+  verified: boolean
+  available: boolean
+  avgRating: number
+  totalReviews: number
+}
+
+const ARTISANS: ArtisanSeed[] = [
+  {
+    key: 'emeka', name: 'Emeka Okafor', email: 'emeka@example.com', phone: '+234 801 234 5678', city: 'Lagos, VI',
+    profession: 'Master Plumber', category: 'Plumbing',
+    bio: 'Over 12 years of experience fixing residential and commercial plumbing across Lagos. Specialise in pipe installations and emergency repairs.',
+    hourlyRate: 8500, verified: true, available: true, avgRating: 4.9, totalReviews: 134,
+  },
+  {
+    key: 'fatima', name: 'Fatima Aliyu', email: 'fatima@example.com', phone: '+234 802 345 6780', city: 'Abuja, Wuse',
+    profession: 'Electrician', category: 'Electrical',
+    bio: 'Certified electrical engineer with COREN accreditation. Residential wiring, industrial installations, and solar panel setups.',
+    hourlyRate: 7500, verified: true, available: true, avgRating: 4.8, totalReviews: 89,
+  },
+  {
+    key: 'chidi', name: 'Chidi Nwosu', email: 'chidi@example.com', phone: '+234 803 456 7891', city: 'Port Harcourt',
+    profession: 'Carpenter & Joiner', category: 'Carpentry',
+    bio: 'Custom furniture design and woodworking for homes and offices. 9 years building bespoke pieces across the South-South.',
+    hourlyRate: 6500, verified: true, available: false, avgRating: 4.7, totalReviews: 62,
+  },
+  {
+    key: 'amaka', name: 'Amaka Okonkwo', email: 'amaka@example.com', phone: '+234 803 456 7800', city: 'Lagos, Yaba',
+    profession: 'Painter & Decorator', category: 'Painting',
+    bio: 'Interior and exterior painting specialist. Colour consultation, textured finishes, and Venetian plaster applications.',
+    hourlyRate: 5000, verified: true, available: true, avgRating: 4.9, totalReviews: 201,
+  },
+  {
+    key: 'yusuf', name: 'Yusuf Garba', email: 'yusuf@example.com', phone: '+234 806 456 7810', city: 'Kano, Sabon Gari',
+    profession: 'Auto Mechanic', category: 'Auto Repair',
+    bio: 'Toyota & Nissan certified mechanic. Engine diagnostics, gearbox overhaul, AC servicing, and tyre replacements.',
+    hourlyRate: 5500, verified: true, available: true, avgRating: 4.6, totalReviews: 47,
+  },
+  {
+    key: 'ngozi', name: 'Ngozi Adeyemi', email: 'ngozi@example.com', phone: '+234 805 456 7820', city: 'Lagos, Lekki',
+    profession: 'Interior Designer', category: 'Carpentry',
+    bio: 'Award-winning interior designer with projects across West Africa. Space planning, furniture sourcing, and full project management.',
+    hourlyRate: 15000, verified: true, available: true, avgRating: 5.0, totalReviews: 58,
+  },
+  {
+    key: 'musa', name: 'Musa Bello', email: 'musa@example.com', phone: '+234 807 456 7830', city: 'Abuja, Gwarinpa',
+    profession: 'Deep Cleaning Specialist', category: 'Home Cleaning',
+    bio: 'Trained in eco-friendly deep cleaning for homes and offices. Move-in/move-out cleans, carpet steaming, and sanitisation.',
+    hourlyRate: 4000, verified: true, available: true, avgRating: 4.8, totalReviews: 73,
+  },
+  {
+    key: 'adaeze', name: 'Adaeze Uche', email: 'adaeze@example.com', phone: '+234 808 456 7840', city: 'Enugu, GRA',
+    profession: 'Fashion Designer & Tailor', category: 'Tailoring',
+    bio: 'Bespoke outfits, aso-ebi styling, and alterations for men and women. 10 years crafting wedding and corporate wear.',
+    hourlyRate: 6000, verified: true, available: true, avgRating: 4.9, totalReviews: 112,
+  },
+  {
+    key: 'tunde', name: 'Tunde Bakare', email: 'tunde@example.com', phone: '+234 809 456 7850', city: 'Ibadan, Bodija',
+    profession: 'Tiler & Flooring Expert', category: 'Tiling & Flooring',
+    bio: 'Precision tiling for kitchens, bathrooms, and outdoor spaces. Marble, granite, porcelain, and patterned tile installation.',
+    hourlyRate: 5500, verified: true, available: true, avgRating: 4.7, totalReviews: 39,
+  },
+  {
+    key: 'halima', name: 'Halima Sani', email: 'halima@example.com', phone: '+234 810 456 7860', city: 'Kano, Nasarawa',
+    profession: 'Solar & Inverter Installer', category: 'Electrical',
+    bio: 'Certified solar PV and inverter technician. System sizing, installation, and maintenance for homes and small businesses.',
+    hourlyRate: 9000, verified: true, available: true, avgRating: 4.9, totalReviews: 67,
+  },
+]
+
+async function upsertArtisan(a: ArtisanSeed) {
+  const user = await prisma.user.upsert({
+    where: { email: a.email },
+    update: { avatar: AVATARS[a.key], name: a.name, city: a.city },
+    create: {
+      name: a.name, email: a.email, phone: a.phone, city: a.city,
+      password: await bcrypt.hash('password123', 12), role: 'ARTISAN', avatar: AVATARS[a.key],
+    },
+  })
+  return prisma.artisanProfile.upsert({
+    where: { userId: user.id },
+    update: {},
+    create: {
+      userId: user.id, profession: a.profession, category: a.category, bio: a.bio, hourlyRate: a.hourlyRate,
+      verified: a.verified, available: a.available, avgRating: a.avgRating, totalReviews: a.totalReviews,
+      approvalStatus: 'APPROVED', verificationStatus: 'VERIFIED',
+    },
+  })
+}
+
 async function main() {
   const password = await bcrypt.hash('password123', 12)
+
+  // ── Admin ──
+  await prisma.user.upsert({
+    where: { email: 'admin@naijahandy.com' },
+    update: { name: 'NaijaHandy Admin', phone: '+234 800 000 0000', city: 'Lagos' },
+    create: { name: 'NaijaHandy Admin', email: 'admin@naijahandy.com', phone: '+234 800 000 0000', city: 'Lagos', password, role: 'ADMIN' },
+  })
 
   // ── Customers ──
   const customer1 = await prisma.user.upsert({
     where: { email: 'chisom@example.com' },
-    update: {},
+    update: { name: 'Chisom Eze', phone: '+234 803 456 7890', city: 'Lagos' },
     create: { name: 'Chisom Eze', email: 'chisom@example.com', phone: '+234 803 456 7890', city: 'Lagos', password, role: 'CUSTOMER' },
   })
-  const customer2 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'bayo@example.com' },
-    update: {},
+    update: { name: 'Bayo Adeleke', phone: '+234 802 345 6789', city: 'Abuja' },
     create: { name: 'Bayo Adeleke', email: 'bayo@example.com', phone: '+234 802 345 6789', city: 'Abuja', password, role: 'CUSTOMER' },
   })
 
-  // ── Artisans ──
-  const emekaUser = await prisma.user.upsert({
-    where: { email: 'emeka@example.com' },
-    update: {},
-    create: {
-      name: 'Emeka Okafor', email: 'emeka@example.com', phone: '+234 801 234 5678', city: 'Lagos, VI', password, role: 'ARTISAN',
-    },
-  })
-  const emeka = await prisma.artisanProfile.upsert({
-    where: { userId: emekaUser.id },
-    update: {},
-    create: {
-      userId: emekaUser.id, profession: 'Master Plumber', category: 'Plumbing',
-      bio: 'Over 12 years of experience fixing residential and commercial plumbing across Lagos. Specialise in pipe installations and emergency repairs.',
-      hourlyRate: 8500, verified: true, available: true, avgRating: 4.9, totalReviews: 134,
-    },
-  })
-
-  const fatimaUser = await prisma.user.upsert({
-    where: { email: 'fatima@example.com' },
-    update: {},
-    create: {
-      name: 'Fatima Aliyu', email: 'fatima@example.com', phone: '+234 802 345 6780', city: 'Abuja, Wuse', password, role: 'ARTISAN',
-    },
-  })
-  const fatima = await prisma.artisanProfile.upsert({
-    where: { userId: fatimaUser.id },
-    update: {},
-    create: {
-      userId: fatimaUser.id, profession: 'Electrician', category: 'Electrical',
-      bio: 'Certified electrical engineer with COREN accreditation. Residential wiring, industrial installations, and solar panel setups.',
-      hourlyRate: 7500, verified: true, available: true, avgRating: 4.8, totalReviews: 89,
-    },
-  })
-
-  const chidiUser = await prisma.user.upsert({
-    where: { email: 'chidi@example.com' },
-    update: {},
-    create: {
-      name: 'Chidi Nwosu', email: 'chidi@example.com', phone: '+234 803 456 7891', city: 'Port Harcourt', password, role: 'ARTISAN',
-    },
-  })
-  const chidi = await prisma.artisanProfile.upsert({
-    where: { userId: chidiUser.id },
-    update: {},
-    create: {
-      userId: chidiUser.id, profession: 'Carpenter & Joiner', category: 'Carpentry',
-      bio: 'Custom furniture design and woodworking for homes and offices. 9 years building bespoke pieces across the South-South.',
-      hourlyRate: 6500, verified: true, available: false, avgRating: 4.7, totalReviews: 62,
-    },
-  })
+  // ── Artisans (10) ──
+  const profiles: Record<string, { id: string }> = {}
+  for (const a of ARTISANS) {
+    profiles[a.key] = await upsertArtisan(a)
+  }
+  const emeka = profiles.emeka
+  const fatima = profiles.fatima
+  const chidi = profiles.chidi
 
   // ── Services ──
   const services = [
@@ -90,9 +166,24 @@ async function main() {
     { customerId: customer1.id, artisanId: chidi.id, date: new Date('2026-07-19'), time: '10:00 AM', description: 'Build custom bookshelf', amount: 26000, status: 'COMPLETED', paymentStatus: 'PAID', paymentReference: 'seed-chidi-001', paidAt: new Date('2026-07-18') },
   ] })
 
+  // ── Payments (backing records for the PAID bookings) ──
+  const paidBookings = await prisma.booking.findMany({
+    where: { customerId: customer1.id, paymentStatus: 'PAID' },
+    select: { id: true, amount: true },
+  })
+  for (const b of paidBookings) {
+    const existing = await prisma.payment.findUnique({ where: { bookingId: b.id } })
+    if (!existing) {
+      await prisma.payment.create({
+        data: { bookingId: b.id, reference: `seed-pay-${b.id.slice(-6)}`, amount: b.amount, status: 'SUCCESS', provider: 'PAYSTACK', paidAt: new Date() },
+      })
+    }
+  }
+
   console.log('Database seeded successfully!')
+  console.log('  Admin:     admin@naijahandy.com')
   console.log('  Customers: chisom@example.com / bayo@example.com')
-  console.log('  Artisans:  emeka@example.com / fatima@example.com / chidi@example.com')
+  console.log(`  Artisans:  ${ARTISANS.map((a) => a.email).join(' / ')}`)
   console.log('  Password:  password123 (for all)')
 }
 

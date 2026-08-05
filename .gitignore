@@ -4,9 +4,17 @@ node_modules/
 # Build output
 .next/
 dist/
+dist-test/
 build/
 out/
 coverage/
+
+# Local tooling
+.vercel/
+*.tsbuildinfo
+
+# Database backups
+backups/
 
 # Environment files and local databases
 .env
@@ -24,7 +32,3 @@ yarn-debug.log*
 .DS_Store
 Thumbs.db
 .vscode/*.code-snippets
-
-# Local tooling
-.vercel/
-*.tsbuildinfo

@@ -1,0 +1,41 @@
+name: DB Maintain
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: 'Also run the seed (idempotent): true/false'
+        required: false
+        default: 'true'
+
+jobs:
+  migrate:
+    name: Migrate + Seed
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check DATABASE_URL secret
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set — add it under repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Seed database
+        if: ${{ github.event.inputs.run_seed == 'true' }}
+        run: npx prisma db seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

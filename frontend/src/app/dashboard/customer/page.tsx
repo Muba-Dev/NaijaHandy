@@ -7,14 +7,16 @@ import Link from 'next/link'
 import { Calendar, CheckCircle, CreditCard, TrendingUp, Heart, Settings, LogOut, Plus } from 'lucide-react'
 import { fetchBookings, fetchMe, logout } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
+import AuthGuard from '@/components/AuthGuard'
 import type { Booking, BookingStatus } from '@/types'
 import type { AuthUser } from '@/types'
 
 const navItems = [
   { id: 'overview', label: 'Overview', icon: TrendingUp, href: '/dashboard/customer' },
   { id: 'bookings', label: 'My Bookings', icon: Calendar, href: '/bookings' },
-  { id: 'saved', label: 'Saved Artisans', icon: Heart, href: '#' },
+  { id: 'saved', label: 'Saved Artisans', icon: Heart, href: '/saved' },
   { id: 'settings', label: 'Profile Settings', icon: Settings, href: '/settings' },
 ]
 
@@ -34,6 +36,7 @@ export default function CustomerDashboardPage() {
   const firstName = user?.name?.split(' ')[0] || 'there'
 
   return (
+    <AuthGuard allowedRoles={['CUSTOMER']}>
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-56 bg-white border-r border-gray-100 shrink-0">
@@ -123,7 +126,7 @@ export default function CustomerDashboardPage() {
             <div className="divide-y divide-gray-50">
               {active.map((b) => (
                 <div key={b.id} className="flex items-center gap-4 px-5 py-4">
-                  <Image src={b.avatar} alt={b.artisan} width={44} height={44} className="rounded-xl object-cover shrink-0" />
+                  <Image src={b.avatar || DEFAULT_AVATAR} alt={b.artisan} width={44} height={44} className="rounded-xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 text-sm">{b.artisan}</p>
                     <p className="text-xs text-gray-400">{b.profession} · {b.date} at {b.time}</p>
@@ -137,5 +140,6 @@ export default function CustomerDashboardPage() {
         </div>
       </main>
     </div>
+    </AuthGuard>
   )
 }

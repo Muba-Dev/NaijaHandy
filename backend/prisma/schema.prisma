@@ -29,16 +29,18 @@ model User {
   city      String?
   password  String
   role      String   @default("CUSTOMER")
+  status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  artisanProfile ArtisanProfile?
+  artisanProfile   ArtisanProfile?
   bookingsAsCustomer Booking[] @relation("CustomerBookings")
-  reviews        Review[]
-  savedArtisans  SavedArtisan[]
-  refreshTokens  RefreshToken[]
+  reviews          Review[]
+  savedArtisans    SavedArtisan[]
+  refreshTokens    RefreshToken[]
+  disputesRaised   Dispute[] @relation("RaisedDisputes")
 
   @@map("users")
 }
@@ -65,6 +67,8 @@ model ArtisanProfile {
   coverImage  String?
   verified    Boolean  @default(false)
   available   Boolean  @default(true)
+  approvalStatus    String @default("PENDING")   // PENDING | APPROVED | REJECTED
+  verificationStatus String @default("UNVERIFIED") // UNVERIFIED | VERIFIED
   avgRating   Float    @default(0)
   totalReviews Int     @default(0)
   createdAt   DateTime @default(now())
@@ -76,6 +80,7 @@ model ArtisanProfile {
   portfolio PortfolioItem[]
   bookings  Booking[] @relation("ArtisanBookings")
   reviews   Review[]
+  savedBy   SavedArtisan[]
 
   @@map("artisan_profiles")
 }
@@ -123,6 +128,7 @@ model Booking {
   artisan  ArtisanProfile @relation("ArtisanBookings", fields: [artisanId], references: [id])
   review   Review?
   payment  Payment?
+  disputes Dispute[]
 
   @@map("bookings")
 }
@@ -150,6 +156,7 @@ model Review {
   artisanId  String
   rating    Int      // 1–5
   comment   String
+  status    String   @default("APPROVED") // APPROVED | HIDDEN
   createdAt DateTime @default(now())
 
   booking  Booking        @relation(fields: [bookingId], references: [id])
@@ -159,13 +166,30 @@ model Review {
   @@map("reviews")
 }
 
+model Dispute {
+  id         String   @id @default(cuid())
+  bookingId  String
+  raisedBy   String
+  reason     String
+  status     String   @default("OPEN") // OPEN | RESOLVED | DISMISSED
+  resolution String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user    User    @relation("RaisedDisputes", fields: [raisedBy], references: [id])
+
+  @@map("disputes")
+}
+
 model SavedArtisan {
   id        String   @id @default(cuid())
   userId    String
   artisanId String
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artisan ArtisanProfile @relation(fields: [artisanId], references: [id], onDelete: Cascade)
 
   @@unique([userId, artisanId])
   @@map("saved_artisans")

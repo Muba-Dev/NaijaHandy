@@ -1,8 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Users, Shield, CreditCard, Bell, Plus } from 'lucide-react'
+import { Users, Shield, CreditCard, Bell, Plus, CheckCircle2, AlertCircle } from 'lucide-react'
+import AuthGuard from '@/components/AuthGuard'
+import { fetchMe, updateProfile, updateAvatar } from '@/lib/api'
+import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
+import type { AuthUser } from '@/types'
 
 type SettingsTab = 'personal' | 'security' | 'payment' | 'notifications'
 
@@ -15,8 +19,76 @@ const tabs: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
 
 export default function ProfileSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('personal')
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [city, setCity] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    fetchMe().then((u) => {
+      setUser(u)
+      setName(u.name)
+      setPhone(u.phone || '')
+      setCity(u.city || '')
+    }).catch(() => setError('Could not load your profile. Please refresh.'))
+  }, [])
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setSaved(false)
+    setError('')
+    try {
+      const updated = await updateProfile({ name, phone, city })
+      setUser((u) => (u ? { ...u, ...updated } : u))
+      setStoredUser(updated)
+      setSaved(true)
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to save changes. Please try again.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError('')
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please choose an image file (JPG, PNG or WebP).')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('Image is too large. Maximum size is 2MB.')
+      return
+    }
+    setUploading(true)
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Could not read the file'))
+        reader.readAsDataURL(file)
+      })
+      const updated = await updateAvatar(dataUrl)
+      setUser((u) => (u ? { ...u, avatar: updated.avatar } : u))
+      setStoredUser(updated)
+    } catch (err) {
+      setUploadError(getApiErrorMessage(err, 'Failed to upload your photo. Please try again.'))
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
         <h1 className="font-display text-2xl font-bold text-gray-900 mb-7">Profile Settings</h1>
@@ -43,44 +115,95 @@ export default function ProfileSettingsPage() {
           {/* Content panel */}
           <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-6">
             {activeTab === 'personal' && (
-              <div>
+              <form onSubmit={handleSave}>
                 <h2 className="font-semibold text-gray-900 mb-5">Personal Information</h2>
                 <div className="flex items-center gap-4 mb-6">
                   <Image
-                    src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=80&h=80&fit=crop&auto=format"
-                    alt="user"
+                    src={user?.avatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=80&h=80&fit=crop&auto=format'}
+                    alt={user?.name || 'user'}
                     width={64}
                     height={64}
                     className="rounded-2xl object-cover"
                   />
                   <div>
-                    <button className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-                      Change Photo
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                    >
+                      {uploading ? 'Uploading…' : 'Change Photo'}
                     </button>
-                    <p className="text-xs text-gray-400 mt-1.5">JPG, PNG up to 2MB</p>
+                    <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, WebP up to 2MB</p>
+                    {uploadError && <p className="text-xs text-red-500 mt-1.5">{uploadError}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { label: 'Full Name', value: 'Chisom Eze', type: 'text' },
-                    { label: 'Email', value: 'chisom@example.com', type: 'email' },
-                    { label: 'Phone', value: '+234 803 456 7890', type: 'tel' },
-                    { label: 'City', value: 'Lagos', type: 'text' },
-                  ].map((f) => (
-                    <div key={f.label}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">{f.label}</label>
-                      <input
-                        type={f.type}
-                        defaultValue={f.value}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
-                      />
-                    </div>
-                  ))}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                    <input
+                      type="email"
+                      value={user?.email || ''}
+                      disabled
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none bg-gray-50 text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+234 800 000 0000"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                    <input
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="Lagos"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+                    />
+                  </div>
                 </div>
-                <button className="mt-5 px-5 py-2.5 rounded-xl text-white font-semibold text-sm bg-[#047857] hover:opacity-90 transition-opacity">
-                  Save Changes
+
+                {saved && (
+                  <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                    <CheckCircle2 size={16} /> Your changes have been saved.
+                  </div>
+                )}
+                {error && (
+                  <div className="mt-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <AlertCircle size={16} /> {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={saving || !user}
+                  className="mt-5 px-5 py-2.5 rounded-xl text-white font-semibold text-sm bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save Changes'}
                 </button>
-              </div>
+              </form>
             )}
 
             {activeTab === 'security' && (
@@ -158,5 +281,6 @@ export default function ProfileSettingsPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   )
 }

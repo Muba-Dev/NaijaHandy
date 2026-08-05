@@ -1,20 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Shield } from 'lucide-react'
 import { login } from '@/lib/api'
+import { getStoredUser, getApiErrorMessage } from '@/lib/utils'
 import Brand from '@/components/Brand'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const user = getStoredUser()
+    if (user) {
+      router.replace(user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
+    }
+  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,9 +31,14 @@ export default function LoginPage() {
     setError('')
     try {
       const user = await login({ email, password })
-      router.push(user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Check your credentials.')
+      const redirect = searchParams.get('redirect')
+      if (redirect && redirect.startsWith('/')) {
+        router.push(redirect)
+      } else {
+        router.push(user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
+      }
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Login failed. Check your credentials.'))
       setLoading(false)
     }
   }
@@ -152,5 +166,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[calc(100vh-64px)]" />}>
+      <LoginForm />
+    </Suspense>
   )
 }

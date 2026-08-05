@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException, UnauthorizedException } from '@nestjs/common'
+import { Controller, Post, Body, BadRequestException, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { z } from 'zod'
 
@@ -51,6 +51,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @HttpCode(HttpStatus.OK)
   async refresh(@Body() body: any) {
     try {
       const data = refreshSchema.parse(body)
@@ -63,6 +64,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @HttpCode(HttpStatus.OK)
   async logout(@Body() body: any) {
     try {
       const data = refreshSchema.parse(body)

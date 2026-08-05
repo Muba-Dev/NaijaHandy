@@ -1,6 +1,6 @@
 import axios from 'axios'
-import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload } from '@/types'
-import { getAuthToken, getRefreshToken, setAuthTokens, clearAuthTokens } from '@/lib/utils'
+import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminUser, AdminArtisan, AdminReview, AdminBooking, AdminPayment, AdminDispute } from '@/types'
+import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
@@ -102,24 +102,34 @@ type RawBooking = {
   description: string
   amount: number
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
-  artisan: { profession: string; user: { name: string; avatar: string | null } }
+  paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
+  paymentReference?: string | null
+  artisan: { id: string; profession: string; user: { name: string; avatar: string | null } }
   customer: { name: string; avatar: string | null }
+  payment?: { status: string; reference: string } | null
 }
 
 function normalizeBooking(b: RawBooking): Booking {
   return {
     id: b.id,
+    artisanId: b.artisan.id,
     artisan: b.artisan.user.name,
     profession: b.artisan.profession,
     date: new Date(b.date).toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
     dateISO: b.date,
     time: b.time,
+    description: b.description,
     amount: b.amount,
     status: (b.status.charAt(0) + b.status.slice(1).toLowerCase()) as Booking['status'],
     avatar: b.artisan.user.avatar || '',
+<<<<<<< HEAD
     description: b.description,
     customer: b.customer?.name,
     customerAvatar: b.customer?.avatar || '',
+=======
+    paymentStatus: b.paymentStatus,
+    paymentReference: b.paymentReference,
+>>>>>>> b2868093eae5e26623da02565804cad13422632d
   }
 }
 
@@ -128,25 +138,28 @@ function normalizeBooking(b: RawBooking): Booking {
 export async function login(credentials: LoginCredentials): Promise<AuthUser> {
   const { data } = await api.post('/auth/login', credentials)
   setAuthTokens(data.accessToken, data.refreshToken)
+  setStoredUser(data.user)
   return data.user
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthUser> {
   const { data } = await api.post('/auth/register', payload)
   setAuthTokens(data.accessToken, data.refreshToken)
+  setStoredUser(data.user)
   return data.user
 }
 
 export async function logout(): Promise<void> {
   const refreshToken = getRefreshToken()
+  clearAuthTokens()
   if (refreshToken) {
     await api.post('/auth/logout', { refreshToken }).catch(() => undefined)
   }
-  clearAuthTokens()
 }
 
 export async function fetchMe(): Promise<AuthUser> {
   const { data } = await api.get('/users/me')
+  setStoredUser(data.data)
   return data.data
 }
 
@@ -162,9 +175,31 @@ export async function fetchArtisanById(id: string): Promise<Artisan> {
   return normalizeArtisan(data.data)
 }
 
+export async function fetchSavedArtisans(): Promise<Artisan[]> {
+  const { data } = await api.get('/saved-artisans')
+  return data.data.map(normalizeArtisan)
+}
+
+export async function saveArtisan(artisanId: string) {
+  const { data } = await api.post(`/saved-artisans/${artisanId}`)
+  return data.data
+}
+
+export async function unsaveArtisan(artisanId: string) {
+  const { data } = await api.delete(`/saved-artisans/${artisanId}`)
+  return data.data
+}
+
 export async function fetchMyArtisanProfile(): Promise<Artisan> {
   const { data } = await api.get('/artisans/me')
   return normalizeArtisan(data.data)
+}
+
+export async function fetchCategoryCounts(): Promise<Record<string, number>> {
+  const { data } = await api.get('/artisans/categories')
+  const counts: Record<string, number> = {}
+  for (const item of data.data) counts[item.name] = item.count
+  return counts
 }
 
 export async function updateArtisanProfile(payload: Record<string, unknown>) {
@@ -195,10 +230,92 @@ export async function updateBookingStatus(id: string, status: string) {
   return data.data
 }
 
+export async function raiseDispute(bookingId: string, reason: string) {
+  const { data } = await api.post(`/bookings/${bookingId}/dispute`, { reason })
+  return data.data
+}
+
+export async function initializePayment(bookingId: string): Promise<{ authorization_url: string; reference: string }> {
+  const { data } = await api.post('/payments/initialize', { bookingId })
+  return data.data
+}
+
+export async function verifyPayment(reference: string) {
+  const { data } = await api.get(`/payments/verify/${encodeURIComponent(reference)}`)
+  return data.data
+}
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function updateProfile(payload: { name?: string; phone?: string; city?: string; avatar?: string }) {
   const { data } = await api.patch('/users/me', payload)
+  return data.data
+}
+
+export async function updateAvatar(image: string): Promise<AuthUser> {
+  const { data } = await api.post('/users/me/avatar', { image })
+  return data.data
+}
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+
+export async function fetchAdminStats(): Promise<AdminStats> {
+  const { data } = await api.get('/admin/stats')
+  return data.data
+}
+
+export async function fetchAdminArtisans(params?: Record<string, string>): Promise<{ data: AdminArtisan[]; total: number }> {
+  const { data } = await api.get('/admin/artisans', { params })
+  return data.data
+}
+
+export async function setArtisanApproval(id: string, approvalStatus: string) {
+  const { data } = await api.patch(`/admin/artisans/${id}/approval`, { approvalStatus })
+  return data.data
+}
+
+export async function setArtisanVerification(id: string, verificationStatus: string) {
+  const { data } = await api.patch(`/admin/artisans/${id}/verification`, { verificationStatus })
+  return data.data
+}
+
+export async function fetchAdminUsers(params?: Record<string, string>): Promise<{ data: AdminUser[]; total: number }> {
+  const { data } = await api.get('/admin/users', { params })
+  return data.data
+}
+
+export async function setUserStatus(id: string, status: string) {
+  const { data } = await api.patch(`/admin/users/${id}/status`, { status })
+  return data.data
+}
+
+export async function fetchAdminReviews(params?: Record<string, string>): Promise<{ data: AdminReview[]; total: number }> {
+  const { data } = await api.get('/admin/reviews', { params })
+  return data.data
+}
+
+export async function setReviewStatus(id: string, status: string) {
+  const { data } = await api.patch(`/admin/reviews/${id}/status`, { status })
+  return data.data
+}
+
+export async function fetchAdminBookings(params?: Record<string, string>): Promise<{ data: AdminBooking[]; total: number }> {
+  const { data } = await api.get('/admin/bookings', { params })
+  return data.data
+}
+
+export async function fetchAdminPayments(): Promise<AdminPayment[]> {
+  const { data } = await api.get('/admin/payments')
+  return data.data
+}
+
+export async function fetchAdminDisputes(params?: Record<string, string>): Promise<{ data: AdminDispute[]; total: number }> {
+  const { data } = await api.get('/admin/disputes', { params })
+  return data.data
+}
+
+export async function resolveDispute(id: string, status: string, resolution: string) {
+  const { data } = await api.post(`/admin/disputes/${id}/resolve`, { status, resolution })
   return data.data
 }
 

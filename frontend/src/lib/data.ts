@@ -1,4 +1,7 @@
-import type { Artisan, Category, Booking } from '@/types'
+import type { Artisan, Category } from '@/types'
+
+export const DEFAULT_AVATAR =
+  'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=80&h=80&fit=crop&auto=format'
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 // Replace all exports here with real API calls once the backend is live.
@@ -139,6 +142,7 @@ export const CATEGORIES: Category[] = [
   { name: 'Tiling & Flooring', count: 57 },
 ]
 
+<<<<<<< HEAD
 export const BOOKINGS: Booking[] = [
   { id: 'BK-001', artisan: 'Emeka Okafor', profession: 'Plumber', date: 'Tue, 30 Jul 2026', dateISO: '2026-07-30T09:00:00.000Z', time: '9:00 AM', amount: 17000, status: 'Confirmed', avatar: 'https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=48&h=48&fit=crop&auto=format' },
   { id: 'BK-002', artisan: 'Fatima Aliyu', profession: 'Electrician', date: 'Fri, 2 Aug 2026', dateISO: '2026-08-02T14:00:00.000Z', time: '2:00 PM', amount: 15000, status: 'Pending', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=48&h=48&fit=crop&auto=format' },
@@ -147,6 +151,8 @@ export const BOOKINGS: Booking[] = [
   { id: 'BK-005', artisan: 'Yusuf Garba', profession: 'Auto Mechanic', date: 'Wed, 9 Jul 2026', dateISO: '2026-07-09T11:00:00.000Z', time: '11:00 AM', amount: 11000, status: 'Cancelled', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=48&h=48&fit=crop&auto=format' },
 ]
 
+=======
+>>>>>>> b2868093eae5e26623da02565804cad13422632d
 export const NIGERIAN_CITIES = [
   'Lagos', 'Abuja (FCT)', 'Kano', 'Port Harcourt',
   'Ibadan', 'Enugu', 'Benin City', 'Kaduna', 'Jos', 'Owerri',

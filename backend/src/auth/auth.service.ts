@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt'
 import { PrismaService } from '../prisma/prisma.service'
 import * as bcrypt from 'bcrypt'
+import { randomBytes } from 'crypto'
 
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
@@ -12,7 +13,10 @@ export class AuthService {
 
   private async issueTokens(user: { id: string; role: string }) {
     const accessToken = this.jwtService.sign({ id: user.id, role: user.role }, { expiresIn: ACCESS_TOKEN_EXPIRY })
-    const refreshToken = this.jwtService.sign({ id: user.id, role: user.role }, { expiresIn: `${REFRESH_TOKEN_EXPIRY_DAYS}d` })
+    const refreshToken = this.jwtService.sign(
+      { id: user.id, role: user.role, nonce: randomBytes(16).toString('hex') },
+      { expiresIn: `${REFRESH_TOKEN_EXPIRY_DAYS}d` },
+    )
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS)
 
@@ -60,6 +64,7 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } })
     if (!user) throw new UnauthorizedException('Invalid credentials')
+    if (user.status === 'SUSPENDED') throw new UnauthorizedException('Account suspended')
 
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new UnauthorizedException('Invalid credentials')
@@ -79,6 +84,12 @@ export class AuthService {
     const payload = this.jwtService.verify<{ id: string; role: string }>(refreshToken, {
       secret: process.env.JWT_SECRET || 'artisanng-dev-secret-key-change-in-production',
     })
+
+    const user = await this.prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, status: true } })
+    if (!user || user.status === 'SUSPENDED') {
+      await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } })
+      throw new UnauthorizedException('Account suspended')
+    }
 
     await this.prisma.refreshToken.delete({ where: { token: refreshToken } })
     return this.issueTokens({ id: payload.id, role: payload.role })
