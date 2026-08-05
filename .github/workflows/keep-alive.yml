@@ -1,0 +1,24 @@
+name: Backend Keep-Alive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: backend-keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping /api/health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        env:
+          HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL || 'https://naijahandy.onrender.com/api/health' }}
+        run: |
+          echo "Pinging $HEALTH_URL"
+          curl -fsS --max-time 20 "$HEALTH_URL"
+          echo ""
+          echo "Backend is warm and healthy."
