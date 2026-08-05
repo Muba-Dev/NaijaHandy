@@ -101,6 +101,7 @@ export class AuthController {
       return await this.authService.forgotPassword(data.email)
     } catch (err) {
       if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      if (err instanceof Error) throw new BadRequestException(err.message)
       throw new BadRequestException('Invalid request')
     }
   }
