@@ -78,8 +78,34 @@ export default function CustomerDashboardPage() {
         </div>
       </aside>
 
+      {/* Mobile top nav */}
+      <div className="fixed top-0 inset-x-0 z-20 bg-white border-b border-gray-100 md:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <p className="font-semibold text-gray-900 text-sm">{user?.name || 'Dashboard'}</p>
+          <button onClick={async () => { await logout(); router.push('/login') }} className="flex items-center gap-1.5 text-sm text-gray-600">
+            <LogOut size={16} /> Log Out
+          </button>
+        </div>
+        <nav className="flex gap-1 px-2 pb-2 overflow-x-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            const isActive = item.id === 'overview'
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Icon size={13} />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
+
       {/* Main */}
-      <main className="flex-1 p-5 md:p-8 overflow-auto">
+      <main className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
         <div className="max-w-4xl">
           <div className="flex items-center justify-between mb-7">
             <div>

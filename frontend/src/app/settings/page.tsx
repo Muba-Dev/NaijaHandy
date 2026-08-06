@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Users, Shield, CreditCard, Bell, Plus, CheckCircle2, AlertCircle } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
+import BackToDashboard from '@/components/BackToDashboard'
 import { fetchMe, updateProfile, updateAvatar, changePassword } from '@/lib/api'
 import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
 import type { AuthUser } from '@/types'
@@ -121,6 +122,7 @@ export default function ProfileSettingsPage() {
     <AuthGuard>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
+        <BackToDashboard href="/dashboard/customer" />
         <h1 className="font-display text-2xl font-bold text-gray-900 mb-7">Profile Settings</h1>
 
         <div className="flex flex-col md:flex-row gap-6">

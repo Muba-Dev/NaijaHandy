@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Heart, MapPin, CheckCircle } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
+import BackToDashboard from '@/components/BackToDashboard'
 import StarRating from '@/components/StarRating'
 import { fetchSavedArtisans, unsaveArtisan } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
@@ -31,6 +32,7 @@ export default function SavedArtisansPage() {
     <AuthGuard>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
+        <BackToDashboard href="/dashboard/customer" />
         <div className="flex items-center justify-between mb-7">
           <div>
             <h1 className="font-display text-2xl font-bold text-gray-900">Saved Artisans</h1>

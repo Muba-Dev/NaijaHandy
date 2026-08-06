@@ -9,6 +9,7 @@ import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
+import BackToDashboard from '@/components/BackToDashboard'
 import type { Booking, BookingStatus } from '@/types'
 
 type FilterTab = 'All' | 'Active' | 'Completed' | 'Cancelled'
@@ -139,6 +140,7 @@ export default function BookingHistoryPage() {
     <AuthGuard>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
+        <BackToDashboard href="/dashboard/customer" />
         <div className="flex items-center justify-between mb-7">
           <div>
             <h1 className="font-display text-2xl font-bold text-gray-900">Booking History</h1>
