@@ -155,7 +155,7 @@ The frontend now uses:
 - ✅ CI DB split: `backend-e2e` + `frontend-e2e` jobs in `.github/workflows/ci.yml` now use `secrets.DATABASE_URL_CI` (Neon branch) + explicit `SEED_DEMO: 'true'`; Render keeps `secrets.DATABASE_URL` (Render only runs migrations, never seeds). Prod safety = any manual prod seed must set `SEED_DEMO=0`.
 - ✅ Playwright booking/browse specs updated: demo artisan profile asserts the not-bookable notice; booking + bookable-profile tests create a fresh non-demo artisan (register → admin approve) via `e2e/support/helpers.ts`.
 - ✅ Verified: backend build + 44 unit tests + 58 e2e tests; frontend lint + build; 12 Playwright e2e tests green.
-- ⏳ Manual: create the `DATABASE_URL_CI` repository secret (a Neon branch isolated from the DB Render reads).
+- ✅ Manual step done: `DATABASE_URL_CI` repository secret created (a `naijahandy_ci` database in the existing Supabase project, isolated from the DB Render reads); CI e2e jobs green on the new CI DB.
 - Rationale: demo data used to reach prod because CI e2e seeded the same Neon DB that Render reads.
 
 ### 2. Ratings integrity — DONE
@@ -181,7 +181,8 @@ The frontend now uses:
 - ✅ Loading skeletons + empty states on customer & artisan `/dashboard`: customer dashboard now has a proper loading state (stats + upcoming bookings skeletons) and a "No upcoming bookings" empty state with a Find-an-Artisan CTA; artisan overview got loading skeletons for stats, pending job requests, and confirmed jobs (empty states already existed).
 - ✅ Admin artisans list already had inline Approve/Reject/Verify/Unverify actions and the sidebar PENDING badge (verified); the badge now also shows in the mobile top nav.
 
-### Verification (for all above)
+### Verification (for all above) — DONE
 
-- Backend: `npm run build` (tsc), `npm test`, `npm run test:e2e`. Frontend: `npm run lint && npm run build`.
-- After deploy: logged-out `/api/artisans` shows demo + badge, logged-in shows zero, demo artisans non-bookable, CI green on the new CI DB.
+- ✅ Backend: `npm run build` (tsc), `npm test` (46 unit), `npm run test:e2e` (58 e2e) all passing. Frontend: `npm run lint` + `npm run build` clean.
+- ✅ Deployed and verified live: backend healthy (`/api/health` → `{"status":"ok","db":"up"}`); logged-out `/api/artisans` returns the 11 profiles (10 demo + 1 real) with demo badge, logged-in non-demo sees zero demo, demo artisans non-bookable, CI green on the new CI DB.
+- ✅ Commit `2b76c5f` (on `origin/main`) carries all five items above; Render + Vercel auto-deploy on push.

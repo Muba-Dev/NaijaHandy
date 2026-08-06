@@ -5,9 +5,16 @@ const prisma = new PrismaClient()
 
 async function resolveInterrupted() {
   const rows = await prisma.$queryRawUnsafe(
+    "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = '_prisma_migrations') AS has_table"
+  )
+  if (rows[0]?.has_table !== true) {
+    console.log('No _prisma_migrations table yet — skipping interrupted-migration resolution.')
+    return
+  }
+  const migrations = await prisma.$queryRawUnsafe(
     'SELECT DISTINCT migration_name FROM _prisma_migrations WHERE finished_at IS NULL'
   )
-  for (const row of rows) {
+  for (const row of migrations) {
     const name = row.migration_name
     console.log(`Resolving interrupted migration: ${name}`)
     try {
