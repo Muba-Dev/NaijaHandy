@@ -31,7 +31,8 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - run: npx prisma migrate deploy
+      - name: Deploy migrations (resolves interrupted migrations first)
+        run: node scripts/deploy-safe.mjs
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Seed database

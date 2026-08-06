@@ -22,6 +22,7 @@ CREATE UNIQUE INDEX "users_googleId_key" ON "users"("googleId");
 
 -- AddForeignKey
 ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Security: sensitive table — deny Supabase anon/authenticated access (RLS enforced by event trigger, no policies)
-REVOKE ALL ON TABLE "password_reset_tokens" FROM anon, authenticated;
+-- RLS hardening for password_reset_tokens is applied separately on Supabase via
+-- backend/supabase/rls-migration.sql. The Supabase-only roles (`anon`,
+-- `authenticated`) do not exist on other Postgres hosts (e.g. Neon), so the
+-- REVOKE that previously lived here was removed to keep this migration portable.
