@@ -1,7 +1,19 @@
+import { execSync } from 'child_process'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
+
+function ensureDatabaseMigrated(): void {
+  console.log('Checking database migrations…')
+  try {
+    execSync('npx prisma migrate status', { stdio: 'inherit' })
+  } catch {
+    console.error('\n[seed] ERROR: Database is missing pending migrations.')
+    console.error('[seed] Run `npm run db:deploy` (or `npx prisma migrate deploy`) first, then retry.\n')
+    process.exit(1)
+  }
+}
 
 const AVATARS: Record<string, string> = {
   emeka: 'https://images.pexels.com/photos/35533370/pexels-photo-35533370.jpeg?auto=compress&cs=tinysrgb&w=800',
@@ -116,6 +128,8 @@ async function upsertArtisan(a: ArtisanSeed) {
 }
 
 async function main() {
+  ensureDatabaseMigrated()
+
   const password = await bcrypt.hash('password123', 12)
 
   // ── Admin ──
