@@ -27,14 +27,16 @@ jobs:
   backend-e2e:
     name: Backend — e2e tests
     runs-on: ubuntu-latest
-    # Requires the DATABASE_URL repository secret.
+    # Requires the DATABASE_URL_CI repository secret (a Neon branch separate from
+    # the shared DATABASE_URL that Render reads, so CI seeding never hits prod).
     defaults:
       run:
         working-directory: backend
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL_CI }}
       JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret' }}
       PAYSTACK_MOCK: 'true'
+      SEED_DEMO: 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -68,16 +70,17 @@ jobs:
   frontend-e2e:
     name: Frontend — Playwright e2e
     runs-on: ubuntu-latest
-    # Serialize with backend-e2e: both seed the same shared DB, so they cannot run in parallel.
+    # Serialize with backend-e2e: both seed the same CI DB, so they cannot run in parallel.
     needs: [backend-e2e]
-    # Requires the DATABASE_URL repository secret.
+    # Requires the DATABASE_URL_CI repository secret (Neon branch, separate from prod).
     defaults:
       run:
         working-directory: frontend
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL_CI }}
       JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret' }}
       PAYSTACK_MOCK: 'true'
+      SEED_DEMO: 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

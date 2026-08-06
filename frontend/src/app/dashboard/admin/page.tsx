@@ -256,6 +256,12 @@ export default function AdminDashboardPage() {
               >
                 <Icon size={13} />
                 {t.label}
+                {t.id === 'artisans' && stats && stats.pendingArtisans > 0 && (
+                  <span className="ml-0.5 w-4 h-4 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">{stats.pendingArtisans}</span>
+                )}
+                {t.id === 'disputes' && stats && stats.openDisputes > 0 && (
+                  <span className="ml-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
+                )}
               </button>
             )
           })}

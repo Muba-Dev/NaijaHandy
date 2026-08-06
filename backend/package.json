@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "db:seed": "ts-node-dev prisma/seed.ts",
     "db:reset-token": "node scripts/last-reset-token.mjs",
+    "db:recompute-ratings": "node scripts/recompute-ratings.mjs",
     "db:backup": "bash scripts/backup-db.sh",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -154,6 +154,11 @@ export default function ArtisanProfilePage() {
                   <CheckCircle size={12} /> Verified Artisan
                 </span>
               )}
+              {artisan.isDemo && (
+                <span className="text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                  Demo profile
+                </span>
+              )}
             </div>
             <p className="text-gray-500 mt-0.5">{artisan.profession}</p>
             <div className="flex items-center gap-4 mt-2 flex-wrap">
@@ -318,38 +323,47 @@ export default function ArtisanProfilePage() {
               </div>
 
               <div className="space-y-3 mb-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date</label>
-                  <input
-                    type="date"
-                    value={bookingDate}
-                    onChange={(e) => setBookingDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Time</label>
-                  <select
-                    value={bookingTime}
-                    onChange={(e) => setBookingTime(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors"
-                  >
-                    <option value="">Select time slot</option>
-                    {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((t) => (
-                      <option key={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Job Description</label>
-                  <textarea
-                    value={jobDesc}
-                    onChange={(e) => setJobDesc(e.target.value)}
-                    placeholder="Describe the job in detail..."
-                    rows={3}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors resize-none"
-                  />
-                </div>
+                {artisan.isDemo ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-amber-800">Demo profile — not bookable</p>
+                    <p className="text-xs text-amber-700 mt-1">This profile is sample data for browsing. Register or contact us to book a verified artisan.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date</label>
+                      <input
+                        type="date"
+                        value={bookingDate}
+                        onChange={(e) => setBookingDate(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Time</label>
+                      <select
+                        value={bookingTime}
+                        onChange={(e) => setBookingTime(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors"
+                      >
+                        <option value="">Select time slot</option>
+                        {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((t) => (
+                          <option key={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Job Description</label>
+                      <textarea
+                        value={jobDesc}
+                        onChange={(e) => setJobDesc(e.target.value)}
+                        placeholder="Describe the job in detail..."
+                        rows={3}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors resize-none"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-2">
@@ -367,13 +381,19 @@ export default function ArtisanProfilePage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleBook}
-                disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
-                className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
-              </button>
+              {artisan.isDemo ? (
+                <div className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-gray-300 cursor-not-allowed">
+                  Demo profile — not bookable
+                </div>
+              ) : (
+                <button
+                  onClick={handleBook}
+                  disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
+                  className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
+                </button>
+              )}
               {bookingError && <p className="text-center text-xs text-red-500 mt-2">{bookingError}</p>}
               <p className="text-center text-xs text-gray-400 mt-2.5">You&apos;ll be redirected to secure Paystack checkout to complete payment</p>
             </div>

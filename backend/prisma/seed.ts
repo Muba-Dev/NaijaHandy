@@ -4,6 +4,9 @@ import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
 
+// Demo labeling: SEED_DEMO=0 disables demo flags (safe for production).
+const SEED_DEMO = process.env.SEED_DEMO !== '0' && process.env.SEED_DEMO !== 'false'
+
 function ensureDatabaseMigrated(): void {
   console.log('Checking database migrations…')
   try {
@@ -110,19 +113,19 @@ const ARTISANS: ArtisanSeed[] = [
 async function upsertArtisan(a: ArtisanSeed) {
   const user = await prisma.user.upsert({
     where: { email: a.email },
-    update: { avatar: AVATARS[a.key], name: a.name, city: a.city },
+    update: { avatar: AVATARS[a.key], name: a.name, city: a.city, isDemo: SEED_DEMO },
     create: {
       name: a.name, email: a.email, phone: a.phone, city: a.city,
-      password: await bcrypt.hash('password123', 12), role: 'ARTISAN', avatar: AVATARS[a.key],
+      password: await bcrypt.hash('password123', 12), role: 'ARTISAN', avatar: AVATARS[a.key], isDemo: SEED_DEMO,
     },
   })
   return prisma.artisanProfile.upsert({
     where: { userId: user.id },
-    update: {},
+    update: { isDemo: SEED_DEMO },
     create: {
       userId: user.id, profession: a.profession, category: a.category, bio: a.bio, hourlyRate: a.hourlyRate,
       verified: a.verified, available: a.available, avgRating: a.avgRating, totalReviews: a.totalReviews,
-      approvalStatus: 'APPROVED', verificationStatus: 'VERIFIED',
+      approvalStatus: 'APPROVED', verificationStatus: 'VERIFIED', isDemo: SEED_DEMO,
     },
   })
 }
@@ -139,16 +142,16 @@ async function main() {
     create: { name: 'NaijaHandy Admin', email: 'admin@naijahandy.com', phone: '+234 800 000 0000', city: 'Lagos', password, role: 'ADMIN' },
   })
 
-  // ── Customers ──
+  // ── Customers (demo) ──
   const customer1 = await prisma.user.upsert({
     where: { email: 'chisom@example.com' },
-    update: { name: 'Chisom Eze', phone: '+234 803 456 7890', city: 'Lagos' },
-    create: { name: 'Chisom Eze', email: 'chisom@example.com', phone: '+234 803 456 7890', city: 'Lagos', password, role: 'CUSTOMER' },
+    update: { name: 'Chisom Eze', phone: '+234 803 456 7890', city: 'Lagos', isDemo: SEED_DEMO },
+    create: { name: 'Chisom Eze', email: 'chisom@example.com', phone: '+234 803 456 7890', city: 'Lagos', password, role: 'CUSTOMER', isDemo: SEED_DEMO },
   })
   await prisma.user.upsert({
     where: { email: 'bayo@example.com' },
-    update: { name: 'Bayo Adeleke', phone: '+234 802 345 6789', city: 'Abuja' },
-    create: { name: 'Bayo Adeleke', email: 'bayo@example.com', phone: '+234 802 345 6789', city: 'Abuja', password, role: 'CUSTOMER' },
+    update: { name: 'Bayo Adeleke', phone: '+234 802 345 6789', city: 'Abuja', isDemo: SEED_DEMO },
+    create: { name: 'Bayo Adeleke', email: 'bayo@example.com', phone: '+234 802 345 6789', city: 'Abuja', password, role: 'CUSTOMER', isDemo: SEED_DEMO },
   })
 
   // ── Artisans (10) ──
@@ -198,7 +201,8 @@ async function main() {
   console.log('  Admin:     admin@naijahandy.com')
   console.log('  Customers: chisom@example.com / bayo@example.com')
   console.log(`  Artisans:  ${ARTISANS.map((a) => a.email).join(' / ')}`)
-  console.log('  Password:  password123 (for all)')
+  console.log(`  Password:  password123 (for all)`)
+  console.log(`  Demo flags: ${SEED_DEMO ? 'enabled (isDemo=true on seeded artisans + customers)' : 'disabled (SEED_DEMO=0, production-safe)'}`)
 }
 
 main()

@@ -61,6 +61,7 @@ type RawArtisan = {
   coverImage: string | null
   verified: boolean
   available: boolean
+  isDemo: boolean
   avgRating: number
   totalReviews: number
   user: { id: string; name: string; city: string | null; avatar: string | null }
@@ -89,6 +90,7 @@ function normalizeArtisan(a: RawArtisan): Artisan {
     cover: a.coverImage || '',
     category: a.category,
     available: a.available,
+    isDemo: a.isDemo,
     portfolio: (a.portfolio || []).map((p) => p.imageUrl),
     services: a.services || [],
     reviews_list: (a.reviews || []).map((r) => ({

@@ -1,4 +1,10 @@
 import { test, expect } from '@playwright/test'
+import { createBookableArtisan } from './support/helpers'
+import { deleteE2EUsers } from './support/db'
+
+test.afterAll(async () => {
+  await deleteE2EUsers('e2e.bookable.%').catch((e) => console.warn('e2e cleanup failed:', e.message))
+})
 
 async function getTopArtisan() {
   const res = await fetch('http://localhost:4000/api/artisans')
@@ -14,8 +20,16 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByText('Emeka Okafor')).toBeVisible({ timeout: 20_000 })
   })
 
-  test('artisan profile page shows details and the booking form', async ({ page }) => {
+  test('demo artisan profile shows the not-bookable notice', async ({ page }) => {
     const artisan = await getTopArtisan()
+    await page.goto(`/artisans/${artisan.id}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
+    await expect(page.getByText('Demo profile — not bookable').first()).toBeVisible()
+    await expect(page.getByPlaceholder('Describe the job in detail...')).not.toBeVisible()
+  })
+
+  test('bookable artisan profile shows details and the booking form', async ({ page }) => {
+    const artisan = await createBookableArtisan()
     await page.goto(`/artisans/${artisan.id}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
     await expect(page.getByText('Proceed to Book & Pay')).toBeVisible()

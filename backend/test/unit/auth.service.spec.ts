@@ -4,10 +4,10 @@ import * as bcrypt from 'bcrypt'
 
 describe('AuthService', () => {
   const refreshToken = { create: jest.fn(), findUnique: jest.fn(), delete: jest.fn(), deleteMany: jest.fn() }
-  const user = { findUnique: jest.fn() }
+  const user = { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() }
   const prisma = { user, refreshToken } as any
   const jwtService = { sign: jest.fn(() => 'signed-token'), verify: jest.fn() } as any
-  const emailService = { sendPasswordResetEmail: jest.fn() } as any
+  const emailService = { sendPasswordResetEmail: jest.fn(), sendNewArtisanPendingEmail: jest.fn() } as any
   const service = new AuthService(prisma, jwtService, emailService)
 
   const future = new Date(Date.now() + 86_400_000)
@@ -44,6 +44,38 @@ describe('AuthService', () => {
       expect(result.user.role).toBe('CUSTOMER')
       expect(refreshToken.create).toHaveBeenCalledTimes(1)
       expect(refreshToken.create.mock.calls[0][0].data.userId).toBe('u1')
+    })
+  })
+
+  describe('register', () => {
+    it('alerts admins when a new artisan registers', async () => {
+      user.findUnique.mockResolvedValue(null)
+      user.create.mockResolvedValue({ id: 'u1', name: 'New Art', email: 'art@example.com', role: 'ARTISAN' })
+      user.findMany.mockResolvedValue([{ email: 'admin@naijahandy.com' }])
+      await service.register({
+        name: 'New Art',
+        email: 'art@example.com',
+        password: 'password123',
+        role: 'ARTISAN',
+        profession: 'Plumber',
+      })
+      expect(emailService.sendNewArtisanPendingEmail).toHaveBeenCalledWith({
+        to: 'admin@naijahandy.com',
+        artisanName: 'New Art',
+        profession: 'Plumber',
+      })
+    })
+
+    it('does not alert admins for customer registrations', async () => {
+      user.findUnique.mockResolvedValue(null)
+      user.create.mockResolvedValue({ id: 'u2', name: 'Cust', email: 'cust@example.com', role: 'CUSTOMER' })
+      await service.register({
+        name: 'Cust',
+        email: 'cust@example.com',
+        password: 'password123',
+        role: 'CUSTOMER',
+      })
+      expect(emailService.sendNewArtisanPendingEmail).not.toHaveBeenCalled()
     })
   })
 

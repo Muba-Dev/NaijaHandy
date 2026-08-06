@@ -146,36 +146,40 @@ The frontend now uses:
 
 ## Next Work Plan (saved for later)
 
-### 1. Demo data (labeled, no purge) + CI DB split
+### 1. Demo data (labeled, no purge) + CI DB split — DONE
 
-- ✅ (pending) Migration `add_demo_flags`: `ArtisanProfile.isDemo` + `User.isDemo` (`Boolean @default(false)`).
-- (pending) Seed (`backend/prisma/seed.ts`): mark the 10 demo artisans + demo customers `isDemo: true`; keep their ratings as-is (clearly demo).
-- (pending) Backend filtering (`ArtisanService.findAll/findOne`): anonymous → demo visible; authenticated non-demo user → `isDemo: false` filter; admin → sees all. **No** `?demo=1` preview toggle (decision: skip).
-- (pending) Frontend: "Demo" badge on artisan cards; Book button disabled with "Demo profile — not bookable" (decision: not bookable). No preview toggle.
-- (pending) CI DB split: new `DATABASE_URL_CI` secret (Neon branch); point `backend-e2e` + `frontend-e2e` jobs at it in `.github/workflows/ci.yml`; Render keeps `secrets.DATABASE_URL`. Gate demo seeding with `SEED_DEMO=0` for prod safety.
-- Rationale: demo data reaches prod today because CI e2e seeds the same Neon DB that Render reads.
+- ✅ Migration `add_demo_flags` (`20260806120000`): `ArtisanProfile.isDemo` + `User.isDemo` (`Boolean @default(false)`), applied.
+- ✅ Seed (`backend/prisma/seed.ts`): marks the 10 demo artisans + demo customers `isDemo: true`; ratings untouched (clearly demo). Gated by `SEED_DEMO` (default on; `SEED_DEMO=0` = production-safe, no demo flags). Documented in `.env.example`.
+- ✅ Backend filtering (`ArtisanService.findAll/findOne` + `categoryCounts`): anonymous → demo visible; authenticated non-demo user → `isDemo: false` filter; demo users + admin → sees all. **No** `?demo=1` preview toggle (decision: skip). Implemented via new `OptionalJwtAuthGuard` (bad/garbage tokens fall back to anonymous) + `JwtStrategy` now returning `isDemo`.
+- ✅ Frontend: "Demo" badge on artisan cards + profile header; Book button / booking form replaced with "Demo profile — not bookable" (decision: not bookable). No preview toggle.
+- ✅ CI DB split: `backend-e2e` + `frontend-e2e` jobs in `.github/workflows/ci.yml` now use `secrets.DATABASE_URL_CI` (Neon branch) + explicit `SEED_DEMO: 'true'`; Render keeps `secrets.DATABASE_URL` (Render only runs migrations, never seeds). Prod safety = any manual prod seed must set `SEED_DEMO=0`.
+- ✅ Playwright booking/browse specs updated: demo artisan profile asserts the not-bookable notice; booking + bookable-profile tests create a fresh non-demo artisan (register → admin approve) via `e2e/support/helpers.ts`.
+- ✅ Verified: backend build + 44 unit tests + 58 e2e tests; frontend lint + build; 12 Playwright e2e tests green.
+- ⏳ Manual: create the `DATABASE_URL_CI` repository secret (a Neon branch isolated from the DB Render reads).
+- Rationale: demo data used to reach prod because CI e2e seeded the same Neon DB that Render reads.
 
-### 2. Ratings integrity
+### 2. Ratings integrity — DONE
 
-- (pending) `backend/scripts/recompute-ratings.mjs`: recompute `avgRating`/`totalReviews` from the `Review` table for **non-demo** artisans only (demo keeps its fake numbers); run after the migration.
+- ✅ `backend/scripts/recompute-ratings.mjs` (`npm run db:recompute-ratings`): recomputes `avgRating`/`totalReviews` from APPROVED `Review` rows for **non-demo** artisans only (demo keeps its fake numbers). HIDDEN (moderated) reviews are excluded. No-op-safe/idempotent; verified against the live DB (10 demo skipped, non-demo recomputed).
 - Seeded `avgRating`/`totalReviews` (up to 201 reviews) have no backing `Review` rows — fiction only OK on labeled demo rows.
 
-### 3. Notifications (email)
+### 3. Notifications (email) — DONE
 
-- (pending) Generalize `backend/src/email/email.service.ts` (currently only `sendPasswordResetEmail`) with a generic `send()` + booking/approval helpers, error-swallowed (log + continue) + env-flag gated.
-- (pending) Wire into `BookingService.updateStatus` (confirmed/completed/cancelled → other party), `AdminService.setArtisanApproval`/`setArtisanVerification` (→ artisan), and new-artisan-PENDING alert to admins on profile submission.
+- ✅ `EmailService` generalized with a gated, error-swallowed `send()` (logs + continues; only fires when `EMAIL_ENABLED=true`) plus helpers: `sendBookingStatusEmail`, `sendApprovalStatusEmail`, `sendVerificationStatusEmail`, `sendNewArtisanPendingEmail`. Shared HTML layout; `EMAIL_ENABLED` documented in `.env.example`. Password-reset email unchanged (not gated, errors still surface).
+- ✅ Wired into `BookingService.updateStatus` (CONFIRMED/COMPLETED/CANCELLED → the other party), `AdminService.setArtisanApproval`/`setArtisanVerification` (→ artisan), and `AuthService.register` (new ARTISAN → PENDING alert to all admins). Modules updated (`BookingModule`, `AdminModule` import `EmailModule`).
+- ✅ Verified: backend build clean, 46 unit tests (new register-alert tests + email-assertions on booking transitions) + 58 e2e tests passing. In CI/test, `EMAIL_ENABLED` is unset so all notification sends are instant no-ops.
 
-### 4. Operational hardening
+### 4. Operational hardening — DONE
 
-- (pending) Daily GitHub Actions backup workflow (cron `0 2 * * *`) running `npm run db:backup` against prod, artifact retention 30 days.
-- (pending) Keep-alive workflow opens a GitHub issue on repeated health-check failures.
-- (pending) Root `package.json`: rename `figma-make-app` → `naijahandy`, drop unused Vite/React scaffold deps; consolidate lockfiles (root pnpm + npm vs `frontend/package-lock.json`).
+- ✅ New `.github/workflows/db-backup.yml`: nightly (cron `0 2 * * *`, also `workflow_dispatch`) `npm run db:backup` (`pg_dump` via `postgresql-client`) against `DATABASE_URL`, uploads `backend/backups/*.sql` as a 30-day artifact (`if-no-files-found: error`).
+- ✅ Keep-alive (`keep-alive.yml`) now opens a `keep-alive`-labeled GitHub issue when a health-check failure follows a prior failed run, comments on it on continued failures, and auto-closes it on recovery (via `actions/github-script`, `issues: write`).
+- ✅ Root `package.json` renamed `figma-make-app` → `naijahandy`; unused Vite/React/Tailwind scaffold deps removed (only `concurrently` + `oxfmt` remain); lockfiles consolidated on npm — root `pnpm-lock.yaml` and `frontend/pnpm-workspace.yaml` deleted, root `package-lock.json` regenerated (`frontend/.npmrc` kept for native Next.js builds).
 
-### 5. Dashboard UX
+### 5. Dashboard UX — DONE
 
-- (pending) Artisan dashboard mobile top-nav parity with customer/admin dashboards.
-- (pending) Loading skeletons + empty states on customer & artisan `/dashboard` booking tabs.
-- (pending) Admin artisans list: inline approve/reject actions + PENDING count badge.
+- ✅ Artisan dashboard mobile top-nav parity confirmed (shared layout already matched customer/admin); added PENDING-approvals + open-disputes count badges to the admin dashboard mobile nav to match the desktop sidebar.
+- ✅ Loading skeletons + empty states on customer & artisan `/dashboard`: customer dashboard now has a proper loading state (stats + upcoming bookings skeletons) and a "No upcoming bookings" empty state with a Find-an-Artisan CTA; artisan overview got loading skeletons for stats, pending job requests, and confirmed jobs (empty states already existed).
+- ✅ Admin artisans list already had inline Approve/Reject/Verify/Unverify actions and the sidebar PENDING badge (verified); the badge now also shows in the mobile top nav.
 
 ### Verification (for all above)
 

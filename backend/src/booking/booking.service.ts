@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { EmailService } from '../email/email.service'
 import { BOOKING_STATUSES, canTransitionBookingStatus } from '../domain/booking'
 
 @Injectable()
 export class BookingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   async create(userId: string, data: any) {
     return this.prisma.booking.create({
@@ -44,7 +48,10 @@ export class BookingService {
   async updateStatus(userId: string, role: string, bookingId: string, status: string) {
     const current = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { artisan: { select: { userId: true } } },
+      include: {
+        customer: { select: { name: true, email: true } },
+        artisan: { include: { user: { select: { name: true, email: true } } } },
+      },
     })
     if (!current) throw new NotFoundException('Booking not found')
 
@@ -62,7 +69,23 @@ export class BookingService {
       throw new ForbiddenException('Booking must be paid before it can be confirmed')
     }
 
-    return this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
+    const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
+
+    const recipient = isArtisan ? current.customer : current.artisan.user
+    await this.emailService.sendBookingStatusEmail({
+      to: recipient.email,
+      status,
+      booking: {
+        id: bookingId,
+        artisanName: current.artisan.user.name,
+        customerName: current.customer.name,
+        date: current.date,
+        time: current.time,
+        amount: current.amount,
+      },
+    })
+
+    return updated
   }
 
   async raiseDispute(userId: string, bookingId: string, reason: string) {

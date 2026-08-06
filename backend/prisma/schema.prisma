@@ -32,6 +32,7 @@ model User {
   role      String   @default("CUSTOMER")
   status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
   avatar    String?
+  isDemo    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -84,6 +85,7 @@ model ArtisanProfile {
   available   Boolean  @default(true)
   approvalStatus    String @default("PENDING")   // PENDING | APPROVED | REJECTED
   verificationStatus String @default("UNVERIFIED") // UNVERIFIED | VERIFIED
+  isDemo   Boolean  @default(false)
   avgRating   Float    @default(0)
   totalReviews Int     @default(0)
   createdAt   DateTime @default(now())

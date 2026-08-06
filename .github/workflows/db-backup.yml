@@ -1,0 +1,47 @@
+name: DB Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: pg_dump nightly backup
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check DATABASE_URL secret
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set — add it under repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+      - name: Install PostgreSQL client (pg_dump)
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Dump database
+        run: npm run db:backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: naijahandy-backup
+          path: backend/backups/*.sql
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6

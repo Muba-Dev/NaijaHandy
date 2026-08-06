@@ -1,5 +1,5 @@
 {
-  "name": "figma-make-app",
+  "name": "naijahandy",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -12,21 +12,8 @@
     "build:backend": "npm --prefix backend run build",
     "format": "oxfmt"
   },
-  "dependencies": {
-    "lucide-react": "^1.27.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^6.0.0",
     "concurrently": "^9.1.2",
-    "oxfmt": "^0.2.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0",
-    "vite": "^8.0.0"
+    "oxfmt": "^0.2.0"
   }
 }

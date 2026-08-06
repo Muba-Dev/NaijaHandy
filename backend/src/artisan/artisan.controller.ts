@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards, Req, Patch, Body } from '@nestjs/common'
 import { ArtisanService } from './artisan.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard'
 import { RolesGuard } from '../auth/roles.guard'
 import { Roles } from '../auth/roles.decorator'
 
@@ -8,9 +9,10 @@ import { Roles } from '../auth/roles.decorator'
 export class ArtisanController {
   constructor(private artisanService: ArtisanService) {}
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  async findAll(@Query() query: any) {
-    return { data: await this.artisanService.findAll(query), page: Number(query.page) || 1 }
+  async findAll(@Query() query: any, @Req() req: any) {
+    return { data: await this.artisanService.findAll(query, req.user), page: Number(query.page) || 1 }
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -20,14 +22,16 @@ export class ArtisanController {
     return { data: await this.artisanService.findMe(req.user.id) }
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('categories')
-  async categories() {
-    return { data: await this.artisanService.categoryCounts() }
+  async categories(@Req() req: any) {
+    return { data: await this.artisanService.categoryCounts(req.user) }
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return { data: await this.artisanService.findOne(id) }
+  async findOne(@Param('id') id: string, @Req() req: any) {
+    return { data: await this.artisanService.findOne(id, req.user) }
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

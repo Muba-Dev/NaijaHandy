@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { EmailService } from '../email/email.service'
 
 const APPROVAL_STATUSES = ['PENDING', 'APPROVED', 'REJECTED']
 const VERIFICATION_STATUSES = ['UNVERIFIED', 'VERIFIED']
@@ -9,7 +10,10 @@ const DISPUTE_STATUSES = ['OPEN', 'RESOLVED', 'DISMISSED']
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   async getStats() {
     const [pendingArtisans, totalArtisans, totalUsers, totalBookings, hiddenReviews, openDisputes, revenueAgg] =
@@ -65,22 +69,42 @@ export class AdminService {
 
   async setArtisanApproval(id: string, approvalStatus: string) {
     if (!APPROVAL_STATUSES.includes(approvalStatus)) throw new BadRequestException('Invalid approval status')
-    const artisan = await this.prisma.artisanProfile.findUnique({ where: { id } })
+    const artisan = await this.prisma.artisanProfile.findUnique({
+      where: { id },
+      include: { user: { select: { name: true, email: true } } },
+    })
     if (!artisan) throw new NotFoundException('Artisan not found')
-    return this.prisma.artisanProfile.update({
+    const updated = await this.prisma.artisanProfile.update({
       where: { id },
       data: { approvalStatus, verified: artisan.verificationStatus === 'VERIFIED' && approvalStatus === 'APPROVED' },
     })
+    if (approvalStatus === 'APPROVED' || approvalStatus === 'REJECTED') {
+      await this.emailService.sendApprovalStatusEmail({
+        to: artisan.user.email,
+        name: artisan.user.name,
+        approvalStatus,
+      })
+    }
+    return updated
   }
 
   async setArtisanVerification(id: string, verificationStatus: string) {
     if (!VERIFICATION_STATUSES.includes(verificationStatus)) throw new BadRequestException('Invalid verification status')
-    const artisan = await this.prisma.artisanProfile.findUnique({ where: { id } })
+    const artisan = await this.prisma.artisanProfile.findUnique({
+      where: { id },
+      include: { user: { select: { name: true, email: true } } },
+    })
     if (!artisan) throw new NotFoundException('Artisan not found')
-    return this.prisma.artisanProfile.update({
+    const updated = await this.prisma.artisanProfile.update({
       where: { id },
       data: { verificationStatus, verified: verificationStatus === 'VERIFIED' },
     })
+    await this.emailService.sendVerificationStatusEmail({
+      to: artisan.user.email,
+      name: artisan.user.name,
+      verificationStatus,
+    })
+    return updated
   }
 
   // ─── User management / suspension ───────────────────────────────────────────

@@ -28,6 +28,11 @@ export default function ArtisanCard({ artisan }: Props) {
               {artisan.verified && (
                 <CheckCircle size={15} className="shrink-0 text-[#047857]" />
               )}
+              {artisan.isDemo && (
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-700" title="Demo profile">
+                  Demo
+                </span>
+              )}
             </div>
             <p className="text-sm text-gray-500">{artisan.profession}</p>
             <div className="flex items-center gap-1 mt-1">
@@ -53,12 +58,21 @@ export default function ArtisanCard({ artisan }: Props) {
         >
           View Profile
         </Link>
-        <Link
-          href={`/artisans/${artisan.id}`}
-          className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-white bg-[#047857] hover:opacity-90 transition-opacity text-center"
-        >
-          Book Now
-        </Link>
+        {artisan.isDemo ? (
+          <span
+            className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-gray-100 text-gray-400 text-center cursor-not-allowed"
+            title="Demo profile — not bookable"
+          >
+            Demo profile
+          </span>
+        ) : (
+          <Link
+            href={`/artisans/${artisan.id}`}
+            className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-white bg-[#047857] hover:opacity-90 transition-opacity text-center"
+          >
+            Book Now
+          </Link>
+        )}
       </div>
     </div>
   )

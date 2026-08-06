@@ -9,16 +9,101 @@ concurrency:
   group: backend-keep-alive
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   ping:
     name: Ping /api/health
     runs-on: ubuntu-latest
     steps:
       - name: Ping backend health endpoint
+        id: ping
         env:
           HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL || 'https://naijahandy.onrender.com/api/health' }}
         run: |
-          echo "Pinging $HEALTH_URL"
-          curl -fsS --max-time 90 --retry 2 --retry-delay 5 --retry-all-errors "$HEALTH_URL"
-          echo ""
-          echo "Backend is warm and healthy."
+          if curl -fsS --max-time 90 --retry 2 --retry-delay 5 --retry-all-errors "$HEALTH_URL"; then
+            echo "Backend is warm and healthy."
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Backend health check FAILED."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open issue on repeated failures, close on recovery
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          OK: ${{ steps.ping.outputs.ok }}
+          HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL || 'https://naijahandy.onrender.com/api/health' }}
+        with:
+          script: |
+            const ok = process.env.OK === 'true'
+            const healthUrl = process.env.HEALTH_URL
+            const repo = context.repo
+            const ISSUE_TITLE = '⚠️ Backend health check failing'
+
+            async function listRuns() {
+              const res = await github.rest.actions.listWorkflowRuns({
+                ...repo,
+                workflow_id: 'keep-alive.yml',
+                per_page: 10,
+              })
+              return res.data.workflow_runs || []
+            }
+
+            async function findOpenIssue() {
+              const res = await github.rest.issues.listForRepo({
+                ...repo,
+                state: 'open',
+                per_page: 100,
+              })
+              return res.data.find((i) => i.title === ISSUE_TITLE)
+            }
+
+            if (ok) {
+              const issue = await findOpenIssue()
+              if (issue) {
+                await github.rest.issues.createComment({
+                  ...repo,
+                  issue_number: issue.number,
+                  body: `✅ Backend health check recovered (${healthUrl}). Closing this issue.`,
+                })
+                await github.rest.issues.update({
+                  ...repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                })
+                console.log('Closed existing health issue.')
+              }
+              return
+            }
+
+            const runs = await listRuns()
+            const previousRun = runs.find((r) => r.conclusion !== null)
+            if (!previousRun || previousRun.conclusion !== 'failure') {
+              console.log('First failure — waiting for a repeated failure before opening an issue.')
+              return
+            }
+
+            console.log(`Repeated failure (previous run: ${previousRun.conclusion}).`)
+            const issue = await findOpenIssue()
+            if (issue) {
+              await github.rest.issues.createComment({
+                ...repo,
+                issue_number: issue.number,
+                body: '🔴 Keep-alive is still failing on a subsequent run.',
+              })
+              console.log('Commented on existing health issue.')
+            } else {
+              await github.rest.issues.create({
+                ...repo,
+                title: ISSUE_TITLE,
+                body:
+                  `The backend health check at ${healthUrl} has failed on multiple consecutive keep-alive runs. ` +
+                  'Please check the Render service (uptime, recent deploys, cold starts).\n\n' +
+                  'This issue is managed by the Backend Keep-Alive workflow and will be closed automatically on recovery.',
+                labels: ['keep-alive'],
+              })
+              console.log('Opened health issue.')
+            }

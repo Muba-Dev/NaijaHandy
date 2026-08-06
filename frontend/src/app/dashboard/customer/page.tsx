@@ -24,10 +24,20 @@ export default function CustomerDashboardPage() {
   const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchBookings().then(setBookings).catch(() => setBookings([]))
-    fetchMe().then(setUser).catch(() => setUser(null))
+    let active = true
+    Promise.all([
+      fetchBookings().catch(() => []),
+      fetchMe().catch(() => null),
+    ]).then(([b, u]) => {
+      if (!active) return
+      setBookings(b)
+      setUser(u)
+      setLoading(false)
+    })
+    return () => { active = false }
   }, [])
 
   const active = bookings.filter((b) => b.status === 'Confirmed' || b.status === 'Pending')
@@ -121,27 +131,38 @@ export default function CustomerDashboardPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            {[
-              { label: 'Active Bookings', value: String(active.length), sub: active.length ? `${active.filter(b => b.status === 'Confirmed').length} confirmed, ${active.filter(b => b.status === 'Pending').length} pending` : 'No active bookings', icon: Calendar, color: '#047857' },
-              { label: 'Completed Jobs', value: String(completed.length), sub: 'All time', icon: CheckCircle, color: '#2563EB' },
-              { label: 'Total Spent', value: formatNGN(totalSpent), sub: 'All time', icon: CreditCard, color: '#F59E0B' },
-            ].map((s) => {
-              const Icon = s.icon
-              return (
-                <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm text-gray-500">{s.label}</p>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}20` }}>
-                      <Icon size={16} style={{ color: s.color }} />
-                    </div>
-                  </div>
-                  <p className="font-display text-2xl font-bold text-gray-900">{s.value}</p>
-                  <p className="text-xs text-gray-400 mt-1">{s.sub}</p>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+                  <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
+                  <div className="h-7 bg-gray-100 rounded w-2/3" />
                 </div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+              {[
+                { label: 'Active Bookings', value: String(active.length), sub: active.length ? `${active.filter(b => b.status === 'Confirmed').length} confirmed, ${active.filter(b => b.status === 'Pending').length} pending` : 'No active bookings', icon: Calendar, color: '#047857' },
+                { label: 'Completed Jobs', value: String(completed.length), sub: 'All time', icon: CheckCircle, color: '#2563EB' },
+                { label: 'Total Spent', value: formatNGN(totalSpent), sub: 'All time', icon: CreditCard, color: '#F59E0B' },
+              ].map((s) => {
+                const Icon = s.icon
+                return (
+                  <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm text-gray-500">{s.label}</p>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}20` }}>
+                        <Icon size={16} style={{ color: s.color }} />
+                      </div>
+                    </div>
+                    <p className="font-display text-2xl font-bold text-gray-900">{s.value}</p>
+                    <p className="text-xs text-gray-400 mt-1">{s.sub}</p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* Upcoming bookings */}
           <div className="bg-white rounded-2xl border border-gray-100">
@@ -150,7 +171,26 @@ export default function CustomerDashboardPage() {
               <Link href="/bookings" className="text-sm font-medium text-[#047857]">View all</Link>
             </div>
             <div className="divide-y divide-gray-50">
-              {active.map((b) => (
+              {loading ? (
+                [1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+                    <div className="w-11 h-11 rounded-xl bg-gray-100 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-100 rounded w-1/3" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))
+              ) : active.length === 0 ? (
+                <div className="text-center py-12 px-5">
+                  <Calendar size={36} className="text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium text-sm">No upcoming bookings</p>
+                  <p className="text-xs text-gray-400 mt-1">Book an artisan and your upcoming jobs will appear here.</p>
+                  <Link href="/search" className="mt-4 inline-block px-4 py-2 rounded-xl text-white text-xs font-semibold bg-[#047857] hover:opacity-90 transition-opacity">
+                    Find an Artisan
+                  </Link>
+                </div>
+              ) : active.map((b) => (
                 <div key={b.id} className="flex items-center gap-4 px-5 py-4">
                   <Image src={b.avatar || DEFAULT_AVATAR} alt={b.artisan} width={44} height={44} className="rounded-xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">

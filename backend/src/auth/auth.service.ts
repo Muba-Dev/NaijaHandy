@@ -64,6 +64,18 @@ export class AuthService {
     })
 
     const tokens = await this.issueTokens({ id: user.id, role: user.role })
+
+    if (data.role === 'ARTISAN') {
+      const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN' }, select: { email: true } })
+      for (const admin of admins) {
+        await this.emailService.sendNewArtisanPendingEmail({
+          to: admin.email,
+          artisanName: data.name,
+          profession: data.profession || data.category || 'Artisan',
+        })
+      }
+    }
+
     return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role } }
   }
 

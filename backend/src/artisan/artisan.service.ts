@@ -1,11 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 
+export type RequestUser = { id: string; role: string; isDemo: boolean }
+
 @Injectable()
 export class ArtisanService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(filters: any) {
+  private hideDemo(user?: RequestUser): boolean {
+    return !!user && user.role !== 'ADMIN' && !user.isDemo
+  }
+
+  async findAll(filters: any, user?: RequestUser) {
     const { q, category, city, minRating, available, sortBy = 'rating', page = 1, limit = 12 } = filters
     const skip = (Number(page) - 1) * Number(limit)
 
@@ -14,6 +20,7 @@ export class ArtisanService {
     return this.prisma.artisanProfile.findMany({
       where: {
         approvalStatus: 'APPROVED',
+        ...(this.hideDemo(user) ? { isDemo: false } : {}),
         ...(keyword
           ? {
               OR: [
@@ -38,18 +45,25 @@ export class ArtisanService {
     })
   }
 
-  async categoryCounts() {
+  async categoryCounts(user?: RequestUser) {
     const groups = await this.prisma.artisanProfile.groupBy({
       by: ['category'],
-      where: { approvalStatus: 'APPROVED' },
+      where: {
+        approvalStatus: 'APPROVED',
+        ...(this.hideDemo(user) ? { isDemo: false } : {}),
+      },
       _count: { _all: true },
     })
     return groups.map((g) => ({ name: g.category, count: g._count._all }))
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: RequestUser) {
     const artisan = await this.prisma.artisanProfile.findFirst({
-      where: { id, approvalStatus: 'APPROVED' },
+      where: {
+        id,
+        approvalStatus: 'APPROVED',
+        ...(this.hideDemo(user) ? { isDemo: false } : {}),
+      },
       include: {
         user: { select: { id: true, name: true, city: true, avatar: true, phone: true } },
         services: true,

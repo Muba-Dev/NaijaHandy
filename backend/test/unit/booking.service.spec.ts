@@ -5,14 +5,19 @@ describe('BookingService', () => {
   const booking = { findUnique: jest.fn(), update: jest.fn(), findFirst: jest.fn(), create: jest.fn() }
   const dispute = { findFirst: jest.fn(), create: jest.fn() }
   const prisma = { booking, dispute } as any
-  const service = new BookingService(prisma)
+  const emailService = { sendBookingStatusEmail: jest.fn() } as any
+  const service = new BookingService(prisma, emailService)
 
   const baseBooking = {
     id: 'b1',
     customerId: 'c1',
     paymentStatus: 'UNPAID',
     status: 'PENDING',
-    artisan: { userId: 'a1' },
+    date: new Date('2026-08-20T09:00:00.000Z'),
+    time: '9:00 AM',
+    amount: 17000,
+    customer: { name: 'Chisom Eze', email: 'chisom@example.com' },
+    artisan: { userId: 'a1', user: { name: 'Emeka Okafor', email: 'emeka@example.com' } },
   }
 
   afterEach(() => jest.clearAllMocks())
@@ -47,6 +52,11 @@ describe('BookingService', () => {
         id: 'b1',
         status: 'CONFIRMED',
       })
+      expect(emailService.sendBookingStatusEmail).toHaveBeenCalledWith({
+        to: 'chisom@example.com',
+        status: 'CONFIRMED',
+        booking: expect.objectContaining({ artisanName: 'Emeka Okafor', customerName: 'Chisom Eze' }),
+      })
     })
 
     it('blocks an invalid state transition', async () => {
@@ -62,6 +72,11 @@ describe('BookingService', () => {
       await expect(service.updateStatus('c1', 'CUSTOMER', 'b1', 'CANCELLED')).resolves.toEqual({
         id: 'b1',
         status: 'CANCELLED',
+      })
+      expect(emailService.sendBookingStatusEmail).toHaveBeenCalledWith({
+        to: 'emeka@example.com',
+        status: 'CANCELLED',
+        booking: expect.objectContaining({ artisanName: 'Emeka Okafor', customerName: 'Chisom Eze' }),
       })
     })
   })

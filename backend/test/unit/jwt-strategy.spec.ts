@@ -7,12 +7,12 @@ describe('JwtStrategy.validate', () => {
 
   afterEach(() => findUnique.mockReset())
 
-  it('returns { id, role } for an active user', async () => {
-    findUnique.mockResolvedValue({ id: 'u1', role: 'CUSTOMER', status: 'ACTIVE' })
-    await expect(strategy.validate({ id: 'u1' })).resolves.toEqual({ id: 'u1', role: 'CUSTOMER' })
+  it('returns { id, role, isDemo } for an active user', async () => {
+    findUnique.mockResolvedValue({ id: 'u1', role: 'CUSTOMER', status: 'ACTIVE', isDemo: false })
+    await expect(strategy.validate({ id: 'u1' })).resolves.toEqual({ id: 'u1', role: 'CUSTOMER', isDemo: false })
     expect(findUnique).toHaveBeenCalledWith({
       where: { id: 'u1' },
-      select: { id: true, role: true, status: true },
+      select: { id: true, role: true, status: true, isDemo: true },
     })
   })
 

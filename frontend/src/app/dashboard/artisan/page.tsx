@@ -12,10 +12,13 @@ export default function ArtisanOverviewPage() {
   const [available, setAvailable] = useState(true)
   const [artisan, setArtisan] = useState<Artisan | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchMyArtisanProfile().then((p) => { setArtisan(p); setAvailable(p.available) }).catch(() => setArtisan(null))
-    fetchBookings().then(setBookings).catch(() => setBookings([]))
+    Promise.all([
+      fetchMyArtisanProfile().then((p) => { setArtisan(p); setAvailable(p.available) }).catch(() => setArtisan(null)),
+      fetchBookings().then(setBookings).catch(() => setBookings([])),
+    ]).finally(() => setLoading(false))
   }, [])
 
   const toggleAvailability = async () => {
@@ -56,7 +59,14 @@ export default function ArtisanOverviewPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
+        {loading ? (
+          [1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+              <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
+              <div className="h-6 bg-gray-100 rounded w-2/3" />
+            </div>
+          ))
+        ) : [
           { label: 'This Month', value: formatNGN(totalEarnings), sub: 'Earnings', icon: TrendingUp },
           { label: 'Pending Requests', value: String(pendingRequests.length), sub: 'New jobs', icon: Bell },
           { label: 'Jobs Completed', value: String(completedCount), sub: 'All time', icon: CheckCircle },
@@ -85,7 +95,17 @@ export default function ArtisanOverviewPage() {
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
-          {pendingRequests.map((r) => (
+          {loading ? (
+            [1, 2, 3].map((i) => (
+              <div key={i} className="flex items-start gap-4 px-5 py-4 animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-100 rounded w-1/3" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))
+          ) : pendingRequests.map((r) => (
             <div key={r.id} className="flex items-start gap-4 px-5 py-4">
               <Image src={r.customerAvatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=48&h=48&fit=crop&auto=format'} alt={r.customer || 'Customer'} width={40} height={40} className="rounded-xl object-cover shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
@@ -109,7 +129,7 @@ export default function ArtisanOverviewPage() {
               </div>
             </div>
           ))}
-          {pendingRequests.length === 0 && (
+          {!loading && pendingRequests.length === 0 && (
             <p className="text-center text-gray-400 text-sm py-8">No pending job requests.</p>
           )}
         </div>
@@ -124,7 +144,17 @@ export default function ArtisanOverviewPage() {
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
-          {upcoming.map((b) => (
+          {loading ? (
+            [1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+                <div className="w-9 h-9 rounded-lg bg-gray-100 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-100 rounded w-1/3" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))
+          ) : upcoming.map((b) => (
             <div key={b.id} className="flex items-center gap-4 px-5 py-4">
               <div className="w-9 h-9 rounded-lg bg-[#047857]/10 flex items-center justify-center shrink-0">
                 <Calendar size={16} className="text-[#047857]" />
@@ -136,7 +166,7 @@ export default function ArtisanOverviewPage() {
               <p className="font-semibold text-gray-900 text-sm shrink-0">{formatNGN(b.amount)}</p>
             </div>
           ))}
-          {upcoming.length === 0 && (
+          {!loading && upcoming.length === 0 && (
             <p className="text-center text-gray-400 text-sm py-8">No confirmed jobs yet. Check your job requests.</p>
           )}
         </div>

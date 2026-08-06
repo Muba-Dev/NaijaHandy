@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { deleteE2EBookings } from './support/db'
-import { login } from './support/helpers'
+import { deleteE2EBookings, deleteE2EUsers } from './support/db'
+import { login, createBookableArtisan } from './support/helpers'
 
 const MARKER = `E2E booking ${Date.now()}`
 const API_URL = 'http://localhost:4000/api'
@@ -19,11 +19,12 @@ async function topArtisan(): Promise<{ id: string; user: { id: string; name: str
 
 test.afterAll(async () => {
   await deleteE2EBookings(MARKER).catch((e) => console.warn('e2e cleanup failed:', e.message))
+  await deleteE2EUsers('e2e.bookable.%').catch((e) => console.warn('e2e cleanup failed:', e.message))
 })
 
 test.describe('Booking & payment', () => {
   test('books an artisan and pays through mock Paystack', async ({ page }) => {
-    const artisan = await topArtisan()
+    const artisan = await createBookableArtisan()
 
     await login(page)
 

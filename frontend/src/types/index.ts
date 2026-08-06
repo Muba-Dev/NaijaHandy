@@ -12,6 +12,7 @@ export interface Artisan {
   cover: string
   category: string
   available: boolean
+  isDemo: boolean
   portfolio: string[]
   services: Service[]
   reviews_list: Review[]
