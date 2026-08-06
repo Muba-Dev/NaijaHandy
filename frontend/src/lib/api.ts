@@ -2,7 +2,11 @@ import axios from 'axios'
 import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute } from '@/types'
 import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NEXT_PUBLIC_VERCEL_ENV
+    ? 'https://naijahandy.onrender.com/api'
+    : 'http://localhost:4000/api')
 
 const api = axios.create({
   baseURL: API_BASE_URL,
