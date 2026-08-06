@@ -12,6 +12,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "ts-node-dev prisma/seed.ts",
+    "db:reset-token": "node scripts/last-reset-token.mjs",
     "db:backup": "bash scripts/backup-db.sh",
     "test": "jest",
     "test:watch": "jest --watch",
