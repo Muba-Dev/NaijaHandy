@@ -143,3 +143,41 @@ The frontend now uses:
 - ✅ Event trigger auto-enables RLS on future tables.
 - ✅ Backup (`backup-db.sh`), rollback (`rls-rollback.sql`), and verification (`verify-rls.sql`) tooling under `backend/supabase/`.
 - ✅ Passwords verified as bcrypt-hashed (cost 12); refresh tokens only managed by the backend.
+
+## Next Work Plan (saved for later)
+
+### 1. Demo data (labeled, no purge) + CI DB split
+
+- ✅ (pending) Migration `add_demo_flags`: `ArtisanProfile.isDemo` + `User.isDemo` (`Boolean @default(false)`).
+- (pending) Seed (`backend/prisma/seed.ts`): mark the 10 demo artisans + demo customers `isDemo: true`; keep their ratings as-is (clearly demo).
+- (pending) Backend filtering (`ArtisanService.findAll/findOne`): anonymous → demo visible; authenticated non-demo user → `isDemo: false` filter; admin → sees all. **No** `?demo=1` preview toggle (decision: skip).
+- (pending) Frontend: "Demo" badge on artisan cards; Book button disabled with "Demo profile — not bookable" (decision: not bookable). No preview toggle.
+- (pending) CI DB split: new `DATABASE_URL_CI` secret (Neon branch); point `backend-e2e` + `frontend-e2e` jobs at it in `.github/workflows/ci.yml`; Render keeps `secrets.DATABASE_URL`. Gate demo seeding with `SEED_DEMO=0` for prod safety.
+- Rationale: demo data reaches prod today because CI e2e seeds the same Neon DB that Render reads.
+
+### 2. Ratings integrity
+
+- (pending) `backend/scripts/recompute-ratings.mjs`: recompute `avgRating`/`totalReviews` from the `Review` table for **non-demo** artisans only (demo keeps its fake numbers); run after the migration.
+- Seeded `avgRating`/`totalReviews` (up to 201 reviews) have no backing `Review` rows — fiction only OK on labeled demo rows.
+
+### 3. Notifications (email)
+
+- (pending) Generalize `backend/src/email/email.service.ts` (currently only `sendPasswordResetEmail`) with a generic `send()` + booking/approval helpers, error-swallowed (log + continue) + env-flag gated.
+- (pending) Wire into `BookingService.updateStatus` (confirmed/completed/cancelled → other party), `AdminService.setArtisanApproval`/`setArtisanVerification` (→ artisan), and new-artisan-PENDING alert to admins on profile submission.
+
+### 4. Operational hardening
+
+- (pending) Daily GitHub Actions backup workflow (cron `0 2 * * *`) running `npm run db:backup` against prod, artifact retention 30 days.
+- (pending) Keep-alive workflow opens a GitHub issue on repeated health-check failures.
+- (pending) Root `package.json`: rename `figma-make-app` → `naijahandy`, drop unused Vite/React scaffold deps; consolidate lockfiles (root pnpm + npm vs `frontend/package-lock.json`).
+
+### 5. Dashboard UX
+
+- (pending) Artisan dashboard mobile top-nav parity with customer/admin dashboards.
+- (pending) Loading skeletons + empty states on customer & artisan `/dashboard` booking tabs.
+- (pending) Admin artisans list: inline approve/reject actions + PENDING count badge.
+
+### Verification (for all above)
+
+- Backend: `npm run build` (tsc), `npm test`, `npm run test:e2e`. Frontend: `npm run lint && npm run build`.
+- After deploy: logged-out `/api/artisans` shows demo + badge, logged-in shows zero, demo artisans non-bookable, CI green on the new CI DB.
