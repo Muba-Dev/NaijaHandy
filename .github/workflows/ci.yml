@@ -44,6 +44,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run db:generate
+      - run: npm run db:deploy
       - run: npm run db:seed
       - run: npm run test:e2e
 
@@ -90,7 +91,7 @@ jobs:
         run: npm ci
         working-directory: backend
       - name: Seed the database
-        run: npm run db:seed
+        run: npm run db:deploy && npm run db:seed
         working-directory: backend
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v5
