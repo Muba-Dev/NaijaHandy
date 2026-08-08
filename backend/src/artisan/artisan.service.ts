@@ -66,7 +66,7 @@ export class ArtisanService {
         ...(this.hideDemo(user) ? { isDemo: false } : {}),
       },
       include: {
-        user: { select: { id: true, name: true, city: true, avatar: true, phone: true } },
+        user: { select: { id: true, name: true, city: true, avatar: true, phone: true, address: true, latitude: true, longitude: true } },
         services: true,
         portfolio: true,
         reviews: {
@@ -83,7 +83,7 @@ export class ArtisanService {
   async findMe(userId: string) {
     const profile = await this.prisma.artisanProfile.findUnique({
       where: { userId },
-      include: { user: { select: { id: true, name: true, city: true, avatar: true, phone: true } }, services: true, portfolio: true },
+      include: { user: { select: { id: true, name: true, city: true, avatar: true, phone: true, address: true, latitude: true, longitude: true } }, services: true, portfolio: true },
     })
     if (!profile) throw new NotFoundException('Artisan profile not found')
     return profile

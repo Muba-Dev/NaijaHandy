@@ -9,6 +9,7 @@ import { fetchArtisanById, createBooking, initializePayment, fetchSavedArtisans,
 import { formatNGN, isAuthenticated, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
+import LocationMap from '@/components/map/LocationMap'
 import type { Artisan } from '@/types'
 
 export default function ArtisanProfilePage() {
@@ -190,6 +191,23 @@ export default function ArtisanProfilePage() {
         <div className="flex flex-col lg:flex-row gap-6 pb-12">
           {/* Tabbed main content */}
           <div className="flex-1 min-w-0">
+            {artisan.latitude != null && artisan.longitude != null && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+                  <h2 className="font-display text-lg font-bold text-gray-900">Location</h2>
+                  <a
+                    href={`https://www.google.com/maps?q=${artisan.latitude},${artisan.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm font-medium text-[#047857] hover:underline"
+                  >
+                    <MapPin size={14} aria-hidden="true" />Open in Google Maps
+                  </a>
+                </div>
+                {artisan.address && <p className="text-sm text-gray-600 mb-4">{artisan.address}</p>}
+                <LocationMap lat={artisan.latitude} lng={artisan.longitude} />
+              </div>
+            )}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
               <div className="flex border-b border-gray-100 overflow-x-auto">
                 {tabs.map((t) => (

@@ -4,9 +4,10 @@ import { AdminService } from './admin.service'
 import { RolesGuard } from '../auth/roles.guard'
 import { PrismaModule } from '../prisma/prisma.module'
 import { EmailModule } from '../email/email.module'
+import { NotificationsModule } from '../notifications/notifications.module'
 
 @Module({
-  imports: [PrismaModule, EmailModule],
+  imports: [PrismaModule, EmailModule, NotificationsModule],
   controllers: [AdminController],
   providers: [AdminService, RolesGuard],
 })

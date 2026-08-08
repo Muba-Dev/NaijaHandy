@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute } from '@/types'
+import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification } from '@/types'
 import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
 export const API_BASE_URL =
@@ -64,7 +64,7 @@ type RawArtisan = {
   isDemo: boolean
   avgRating: number
   totalReviews: number
-  user: { id: string; name: string; city: string | null; avatar: string | null }
+  user: { id: string; name: string; city: string | null; avatar: string | null; address?: string | null; latitude?: number | null; longitude?: number | null }
   services: { name: string; rate: number }[]
   portfolio?: { id: string; imageUrl: string; caption?: string | null }[]
   reviews?: {
@@ -81,6 +81,9 @@ function normalizeArtisan(a: RawArtisan): Artisan {
     name: a.user.name,
     profession: a.profession,
     city: a.user.city || '',
+    address: a.user.address ?? null,
+    latitude: a.user.latitude ?? null,
+    longitude: a.user.longitude ?? null,
     rating: a.avgRating,
     reviews: a.totalReviews,
     hourlyRate: a.hourlyRate,
@@ -293,13 +296,35 @@ export async function createReview(bookingId: string, rating: number, comment: s
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export async function updateProfile(payload: { name?: string; phone?: string; city?: string; avatar?: string }) {
+export async function updateProfile(payload: { name?: string; phone?: string; city?: string; avatar?: string; address?: string; latitude?: number; longitude?: number }) {
   const { data } = await api.patch('/users/me', payload)
   return data.data
 }
 
 export async function updateAvatar(image: string): Promise<AuthUser> {
   const { data } = await api.post('/users/me/avatar', { image })
+  return data.data
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export async function fetchNotifications(): Promise<AppNotification[]> {
+  const { data } = await api.get('/notifications')
+  return data.data
+}
+
+export async function fetchUnreadCount(): Promise<number> {
+  const { data } = await api.get('/notifications/unread-count')
+  return data.data.count
+}
+
+export async function markNotificationRead(id: string) {
+  const { data } = await api.patch(`/notifications/${id}/read`)
+  return data.data
+}
+
+export async function markAllNotificationsRead() {
+  const { data } = await api.post('/notifications/read-all')
   return data.data
 }
 

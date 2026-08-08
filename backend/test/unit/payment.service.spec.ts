@@ -6,8 +6,13 @@ describe('PaymentService', () => {
   const findFirst = jest.fn()
   const paymentUpdate = jest.fn()
   const bookingUpdate = jest.fn()
-  const prisma = { payment: { findFirst, update: paymentUpdate }, booking: { update: bookingUpdate } } as any
-  const service = new PaymentService(prisma)
+  const bookingFindUnique = jest.fn()
+  const prisma = {
+    payment: { findFirst, update: paymentUpdate },
+    booking: { update: bookingUpdate, findUnique: bookingFindUnique },
+  } as any
+  const notificationsService = { create: jest.fn() } as any
+  const service = new PaymentService(prisma, notificationsService)
 
   const event = {
     event: 'charge.success',
@@ -43,13 +48,20 @@ describe('PaymentService', () => {
 
     it('accepts a correct signature and finalizes the payment', async () => {
       findFirst.mockResolvedValue({ id: 'p1', bookingId: 'b1', status: 'PENDING', amount: 25000 })
-      paymentUpdate.mockResolvedValue({ id: 'p1', status: 'SUCCESS', reference: 'pay_x' })
+      paymentUpdate.mockResolvedValue({ id: 'p1', status: 'SUCCESS', reference: 'pay_x', amount: 25000 })
       bookingUpdate.mockResolvedValue({ id: 'b1', paymentStatus: 'PAID' })
+      bookingFindUnique.mockResolvedValue({ id: 'b1', artisan: { userId: 'a1' } })
       const sig = createHmac('sha512', 'test-secret-key').update(body).digest('hex')
       await expect(service.handleWebhook(body, sig)).resolves.toMatchObject({ status: 'SUCCESS' })
       expect(paymentUpdate).toHaveBeenCalledWith({
         where: { bookingId: 'b1' },
         data: expect.objectContaining({ status: 'SUCCESS' }),
+      })
+      expect(notificationsService.create).toHaveBeenCalledWith('a1', {
+        type: 'PAYMENT_RECEIVED',
+        title: 'Payment received',
+        body: expect.any(String),
+        link: '/dashboard/artisan/requests',
       })
     })
   })

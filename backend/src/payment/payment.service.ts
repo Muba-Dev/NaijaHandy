@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { createHmac, timingSafeEqual, randomUUID } from 'crypto'
 import { PrismaService } from '../prisma/prisma.service'
+import { NotificationsService } from '../notifications/notifications.service'
 
 const SECRET_KEY = () => process.env.PAYSTACK_SECRET_KEY || ''
 const BASE_URL = () => process.env.PAYSTACK_BASE_URL || 'https://api.paystack.co'
@@ -9,7 +10,10 @@ const MOCK = () => process.env.PAYSTACK_MOCK === 'true'
 
 @Injectable()
 export class PaymentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async initialize(userId: string, bookingId: string) {
     const booking = await this.prisma.booking.findUnique({
@@ -113,6 +117,20 @@ export class PaymentService {
       where: { id: bookingId },
       data: { paymentStatus: 'PAID', paymentReference: payment.reference, paidAt: new Date() },
     })
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { artisan: { select: { userId: true } } },
+    })
+    if (booking) {
+      await this.notificationsService.create(booking.artisan.userId, {
+        type: 'PAYMENT_RECEIVED',
+        title: 'Payment received',
+        body: `You have been paid ₦${payment.amount.toLocaleString('en-NG')} for a booking.`,
+        link: '/dashboard/artisan/requests',
+      })
+    }
+
     return payment
   }
 }

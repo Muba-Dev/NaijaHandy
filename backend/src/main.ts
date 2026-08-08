@@ -24,7 +24,7 @@ async function bootstrap() {
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 100,
+      max: process.env.NODE_ENV === 'test' ? 1000 : 100,
     }),
   )
   app.use(express.urlencoded({ extended: true }))

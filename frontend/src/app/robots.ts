@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard', '/settings', '/bookings', '/saved', '/oauth-callback'],
+      disallow: ['/dashboard', '/settings', '/bookings', '/saved', '/notifications', '/oauth-callback'],
     },
     sitemap: `${APP_URL}/sitemap.xml`,
   }

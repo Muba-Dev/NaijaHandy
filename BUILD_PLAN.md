@@ -100,7 +100,8 @@ The frontend now uses:
 - ✅ Verified: backend build clean, 37 unit tests + 52 e2e tests passing (e2e now covers change-password revocation and review rules), frontend typecheck/build/lint clean.
 - ✅ Improve responsive accessibility, mobile UX, SEO-ready content (see "Accessibility, mobile UX & SEO" below).
 - ✅ Real media uploads for artisans (see "Media uploads" below).
-- Pending: map/address selection, notification support.
+- ✅ In-app notifications (see "In-app notifications" below).
+- ✅ Map/address selection (see "Map / address selection" below).
 
 ### Accessibility, mobile UX & SEO (Phase 3 item 4) — DONE
 
@@ -121,10 +122,27 @@ The frontend now uses:
 - ✅ Artisan profile page (`/dashboard/artisan/profile`): cover URL text field replaced with file-picker + preview + upload button; new portfolio card (grid with delete-per-item, optional caption, add-photo uploader). Same validation/feedback pattern (`role="status"` / `role="alert"`) as settings. Public `/artisans/[id]` portfolio tab renders `imageUrl` + caption alt text.
 - ✅ Verified: backend `npm run build` + `npm test` clean; frontend `npm run lint` + `npm run build` clean (22 routes).
 
+### In-app notifications (Phase 3 item 5) — DONE
+
+- ✅ Prisma `Notification` model (`id`, `userId`, `type`, `title`, `body`, `link?`, `read`, `createdAt`, index `[userId, read]`, cascade delete) + migration `20260808222651_add_notifications` applied.
+- ✅ Backend `NotificationsModule`: `NotificationsService` (`create`, `findAll`, `unreadCount`, `markRead`, `markAllRead`) + authenticated controller — `GET /api/notifications`, `GET /api/notifications/unread-count`, `PATCH /api/notifications/:id/read`, `POST /api/notifications/read-all`.
+- ✅ Emitted from domain services: `BOOKING_REQUEST` (new booking → artisan), `BOOKING_ACCEPTED`/`BOOKING_COMPLETED` (→ customer), `BOOKING_CANCELLED` (→ other party), `REVIEW_RECEIVED` (→ artisan), `PROFILE_APPROVED`/`PROFILE_REJECTED` (admin approval → artisan), `PAYMENT_RECEIVED` (paid → artisan). Each carries a deep link (e.g. `/dashboard/artisan/requests`, `/bookings`).
+- ✅ Unit tests: new `notifications.service.spec.ts` (create/findAll/unreadCount/markRead-ownership/markAllRead) + booking/payment specs extended to assert notification emission. Backend build + 64 unit tests green.
+- ✅ Frontend: `AppNotification` type, `fetchNotifications`/`fetchUnreadCount`/`markNotificationRead`/`markAllNotificationsRead` helpers. Navbar bell with unread badge (30s polling + on-route-change refresh) in desktop + mobile menu. New `/notifications` page (unread highlight, click-to-open deep links auto-marking read, "Mark all as read", empty + loading states). `/notifications` added to `robots.ts` disallow.
+- ✅ Verified: frontend `npm run lint` + `npm run build` clean (23 routes incl. `/notifications`).
+
+### Map / address selection (Phase 3 item 5) — DONE
+
+- ✅ Prisma `User` now has `address?`, `latitude?`, `longitude?`; migration `20260809000000_add_user_location` generated **offline** (`prisma migrate diff`) because the Supabase pooler was unreachable (P1001 — transient DNS/network outage). **Applied 2026-08-08** via `npx prisma migrate deploy` once connectivity returned; `prisma migrate status` confirms DB in sync, `prisma validate` clean, and the `address`/`latitude`/`longitude` columns verified in `information_schema`.
+- ✅ Backend `UserService.findMe/updateMe` select + persist location; `updateMe` validates lat ∈ [−90, 90] and lng ∈ [−180, 180] (accepts numeric strings), `BadRequestException('Invalid coordinates')` otherwise. `ArtisanService` public profile includes now return `phone`/`address`/`latitude`/`longitude`.
+- ✅ Unit tests: new `user.service.spec.ts` (store + numeric-string coercion + out-of-range + non-numeric + no-coords). Backend build + 70 unit tests green (no backend lint script; `tsc` build is the check).
+- ✅ Frontend: installed `leaflet@^1.9.4`, `react-leaflet@^5.0.0`, `@types/leaflet`; `leaflet/dist/leaflet.css` imported in `globals.css`; `src/components/map/MapView.tsx` (MapContainer + OSM tiles + custom div-icon pin, click-to-select, `isolate` wrapper), `MapPicker.tsx` (Nominatim address search + reverse-geocode on map click, all client-side via `next/dynamic ssr:false`), `LocationMap.tsx` (static, non-interactive).
+- ✅ Artisan profile page (`/dashboard/artisan/profile`): new Location card — address search box, clickable map, "Save Location" → `PATCH /api/users/me` (`{ address, latitude, longitude }`), saved/error feedback. Public `/artisans/[id]` shows a Location card (address + static map + "Open in Google Maps" link) whenever lat/lng are present.
+- ✅ Verified: frontend `npm run lint` + `npm run build` clean (23 routes); backend `npm run build` + `npm test` clean (70 tests, 9 suites).
+
 ### Next action for another developer
 
-1. Phase 3 item 5 remaining: map/address selection and in-app notification support.
-2. Phase 4: E2E coverage for the new dashboard/SEO work and a Lighthouse/axe audit pass.
+1. Phase 4 remaining: a Lighthouse/axe audit pass (E2E coverage for the new dashboard/SEO work is done — 18 Playwright tests).
 
 ### Targeted tests — DONE
 
@@ -145,11 +163,14 @@ The frontend now uses:
 - ✅ Monitoring: `GET /api/health` — DB connectivity check returning `{ status, db, timestamp }`, 503 when the DB is down.
 - ✅ Backups: `backend/scripts/backup-db.sh` (timestamped `pg_dump`, keeps newest `BACKUP_KEEP` = 14) with cron example; `npm run db:backup`; `backups/` gitignored.
 - ✅ Frontend lint: ESLint 9 flat config (`eslint.config.mjs`) + `npm run lint`; fixed all `no-explicit-any` and unused-variable issues across the app.
-- ✅ Frontend Playwright e2e (`frontend/e2e/`, `playwright.config.ts`, `npm run test:e2e`): 8 tests against the real app + DB, self-cleaning via `e2e/support/db.ts` (unique description marker → deletes bookings/payments/disputes):
+- ✅ Frontend Playwright e2e (`frontend/e2e/`, `playwright.config.ts`, `npm run test:e2e`): 18 tests against the real app + DB, self-cleaning via `e2e/support/db.ts` (unique description marker → deletes bookings/payments/disputes; `e2e.bookable.%` user cleanup cascades notifications):
   - Auth: protected-route redirect, invalid-credentials error, customer login → dashboard, logout → home + protected pages locked.
   - Browse: search lists artisans from the API, artisan profile shows details + booking form.
   - Booking + payment: book on the profile page → mock Paystack redirect → `?reference=` verify → PAID; Pay Now on an API-created UNPAID booking → verify → PAID.
+  - **New — SEO (`seo.spec.ts`)**: `robots.txt` disallows `/dashboard`, `/settings`, `/bookings`, `/saved`, `/notifications`, `/oauth-callback` + sitemap reference; `sitemap.xml` lists public pages + `/artisans/` URLs (asserted against the production `NEXT_PUBLIC_APP_URL` base); `/artisans/[id]` emits title/description/canonical/OG meta.
+  - **New — dashboard work (`dashboard.spec.ts`)**: booking request → artisan bell badge shows unread count, `/notifications` lists it, click → deep link to job requests where the booking appears; artisan cover + portfolio uploads (data-URL dev fallback) with success states and portfolio delete; location card — click map → type address → Save → "Location saved.", then the public profile shows the Location card + "Open in Google Maps" + Leaflet map.
   - CI job `frontend-e2e` in `.github/workflows/ci.yml` (Playwright install, DB seed, artifact upload), gated on the `DATABASE_URL` secret.
+- ✅ E2E reliability fixes along the way: login/register selectors scoped to `main form` (the footer newsletter form added the same `input[type="email"]`, tripping strict-mode); global `express-rate-limit` raised to `max: 1000` when `NODE_ENV=test` (the 100/15min production limit was 429-ing the full suite); `MapPicker` now propagates typed addresses to the parent and only auto-fills a reverse-geocoded address when the user hasn't typed since the map click (fixed the save-no-address bug).
 - ✅ Deployment (Vercel / Render / Neon) — **DONE**: frontend live, backend live, DB migrated+seeded, Paystack mock, CI green.
 
 ### Next action for another developer

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
+import { NotificationsService } from '../notifications/notifications.service'
 
 const APPROVAL_STATUSES = ['PENDING', 'APPROVED', 'REJECTED']
 const VERIFICATION_STATUSES = ['UNVERIFIED', 'VERIFIED']
@@ -13,6 +14,7 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async getStats() {
@@ -71,7 +73,7 @@ export class AdminService {
     if (!APPROVAL_STATUSES.includes(approvalStatus)) throw new BadRequestException('Invalid approval status')
     const artisan = await this.prisma.artisanProfile.findUnique({
       where: { id },
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true } } },
     })
     if (!artisan) throw new NotFoundException('Artisan not found')
     const updated = await this.prisma.artisanProfile.update({
@@ -83,6 +85,15 @@ export class AdminService {
         to: artisan.user.email,
         name: artisan.user.name,
         approvalStatus,
+      })
+      await this.notificationsService.create(artisan.user.id, {
+        type: approvalStatus === 'APPROVED' ? 'PROFILE_APPROVED' : 'PROFILE_REJECTED',
+        title: approvalStatus === 'APPROVED' ? 'Profile approved' : 'Profile rejected',
+        body:
+          approvalStatus === 'APPROVED'
+            ? 'Your artisan profile has been approved. You can now receive booking requests.'
+            : 'Your artisan profile was rejected. Please review your details and try again.',
+        link: '/dashboard/artisan/profile',
       })
     }
     return updated

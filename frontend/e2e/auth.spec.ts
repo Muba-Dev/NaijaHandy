@@ -9,8 +9,8 @@ test.describe('Authentication', () => {
 
   test('rejects invalid credentials with an error message', async ({ page }) => {
     await page.goto('/login')
-    await page.locator('form input[type="email"]').fill('nobody@example.com')
-    await page.locator('form input[type="password"]').fill('wrong-password')
+    await page.locator('main form input[type="email"]').fill('nobody@example.com')
+    await page.locator('main form input[type="password"]').fill('wrong-password')
     await page.getByRole('button', { name: 'Log In' }).click()
     await expect(page.getByText(/Invalid credentials|Login failed/)).toBeVisible({ timeout: 15_000 })
   })

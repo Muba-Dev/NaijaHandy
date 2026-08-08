@@ -3,6 +3,9 @@ export interface Artisan {
   name: string
   profession: string
   city: string
+  address?: string | null
+  latitude?: number | null
+  longitude?: number | null
   rating: number
   reviews: number
   hourlyRate: number
@@ -22,6 +25,16 @@ export interface PortfolioItem {
   id: string
   imageUrl: string
   caption?: string | null
+}
+
+export interface AppNotification {
+  id: string
+  type: string
+  title: string
+  body: string
+  link: string | null
+  read: boolean
+  createdAt: string
 }
 
 export interface Service {
@@ -78,6 +91,9 @@ export interface AuthUser {
   phone?: string
   avatar?: string
   city?: string
+  address?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export type AdminUserRole = 'CUSTOMER' | 'ARTISAN' | 'ADMIN'

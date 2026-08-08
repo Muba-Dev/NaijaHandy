@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module'
 import { SavedArtisanModule } from './saved-artisan/saved-artisan.module'
 import { AdminModule } from './admin/admin.module'
 import { PaymentModule } from './payment/payment.module'
+import { NotificationsModule } from './notifications/notifications.module'
 import { EmailModule } from './email/email.module'
 import { PrismaModule } from './prisma/prisma.module'
 import { HealthModule } from './health/health.module'
@@ -21,6 +22,7 @@ import { HealthModule } from './health/health.module'
     SavedArtisanModule,
     AdminModule,
     PaymentModule,
+    NotificationsModule,
     HealthModule,
   ],
 })

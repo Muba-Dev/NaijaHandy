@@ -12,11 +12,11 @@ test.describe('Profile settings', () => {
     const email = `${MARKER}@example.com`
 
     await page.goto('/register')
-    await page.locator('form input[placeholder="Amaka Okonkwo"]').fill('Avatar Tester')
-    await page.locator('form input[placeholder="+234 801 234 5678"]').fill('+234 800 000 0000')
-    await page.locator('form input[type="email"]').fill(email)
-    await page.locator('form select').selectOption({ label: 'Lagos' })
-    await page.locator('form input[type="password"]').fill('password123')
+    await page.locator('main form input[placeholder="Amaka Okonkwo"]').fill('Avatar Tester')
+    await page.locator('main form input[placeholder="+234 801 234 5678"]').fill('+234 800 000 0000')
+    await page.locator('main form input[type="email"]').fill(email)
+    await page.locator('main form select').selectOption({ label: 'Lagos' })
+    await page.locator('main form input[type="password"]').fill('password123')
     await page.getByRole('button', { name: 'Create Customer Account' }).click()
     await expect(page).toHaveURL(/\/dashboard\//, { timeout: 20_000 })
 

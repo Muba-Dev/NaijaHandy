@@ -4,20 +4,24 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common'
 describe('BookingService', () => {
   const booking = { findUnique: jest.fn(), update: jest.fn(), findFirst: jest.fn(), create: jest.fn() }
   const dispute = { findFirst: jest.fn(), create: jest.fn() }
-  const prisma = { booking, dispute } as any
+  const review = { findUnique: jest.fn() }
+  const artisanProfile = { findUnique: jest.fn() }
+  const prisma = { booking, dispute, review, artisanProfile } as any
   const emailService = { sendBookingStatusEmail: jest.fn() } as any
-  const service = new BookingService(prisma, emailService)
+  const notificationsService = { create: jest.fn() } as any
+  const service = new BookingService(prisma, emailService, notificationsService)
 
   const baseBooking = {
     id: 'b1',
+    artisanId: 'art-1',
     customerId: 'c1',
     paymentStatus: 'UNPAID',
     status: 'PENDING',
     date: new Date('2026-08-20T09:00:00.000Z'),
     time: '9:00 AM',
     amount: 17000,
-    customer: { name: 'Chisom Eze', email: 'chisom@example.com' },
-    artisan: { userId: 'a1', user: { name: 'Emeka Okafor', email: 'emeka@example.com' } },
+    customer: { id: 'c1', name: 'Chisom Eze', email: 'chisom@example.com' },
+    artisan: { id: 'art-1', userId: 'a1', user: { id: 'a1', name: 'Emeka Okafor', email: 'emeka@example.com' } },
   }
 
   afterEach(() => jest.clearAllMocks())
@@ -57,6 +61,12 @@ describe('BookingService', () => {
         status: 'CONFIRMED',
         booking: expect.objectContaining({ artisanName: 'Emeka Okafor', customerName: 'Chisom Eze' }),
       })
+      expect(notificationsService.create).toHaveBeenCalledWith('c1', {
+        type: 'BOOKING_ACCEPTED',
+        title: 'Booking confirmed',
+        body: expect.any(String),
+        link: '/bookings',
+      })
     })
 
     it('blocks an invalid state transition', async () => {
@@ -77,6 +87,60 @@ describe('BookingService', () => {
         to: 'emeka@example.com',
         status: 'CANCELLED',
         booking: expect.objectContaining({ artisanName: 'Emeka Okafor', customerName: 'Chisom Eze' }),
+      })
+      expect(notificationsService.create).toHaveBeenCalledWith('a1', {
+        type: 'BOOKING_CANCELLED',
+        title: 'Booking cancelled',
+        body: expect.any(String),
+        link: '/dashboard/artisan/requests',
+      })
+    })
+  })
+
+  describe('create', () => {
+    it('creates the booking and notifies the artisan of the request', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ userId: 'a1' })
+      booking.create.mockResolvedValue({ id: 'b1', customerId: 'c1', artisanId: 'art-1' })
+
+      await service.create('c1', { artisanId: 'art-1', date: '2026-08-20', time: '9:00 AM', description: 'Fix a leak', amount: 17000 })
+
+      expect(booking.create).toHaveBeenCalled()
+      expect(notificationsService.create).toHaveBeenCalledWith('a1', {
+        type: 'BOOKING_REQUEST',
+        title: 'New booking request',
+        body: expect.any(String),
+        link: '/dashboard/artisan/requests',
+      })
+    })
+
+    it('throws when the artisan profile does not exist', async () => {
+      artisanProfile.findUnique.mockResolvedValue(null)
+      await expect(service.create('c1', { artisanId: 'art-1', date: '2026-08-20', time: '9:00 AM', description: 'Fix a leak', amount: 17000 })).rejects.toThrow(NotFoundException)
+      expect(booking.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('createReview', () => {
+    it('creates the review and notifies the artisan', async () => {
+      booking.findUnique.mockResolvedValue({
+        ...baseBooking,
+        status: 'COMPLETED',
+        customer: { id: 'c1', name: 'Chisom Eze' },
+        artisan: { id: 'art-1', user: { id: 'a1' } },
+      })
+      review.findUnique.mockResolvedValue(null)
+      prisma.$transaction = jest.fn(async (fn: any) => fn({
+        review: { create: jest.fn().mockResolvedValue({ id: 'r1', rating: 5 }) },
+        artisanProfile: { findUnique: jest.fn().mockResolvedValue({ avgRating: 4, totalReviews: 2 }), update: jest.fn() },
+      }))
+
+      await service.createReview('c1', 'b1', 5, 'Great work!')
+
+      expect(notificationsService.create).toHaveBeenCalledWith('a1', {
+        type: 'REVIEW_RECEIVED',
+        title: 'New review',
+        body: expect.any(String),
+        link: '/artisans/art-1',
       })
     })
   })

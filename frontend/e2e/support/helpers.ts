@@ -11,8 +11,8 @@ export async function login(
   password = CUSTOMER_PASSWORD,
 ): Promise<void> {
   await page.goto('/login')
-  await page.locator('form input[type="email"]').fill(email)
-  await page.locator('form input[type="password"]').fill(password)
+  await page.locator('main form input[type="email"]').fill(email)
+  await page.locator('main form input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Log In' }).click()
   await expect(page).toHaveURL(/\/dashboard\/customer/, { timeout: 15_000 })
 }

@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { BadgeCheck, MapPin, Star, Save, Loader2, Camera, ImagePlus, Trash2 } from 'lucide-react'
-import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, uploadPortfolioItem, deletePortfolioItem } from '@/lib/api'
+import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, uploadPortfolioItem, deletePortfolioItem, updateProfile } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { CATEGORIES } from '@/lib/data'
+import MapPicker from '@/components/map/MapPicker'
 import type { Artisan, PortfolioItem } from '@/types'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -45,6 +46,13 @@ export default function MyProfilePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const portfolioInputRef = useRef<HTMLInputElement>(null)
 
+  const [locationAddress, setLocationAddress] = useState('')
+  const [locationLat, setLocationLat] = useState<number | null>(null)
+  const [locationLng, setLocationLng] = useState<number | null>(null)
+  const [savingLocation, setSavingLocation] = useState(false)
+  const [locationSaved, setLocationSaved] = useState(false)
+  const [locationError, setLocationError] = useState('')
+
   useEffect(() => {
     fetchMyArtisanProfile().then((p) => {
       setArtisan(p)
@@ -55,6 +63,9 @@ export default function MyProfilePage() {
         hourlyRate: String(p.hourlyRate || ''),
       })
       setAvailable(p.available)
+      setLocationAddress(p.address || '')
+      setLocationLat(p.latitude ?? null)
+      setLocationLng(p.longitude ?? null)
     }).catch(() => setArtisan(null))
   }, [])
 
@@ -165,6 +176,36 @@ export default function MyProfilePage() {
 
   const coverPreview = pendingCover || artisan?.cover || ''
 
+  const handleLocationSelect = (lat: number, lng: number, address?: string) => {
+    setLocationLat(lat)
+    setLocationLng(lng)
+    if (address) setLocationAddress(address)
+    setLocationSaved(false)
+  }
+
+  const handleSaveLocation = async () => {
+    if (locationLat === null || locationLng === null) {
+      setLocationError('Please choose a location on the map first.')
+      return
+    }
+    setSavingLocation(true)
+    setLocationError('')
+    setLocationSaved(false)
+    try {
+      await updateProfile({
+        address: locationAddress || undefined,
+        latitude: locationLat,
+        longitude: locationLng,
+      })
+      setLocationSaved(true)
+      fetchMyArtisanProfile().then(setArtisan).catch(() => undefined)
+    } catch (err: unknown) {
+      setLocationError(getApiErrorMessage(err, 'Failed to save location. Please try again.'))
+    } finally {
+      setSavingLocation(false)
+    }
+  }
+
   return (
     <>
       <div className="mb-7">
@@ -261,6 +302,44 @@ export default function MyProfilePage() {
         )}
         {coverStatus === 'error' && coverError && (
           <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{coverError}</div>
+        )}
+      </div>
+
+      {/* Location */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+          <h2 className="font-semibold text-gray-900">Location</h2>
+          <p className="text-xs text-gray-500">Shown on your public profile</p>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Set the address where you work so customers can find you. Search for a place or click the map to drop a pin.
+        </p>
+        <MapPicker
+          lat={locationLat}
+          lng={locationLng}
+          address={locationAddress}
+          onSelect={handleLocationSelect}
+          onAddressChange={setLocationAddress}
+        />
+        <div className="mt-4 flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={handleSaveLocation}
+            disabled={savingLocation}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-60"
+          >
+            {savingLocation ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
+            {savingLocation ? 'Saving…' : 'Save Location'}
+          </button>
+          {locationLat !== null && locationLng !== null && (
+            <p className="text-xs text-gray-500">{locationLat.toFixed(5)}, {locationLng.toFixed(5)}</p>
+          )}
+        </div>
+        {locationSaved && (
+          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">Location saved.</div>
+        )}
+        {locationError && (
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{locationError}</div>
         )}
       </div>
 

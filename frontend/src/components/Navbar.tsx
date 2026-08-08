@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
-import { Search, Menu, X, LogOut } from 'lucide-react'
+import { Search, Menu, X, LogOut, Bell } from 'lucide-react'
 import Brand from '@/components/Brand'
-import { logout } from '@/lib/api'
+import { logout, fetchUnreadCount } from '@/lib/api'
 import { getStoredUser, isAuthenticated } from '@/lib/utils'
 import type { AuthUser } from '@/types'
 
@@ -16,12 +16,33 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [unread, setUnread] = useState(0)
 
   useEffect(() => {
     if (isAuthenticated()) {
       setUser(getStoredUser<AuthUser>())
     } else {
       setUser(null)
+      setUnread(0)
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    if (!isAuthenticated()) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const count = await fetchUnreadCount()
+        if (!cancelled) setUnread(count)
+      } catch {
+        if (!cancelled) setUnread(0)
+      }
+    }
+    load()
+    const interval = setInterval(load, 30000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
     }
   }, [pathname])
 
@@ -70,6 +91,14 @@ export default function Navbar() {
           </form>
           {user ? (
             <>
+              <Link href="/notifications" aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`} className="relative p-2 text-gray-500 hover:text-[#047857] transition-colors">
+                <Bell size={18} aria-hidden="true" />
+                {unread > 0 && (
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </Link>
               <Link href={dashboardHref} className="text-sm font-medium text-gray-700 hover:text-[#047857] px-3 py-1.5 transition-colors">
                 Dashboard
               </Link>
@@ -161,6 +190,15 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
+              <Link href="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm font-medium text-gray-700 py-2">
+                <Bell size={15} aria-hidden="true" />
+                Notifications
+                {unread > 0 && (
+                  <span className="min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </Link>
               <div className="flex gap-2 pt-2">
               <Link
                 href={dashboardHref}
