@@ -62,9 +62,9 @@ export default function SavedArtisansPage() {
           </div>
         ) : artisans.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <Heart size={40} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">No saved artisans yet</p>
-            <p className="text-sm text-gray-400 mt-1">Tap the save button on any artisan profile to keep them here.</p>
+            <Heart size={40} className="text-gray-300 mx-auto mb-3" aria-hidden="true" />
+            <p className="text-gray-600 font-medium">No saved artisans yet</p>
+            <p className="text-sm text-gray-500 mt-1">Tap the save button on any artisan profile to keep them here.</p>
             <Link
               href="/search"
               className="mt-4 inline-block px-5 py-2 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity"
@@ -94,16 +94,16 @@ export default function SavedArtisansPage() {
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#047857]">
                           {a.profession}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <MapPin size={11} />{a.city}
+                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <MapPin size={11} aria-hidden="true" />{a.city}
                         </span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-gray-900">
-                        {formatNGN(a.hourlyRate)}<span className="text-xs font-normal text-gray-400">/hr</span>
+                        {formatNGN(a.hourlyRate)}<span className="text-xs font-normal text-gray-500">/hr</span>
                       </p>
-                      <div className={`text-xs mt-1 font-medium ${a.available ? 'text-emerald-600' : 'text-gray-400'}`}>
+                      <div className={`text-xs mt-1 font-medium ${a.available ? 'text-emerald-600' : 'text-gray-500'}`}>
                         {a.available ? '● Available now' : '○ Busy'}
                       </div>
                     </div>
@@ -115,7 +115,7 @@ export default function SavedArtisansPage() {
                         onClick={() => handleUnsave(a.id)}
                         className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-red-200 text-red-500 rounded-lg hover:bg-red-50 transition-colors"
                       >
-                        <Heart size={14} className="fill-current" /> Unsave
+                        <Heart size={14} aria-hidden="true" className="fill-current" /> Unsave
                       </button>
                       <Link
                         href={`/artisans/${a.id}`}

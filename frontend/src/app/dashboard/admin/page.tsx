@@ -203,11 +203,11 @@ export default function AdminDashboardPage() {
             />
             <div>
               <p className="font-semibold text-gray-900 text-sm">{user?.name?.split(' ')[0] || 'Admin'}</p>
-              <p className="text-xs text-gray-400">Administrator</p>
+              <p className="text-xs text-gray-500">Administrator</p>
             </div>
           </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1" aria-label="Admin console navigation">
           {TABS.map((t) => {
             const Icon = t.icon
             const isActive = t.id === tab
@@ -215,9 +215,10 @@ export default function AdminDashboardPage() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
+                aria-pressed={isActive}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                <Icon size={16} />
+                <Icon size={16} aria-hidden="true" />
                 {t.label}
                 {t.id === 'artisans' && stats && stats.pendingArtisans > 0 && (
                   <span className="ml-auto w-5 h-5 rounded-full bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center">{stats.pendingArtisans}</span>
@@ -244,7 +245,7 @@ export default function AdminDashboardPage() {
             <LogOut size={16} /> Log Out
           </button>
         </div>
-        <nav className="flex gap-1 px-2 pb-2 overflow-x-auto">
+        <nav className="flex gap-1 px-2 pb-2 overflow-x-auto" aria-label="Admin console navigation">
           {TABS.map((t) => {
             const Icon = t.icon
             const isActive = t.id === tab
@@ -252,9 +253,10 @@ export default function AdminDashboardPage() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
+                aria-pressed={isActive}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                <Icon size={13} />
+                <Icon size={13} aria-hidden="true" />
                 {t.label}
                 {t.id === 'artisans' && stats && stats.pendingArtisans > 0 && (
                   <span className="ml-0.5 w-4 h-4 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">{stats.pendingArtisans}</span>
@@ -269,14 +271,14 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Main */}
-      <main className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
+      <div className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
         <div className="max-w-5xl">
           <div className="flex items-center justify-between mb-7">
             <div>
               <h1 className="font-display text-2xl font-bold text-gray-900">Admin Console</h1>
               <p className="text-gray-500 text-sm mt-0.5">{TABS.find((t) => t.id === tab)?.label}</p>
             </div>
-            {notice && <span className="text-sm font-medium text-[#047857] bg-emerald-50 px-3 py-1.5 rounded-lg">{notice}</span>}
+            {notice && <span role="status" className="text-sm font-medium text-[#047857] bg-emerald-50 px-3 py-1.5 rounded-lg">{notice}</span>}
           </div>
 
           {tab === 'overview' && stats && (
@@ -300,7 +302,7 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                     <p className="font-display text-2xl font-bold text-gray-900">{s.value}</p>
-                    <p className="text-xs text-gray-400 mt-1">{s.sub}</p>
+                    <p className="text-xs text-gray-500 mt-1">{s.sub}</p>
                   </div>
                 )
               })}
@@ -314,6 +316,7 @@ export default function AdminDashboardPage() {
                   <button
                     key={f}
                     onClick={() => setArtisanFilter(f)}
+                    aria-pressed={artisanFilter === f}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${artisanFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
                   >
                     {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
@@ -321,7 +324,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {artisans.length === 0 && <p className="p-6 text-sm text-gray-400">No artisans match this filter.</p>}
+                {artisans.length === 0 && <p className="p-6 text-sm text-gray-500">No artisans match this filter.</p>}
                 {artisans.map((a) => (
                   <div key={a.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
                     <Image
@@ -338,7 +341,7 @@ export default function AdminDashboardPage() {
                         <Pill label={a.verificationStatus} tone={a.verificationStatus === 'VERIFIED' ? 'green' : 'gray'} />
                         <Pill label={a.user.status} tone={a.user.status === 'SUSPENDED' ? 'red' : 'green'} />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         {a.profession} · {a.user.city || 'No city'} · {formatNGN(a.hourlyRate ?? 0)}/hr · ⭐ {(a.avgRating ?? 0).toFixed(1)} ({a.totalReviews}) · joined {fmtDate(a.createdAt)}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">{a.user.email}</p>
@@ -375,6 +378,7 @@ export default function AdminDashboardPage() {
                 <input
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
+                  aria-label="Search users by name or email"
                   placeholder="Search by name or email…"
                   className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#047857]"
                 />
@@ -383,6 +387,7 @@ export default function AdminDashboardPage() {
                     <button
                       key={f}
                       onClick={() => setUserFilter(f)}
+                      aria-pressed={userFilter === f}
                       className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${userFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
                     >
                       {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
@@ -391,7 +396,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {users.length === 0 && <p className="p-6 text-sm text-gray-400">No users found.</p>}
+                {users.length === 0 && <p className="p-6 text-sm text-gray-500">No users found.</p>}
                 {users.map((u) => (
                   <div key={u.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
                     <Image
@@ -407,7 +412,7 @@ export default function AdminDashboardPage() {
                         <Pill label={u.role} tone={u.role === 'ADMIN' ? 'blue' : u.role === 'ARTISAN' ? 'green' : 'gray'} />
                         <Pill label={u.status} tone={u.status === 'SUSPENDED' ? 'red' : 'green'} />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">{u.email} · {u.city || 'No city'} · joined {fmtDate(u.createdAt)}</p>
+                      <p className="text-xs text-gray-500 mt-1">{u.email} · {u.city || 'No city'} · joined {fmtDate(u.createdAt)}</p>
                     </div>
                     {u.role !== 'ADMIN' && (
                       <button
@@ -431,6 +436,7 @@ export default function AdminDashboardPage() {
                   <button
                     key={f}
                     onClick={() => setReviewFilter(f)}
+                    aria-pressed={reviewFilter === f}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${reviewFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
                   >
                     {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
@@ -438,7 +444,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {reviews.length === 0 && <p className="p-6 text-sm text-gray-400">No reviews found.</p>}
+                {reviews.length === 0 && <p className="p-6 text-sm text-gray-500">No reviews found.</p>}
                 {reviews.map((r) => (
                   <div key={r.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
                     <div className="flex-1 min-w-0">
@@ -447,7 +453,7 @@ export default function AdminDashboardPage() {
                         <span className="text-xs text-amber-500 font-semibold">{"⭐".repeat(r.rating)}</span>
                         <Pill label={r.status} tone={r.status === 'APPROVED' ? 'green' : 'gray'} />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">on {r.artisan.profession} — {r.artisan.user.name} · {fmtDate(r.createdAt)}</p>
+                      <p className="text-xs text-gray-500 mt-1">on {r.artisan.profession} — {r.artisan.user.name} · {fmtDate(r.createdAt)}</p>
                       <p className="text-sm text-gray-600 mt-1.5">{r.comment}</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -474,6 +480,7 @@ export default function AdminDashboardPage() {
                   <button
                     key={f}
                     onClick={() => setBookingFilter(f)}
+                    aria-pressed={bookingFilter === f}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${bookingFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
                   >
                     {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
@@ -481,7 +488,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {bookings.length === 0 && <p className="p-6 text-sm text-gray-400">No bookings found.</p>}
+                {bookings.length === 0 && <p className="p-6 text-sm text-gray-500">No bookings found.</p>}
                 {bookings.map((b) => (
                   <div key={b.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
                     <div className="flex-1 min-w-0">
@@ -490,7 +497,7 @@ export default function AdminDashboardPage() {
                         <StatusBadge status={(b.status.charAt(0) + b.status.slice(1).toLowerCase()) as 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'} />
                         <Pill label={b.payment ? `PAID · ${b.payment.status}` : 'UNPAID'} tone={b.payment ? 'green' : 'amber'} />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         {b.artisan.profession} · {fmtDate(b.date)} at {b.time} · {formatNGN(b.amount)}
                         {b.description ? ` · “${b.description}”` : ''}
                       </p>
@@ -503,12 +510,12 @@ export default function AdminDashboardPage() {
 
           {tab === 'payments' && (
             <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-              {payments.length === 0 && <p className="p-6 text-sm text-gray-400">No payments recorded yet.</p>}
+              {payments.length === 0 && <p className="p-6 text-sm text-gray-500">No payments recorded yet.</p>}
               {payments.map((p) => (
                 <div key={p.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 text-sm">{formatNGN(p.amount)}</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       {p.status} · {p.method || 'n/a'} · ref {p.reference || '—'} · {fmtDate(p.createdAt)}
                       {p.booking ? ` · for booking ${p.booking.id.slice(-6).toUpperCase()}` : ''}
                     </p>
@@ -521,7 +528,7 @@ export default function AdminDashboardPage() {
 
           {tab === 'disputes' && (
             <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-              {disputes.length === 0 && <p className="p-6 text-sm text-gray-400">No disputes found.</p>}
+              {disputes.length === 0 && <p className="p-6 text-sm text-gray-500">No disputes found.</p>}
               {disputes.map((d) => (
                 <div key={d.id} className="p-5">
                   <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -530,7 +537,7 @@ export default function AdminDashboardPage() {
                         <p className="font-medium text-gray-900 text-sm">{d.user.name} vs {d.booking.artisan.user.name}</p>
                         <Pill label={d.status} tone={d.status === 'OPEN' ? 'red' : d.status === 'RESOLVED' ? 'green' : 'gray'} />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         {d.booking.artisan.profession} · booking {d.booking.id.slice(-6).toUpperCase()} · {fmtDate(d.booking.date)} · {formatNGN(d.booking.amount)} · filed {fmtDate(d.createdAt)}
                       </p>
                       <p className="text-sm text-gray-600 mt-1.5">“{d.reason}”</p>
@@ -569,7 +576,7 @@ export default function AdminDashboardPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
     </AuthGuard>
   )

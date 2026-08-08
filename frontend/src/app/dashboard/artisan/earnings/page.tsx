@@ -56,11 +56,11 @@ export default function EarningsPage() {
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm text-gray-500">{s.label}</p>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}20` }}>
-                  <Icon size={16} style={{ color: s.color }} />
+                  <Icon size={16} style={{ color: s.color }} aria-hidden="true" />
                 </div>
               </div>
               <p className="font-display text-2xl font-bold text-gray-900">{s.value}</p>
-              <p className="text-xs text-gray-400 mt-1">{s.sub}</p>
+              <p className="text-xs text-gray-500 mt-1">{s.sub}</p>
             </div>
           )
         })}
@@ -83,13 +83,13 @@ export default function EarningsPage() {
               />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm">{b.customer || 'Customer'}</p>
-                <p className="text-xs text-gray-400">{b.date} · {b.time}</p>
+                <p className="text-xs text-gray-500">{b.date} · {b.time}</p>
               </div>
               <p className="font-semibold text-[#047857] text-sm shrink-0">{formatNGN(b.amount)}</p>
             </div>
           ))}
           {completed.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-8">No completed jobs yet. Earnings appear here once jobs are completed.</p>
+            <p className="text-center text-gray-500 text-sm py-8">No completed jobs yet. Earnings appear here once jobs are completed.</p>
           )}
         </div>
       </div>
@@ -103,17 +103,17 @@ export default function EarningsPage() {
           {monthTotals.map(([month, { count, total }]) => (
             <div key={month} className="flex items-center gap-4 px-5 py-4">
               <div className="w-9 h-9 rounded-lg bg-[#047857]/10 flex items-center justify-center shrink-0">
-                <Calendar size={16} className="text-[#047857]" />
+                <Calendar size={16} className="text-[#047857]" aria-hidden="true" />
               </div>
               <div className="flex-1">
                 <p className="font-medium text-gray-900 text-sm">{month}</p>
-                <p className="text-xs text-gray-400">{count} job{count === 1 ? '' : 's'} completed</p>
+                <p className="text-xs text-gray-500">{count} job{count === 1 ? '' : 's'} completed</p>
               </div>
               <p className="font-semibold text-gray-900 text-sm">{formatNGN(total)}</p>
             </div>
           ))}
           {monthTotals.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-8">No earnings data yet.</p>
+            <p className="text-center text-gray-500 text-sm py-8">No earnings data yet.</p>
           )}
         </div>
       </div>

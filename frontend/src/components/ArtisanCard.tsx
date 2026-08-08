@@ -36,19 +36,21 @@ export default function ArtisanCard({ artisan }: Props) {
             </div>
             <p className="text-sm text-gray-500">{artisan.profession}</p>
             <div className="flex items-center gap-1 mt-1">
-              <MapPin size={12} className="text-gray-400" />
-              <span className="text-xs text-gray-400">{artisan.city}</span>
+              <MapPin size={12} className="text-gray-400" aria-hidden="true" />
+              <span className="text-xs text-gray-500">{artisan.city}</span>
             </div>
           </div>
           <div
             className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${artisan.available ? 'bg-emerald-500' : 'bg-gray-300'}`}
             title={artisan.available ? 'Available' : 'Busy'}
+            aria-hidden="true"
           />
+          <span className="sr-only">{artisan.available ? 'Available now' : 'Currently busy'}</span>
         </div>
         <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-4">{artisan.bio}</p>
         <div className="flex items-center justify-between">
           <StarRating value={artisan.rating} count={artisan.reviews} />
-          <span className="text-xs text-gray-400 font-medium">{formatNGN(artisan.hourlyRate)}/hr</span>
+          <span className="text-xs text-gray-500 font-medium">{formatNGN(artisan.hourlyRate)}/hr</span>
         </div>
       </div>
       <div className="px-5 pb-5 pt-0 flex gap-2">
@@ -60,7 +62,7 @@ export default function ArtisanCard({ artisan }: Props) {
         </Link>
         {artisan.isDemo ? (
           <span
-            className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-gray-100 text-gray-400 text-center cursor-not-allowed"
+            className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-gray-100 text-gray-500 text-center cursor-not-allowed"
             title="Demo profile — not bookable"
           >
             Demo profile

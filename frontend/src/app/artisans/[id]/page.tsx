@@ -132,7 +132,7 @@ export default function ArtisanProfilePage() {
       {/* Cover */}
       <div className="h-52 md:h-64 relative overflow-hidden bg-[#022c22]">
         {artisan.cover && (
-          <Image src={artisan.cover} alt="cover" fill className="object-cover opacity-50" />
+          <Image src={artisan.cover} alt="" fill className="object-cover opacity-50" />
         )}
       </div>
 
@@ -164,7 +164,7 @@ export default function ArtisanProfilePage() {
             <div className="flex items-center gap-4 mt-2 flex-wrap">
               <span className="flex items-center gap-1 text-sm text-gray-500"><MapPin size={14} />{artisan.city}</span>
               <StarRating value={artisan.rating} count={artisan.reviews} />
-              <span className={`text-sm font-medium ${artisan.available ? 'text-emerald-600' : 'text-gray-400'}`}>
+              <span className={`text-sm font-medium ${artisan.available ? 'text-emerald-700' : 'text-gray-600'}`}>
                 {artisan.available ? '● Available Now' : '○ Currently Busy'}
               </span>
             </div>
@@ -205,7 +205,7 @@ export default function ArtisanProfilePage() {
               <div className="p-6">
                 {activeTab === 'about' && (
                   <div>
-                    <h3 className="font-display text-xl font-bold text-gray-900 mb-3">About {artisan.name}</h3>
+                    <h2 className="font-display text-xl font-bold text-gray-900 mb-3">About {artisan.name}</h2>
                     <p className="text-gray-600 leading-relaxed">{artisan.bio}</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
                       {[
@@ -217,7 +217,7 @@ export default function ArtisanProfilePage() {
                         { label: 'Location', value: artisan.city || 'Nigeria' },
                       ].map((s) => (
                         <div key={s.label} className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{s.label}</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{s.label}</p>
                           <p className="font-semibold text-gray-900 text-sm">{s.value}</p>
                         </div>
                       ))}
@@ -227,14 +227,14 @@ export default function ArtisanProfilePage() {
 
                 {activeTab === 'services' && (
                   <div>
-                    <h3 className="font-display text-xl font-bold text-gray-900 mb-4">Services & Pricing</h3>
+                    <h2 className="font-display text-xl font-bold text-gray-900 mb-4">Services & Pricing</h2>
                     {artisan.services.length > 0 ? (
                       <div className="space-y-3">
                         {artisan.services.map((s) => (
                           <div key={s.name} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#ECFDF5]">
-                                <Wrench size={15} className="text-[#047857]" />
+                                <Wrench size={15} className="text-[#047857]" aria-hidden="true" />
                               </div>
                               <span className="font-medium text-gray-800">{s.name}</span>
                             </div>
@@ -243,41 +243,42 @@ export default function ArtisanProfilePage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-400 text-sm">No services listed yet.</p>
+                      <p className="text-gray-500 text-sm">No services listed yet.</p>
                     )}
                   </div>
                 )}
 
                 {activeTab === 'portfolio' && (
                   <div>
-                    <h3 className="font-display text-xl font-bold text-gray-900 mb-4">Portfolio</h3>
+                    <h2 className="font-display text-xl font-bold text-gray-900 mb-4">Portfolio</h2>
                     {artisan.portfolio.length > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {artisan.portfolio.map((img, i) => (
-                          <Image key={i} src={img} alt={`portfolio ${i + 1}`} width={400} height={300} className="rounded-xl w-full h-40 object-cover hover:scale-105 transition-transform cursor-pointer" />
+                          <Image key={i} src={img} alt={`${artisan.name} portfolio photo ${i + 1}`} width={400} height={300} className="rounded-xl w-full h-40 object-cover hover:scale-105 transition-transform cursor-pointer" />
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-400 text-sm">No portfolio items yet.</p>
+                      <p className="text-gray-500 text-sm">No portfolio items yet.</p>
                     )}
                   </div>
                 )}
 
                 {activeTab === 'reviews' && (
                   <div>
+                    <h2 className="font-display text-xl font-bold text-gray-900 mb-6">Reviews</h2>
                     <div className="flex items-center gap-4 mb-6">
                       <div className="text-center">
                         <p className="font-display text-5xl font-bold text-gray-900">{artisan.rating}</p>
                         <div className="flex gap-0.5 mt-1 justify-center">
-                          {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={16} className="fill-amber-400 text-amber-400" />)}
+                          {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={16} className="fill-amber-400 text-amber-400" aria-hidden="true" />)}
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">{artisan.reviews} reviews</p>
+                        <p className="text-xs text-gray-500 mt-1">{artisan.reviews} reviews</p>
                       </div>
                       <div className="flex-1 space-y-2">
                         {[5, 4, 3, 2, 1].map((n) => (
                           <div key={n} className="flex items-center gap-2">
                             <span className="text-xs text-gray-500 w-2">{n}</span>
-                            <Star size={10} className="fill-amber-400 text-amber-400 shrink-0" />
+                            <Star size={10} className="fill-amber-400 text-amber-400 shrink-0" aria-hidden="true" />
                             <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                               <div className="h-full rounded-full bg-[#047857]" style={{ width: `${ratingDistribution[5 - n]}%` }} />
                             </div>
@@ -293,17 +294,17 @@ export default function ArtisanProfilePage() {
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <p className="font-semibold text-gray-900 text-sm">{r.name}</p>
-                                <span className="text-xs text-gray-400">{r.date}</span>
+                                <span className="text-xs text-gray-500">{r.date}</span>
                               </div>
                               <div className="flex gap-0.5 my-1">
-                                {Array.from({ length: r.rating }).map((_, i) => <Star key={i} size={12} className="fill-amber-400 text-amber-400" />)}
+                                {Array.from({ length: r.rating }).map((_, i) => <Star key={i} size={12} className="fill-amber-400 text-amber-400" aria-hidden="true" />)}
                               </div>
                               <p className="text-sm text-gray-600">{r.comment}</p>
                             </div>
                           </div>
                         </div>
                       ))}
-                      {artisan.reviews_list.length === 0 && <p className="text-gray-400 text-sm">No reviews yet.</p>}
+                      {artisan.reviews_list.length === 0 && <p className="text-gray-500 text-sm">No reviews yet.</p>}
                     </div>
                   </div>
                 )}
@@ -317,7 +318,7 @@ export default function ArtisanProfilePage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <span className="font-display text-2xl font-bold text-gray-900">{formatNGN(artisan.hourlyRate)}</span>
-                  <span className="text-gray-400 text-sm">/hr</span>
+                  <span className="text-gray-600 text-sm">/hr</span>
                 </div>
                 <StarRating value={artisan.rating} count={artisan.reviews} />
               </div>
@@ -331,20 +332,20 @@ export default function ArtisanProfilePage() {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
                       <input
                         type="date"
                         value={bookingDate}
                         onChange={(e) => setBookingDate(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Time</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
                       <select
                         value={bookingTime}
                         onChange={(e) => setBookingTime(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
                       >
                         <option value="">Select time slot</option>
                         {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((t) => (
@@ -353,13 +354,13 @@ export default function ArtisanProfilePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Job Description</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Job Description</label>
                       <textarea
                         value={jobDesc}
                         onChange={(e) => setJobDesc(e.target.value)}
                         placeholder="Describe the job in detail..."
                         rows={3}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors resize-none"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors resize-none"
                       />
                     </div>
                   </>
@@ -394,8 +395,8 @@ export default function ArtisanProfilePage() {
                   {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
                 </button>
               )}
-              {bookingError && <p className="text-center text-xs text-red-500 mt-2">{bookingError}</p>}
-              <p className="text-center text-xs text-gray-400 mt-2.5">You&apos;ll be redirected to secure Paystack checkout to complete payment</p>
+              {bookingError && <p className="text-center text-xs text-red-600 mt-2" role="alert">{bookingError}</p>}
+              <p className="text-center text-xs text-gray-500 mt-2.5">You&apos;ll be redirected to secure Paystack checkout to complete payment</p>
             </div>
           </div>
         </div>

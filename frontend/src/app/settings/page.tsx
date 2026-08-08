@@ -135,9 +135,10 @@ export default function ProfileSettingsPage() {
                   <button
                     key={t.id}
                     onClick={() => setActiveTab(t.id)}
+                    aria-pressed={activeTab === t.id}
                     className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === t.id ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
-                    <Icon size={15} />{t.label}
+                    <Icon size={15} aria-hidden="true" />{t.label}
                   </button>
                 )
               })}
@@ -160,21 +161,21 @@ export default function ProfileSettingsPage() {
                   <div>
                     <input
                       ref={fileInputRef}
+                      id="photo-upload"
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="hidden"
+                      className="sr-only"
                       onChange={handleFileChange}
                     />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                    <label
+                      htmlFor="photo-upload"
+                      className="inline-block cursor-pointer text-sm font-medium px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                      aria-disabled={uploading}
                     >
                       {uploading ? 'Uploading…' : 'Change Photo'}
-                    </button>
-                    <p className="text-xs text-gray-400 mt-1.5">JPG, PNG, WebP up to 2MB</p>
-                    {uploadError && <p className="text-xs text-red-500 mt-1.5">{uploadError}</p>}
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1.5">JPG, PNG, WebP up to 2MB</p>
+                    {uploadError && <p className="text-xs text-red-600 mt-1.5" role="alert">{uploadError}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -193,7 +194,7 @@ export default function ProfileSettingsPage() {
                       type="email"
                       value={user?.email || ''}
                       disabled
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none bg-gray-50 text-gray-400"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none bg-gray-50 text-gray-600"
                     />
                   </div>
                   <div>
@@ -218,13 +219,13 @@ export default function ProfileSettingsPage() {
                 </div>
 
                 {saved && (
-                  <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
-                    <CheckCircle2 size={16} /> Your changes have been saved.
+                  <div role="status" className="mt-4 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                    <CheckCircle2 size={16} aria-hidden="true" /> Your changes have been saved.
                   </div>
                 )}
                 {error && (
-                  <div className="mt-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                    <AlertCircle size={16} /> {error}
+                  <div role="alert" className="mt-4 flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <AlertCircle size={16} aria-hidden="true" /> {error}
                   </div>
                 )}
 
@@ -261,12 +262,12 @@ export default function ProfileSettingsPage() {
                   ))}
                   {passwordMessage && (
                     passwordMessage === 'updated' ? (
-                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3">
-                        <CheckCircle2 size={16} /> Password updated. You may need to log in again on other devices.
+                      <div role="status" className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3">
+                        <CheckCircle2 size={16} aria-hidden="true" /> Password updated. You may need to log in again on other devices.
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
-                        <AlertCircle size={16} /> {passwordMessage}
+                      <div role="alert" className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                        <AlertCircle size={16} aria-hidden="true" /> {passwordMessage}
                       </div>
                     )
                   )}
@@ -294,7 +295,7 @@ export default function ProfileSettingsPage() {
                         <CreditCard size={20} className="text-gray-400" />
                         <div>
                           <p className="text-sm font-medium text-gray-900">{m.type}</p>
-                          <p className="text-xs text-gray-400">{m.detail}</p>
+                          <p className="text-xs text-gray-500">{m.detail}</p>
                         </div>
                       </div>
                       {m.primary && (
@@ -319,14 +320,18 @@ export default function ProfileSettingsPage() {
                     { label: 'New Messages', sub: 'Receive alerts for new messages from artisans', default: true },
                     { label: 'Promotions & Offers', sub: 'Deals and platform news', default: false },
                     { label: 'SMS Alerts', sub: 'Text messages for critical updates', default: false },
-                  ].map((n) => (
-                    <div key={n.label} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+                  ].map((n, idx) => (
+                    <label
+                      key={n.label}
+                      htmlFor={`notif-${idx}`}
+                      className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0 cursor-pointer"
+                    >
                       <div>
                         <p className="text-sm font-medium text-gray-900">{n.label}</p>
-                        <p className="text-xs text-gray-400">{n.sub}</p>
+                        <p className="text-xs text-gray-500">{n.sub}</p>
                       </div>
-                      <input type="checkbox" defaultChecked={n.default} className="w-4 h-4 accent-emerald-600" />
-                    </div>
+                      <input id={`notif-${idx}`} type="checkbox" defaultChecked={n.default} className="w-5 h-5 accent-emerald-600" />
+                    </label>
                   ))}
                 </div>
               </div>

@@ -78,12 +78,12 @@ export default function MyProfilePage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-display text-xl font-bold text-gray-900">{artisan?.name || 'Loading…'}</p>
-              {artisan?.verified && <BadgeCheck size={18} className="text-[#047857]" />}
+              {artisan?.verified && <BadgeCheck size={18} className="text-[#047857]" aria-hidden="true" />}
             </div>
             <p className="text-sm text-gray-500 mt-0.5">{artisan?.profession}</p>
             <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-gray-500">
-              {artisan?.city && <span className="flex items-center gap-1"><MapPin size={13} />{artisan.city}</span>}
-              <span className="flex items-center gap-1"><Star size={13} className="text-amber-500" />{artisan ? `${artisan.rating.toFixed(1)} (${artisan.reviews} reviews)` : '—'}</span>
+              {artisan?.city && <span className="flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{artisan.city}</span>}
+              <span className="flex items-center gap-1"><Star size={13} className="text-amber-500" aria-hidden="true" />{artisan ? `${artisan.rating.toFixed(1)} (${artisan.reviews} reviews)` : '—'}</span>
               <span className="font-semibold text-gray-900">{artisan ? formatNGN(artisan.hourlyRate) + '/hr' : ''}</span>
             </div>
           </div>
@@ -156,11 +156,15 @@ export default function MyProfilePage() {
 
         <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 mb-5">
           <div>
-            <p className="text-sm font-medium text-gray-700">Available for Work</p>
-            <p className="text-xs text-gray-400">Customers can only book you when this is on</p>
+            <p className="text-sm font-medium text-gray-700" id="availability-switch-label">Available for Work</p>
+            <p className="text-xs text-gray-500">Customers can only book you when this is on</p>
           </div>
           <button
             type="button"
+            role="switch"
+            aria-checked={available}
+            aria-label="Available for work"
+            aria-labelledby="availability-switch-label"
             onClick={() => { setAvailable(!available); setSaved(false) }}
             className={`relative w-11 h-6 rounded-full transition-colors ${available ? 'bg-[#047857]' : 'bg-gray-300'}`}
           >
@@ -169,10 +173,10 @@ export default function MyProfilePage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>
         )}
         {saved && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mb-4">Profile updated successfully.</div>
+          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mb-4">Profile updated successfully.</div>
         )}
 
         <button
@@ -180,7 +184,7 @@ export default function MyProfilePage() {
           disabled={saving}
           className="flex items-center gap-2 px-6 py-3 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-60"
         >
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          {saving ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
       </form>

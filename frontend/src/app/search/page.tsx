@@ -52,27 +52,32 @@ function SearchPage() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50">
+      <h1 className="sr-only">Find Artisans</h1>
       {/* Top search bar */}
       <div className="bg-white border-b border-gray-100 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center gap-4">
           <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-4 py-2.5">
-            <Search size={16} className="text-gray-400 shrink-0" />
+            <Search size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="Search by name, skill or category…"
+              aria-label="Search by name, skill or category"
               className="flex-1 text-sm outline-none bg-transparent text-gray-700"
             />
           </div>
           <button
             onClick={() => setMobileFilter(!mobileFilter)}
+            aria-expanded={mobileFilter}
+            aria-controls="filter-sidebar"
             className="md:hidden flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700"
           >
-            <Filter size={15} /> Filters
+            <Filter size={15} aria-hidden="true" /> Filters
           </button>
           <div className="hidden md:flex items-center gap-2">
-            <label className="text-sm text-gray-500">Sort:</label>
+            <label htmlFor="sort-select" className="text-sm text-gray-500">Sort:</label>
             <select
+              id="sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none"
@@ -86,11 +91,11 @@ function SearchPage() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex gap-6">
         {/* Filter sidebar */}
-        <aside className={`${mobileFilter ? 'block' : 'hidden'} md:block w-64 shrink-0`}>
+        <aside id="filter-sidebar" className={`${mobileFilter ? 'block' : 'hidden'} md:block w-64 shrink-0`}>
           <div className="bg-white rounded-2xl border border-gray-100 p-5 sticky top-20">
             <div className="flex items-center gap-2 mb-5">
-              <SlidersHorizontal size={16} className="text-gray-500" />
-              <h3 className="font-semibold text-gray-900">Filters</h3>
+              <SlidersHorizontal size={16} className="text-gray-500" aria-hidden="true" />
+              <h2 className="font-semibold text-gray-900">Filters</h2>
             </div>
 
             <div className="mb-5">
@@ -100,6 +105,7 @@ function SearchPage() {
                   <button
                     key={c}
                     onClick={() => setCategory(c)}
+                    aria-pressed={category === c}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${category === c ? 'text-white font-medium bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
                     {c}
@@ -115,9 +121,10 @@ function SearchPage() {
                   <button
                     key={r}
                     onClick={() => setMinRating(r)}
+                    aria-pressed={minRating === r}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-1.5 ${minRating === r ? 'text-white font-medium bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
-                    <Star size={12} className="fill-current opacity-80" />
+                    <Star size={12} className="fill-current opacity-80" aria-hidden="true" />
                     {r === 0 ? 'Any rating' : `${r}+`}
                   </button>
                 ))}
@@ -127,11 +134,12 @@ function SearchPage() {
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Location</p>
               <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-                <MapPin size={14} className="text-gray-400 shrink-0" />
+                <MapPin size={14} className="text-gray-400 shrink-0" aria-hidden="true" />
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="City or area"
+                  aria-label="Filter by city or area"
                   className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400"
                 />
               </div>
@@ -144,7 +152,7 @@ function SearchPage() {
                   type="checkbox"
                   checked={availableOnly}
                   onChange={(e) => setAvailableOnly(e.target.checked)}
-                  className="w-4 h-4 rounded accent-emerald-600"
+                  className="w-5 h-5 rounded accent-emerald-600"
                 />
                 <span className="text-sm text-gray-600">Available now only</span>
               </label>
@@ -153,8 +161,8 @@ function SearchPage() {
         </aside>
 
         {/* Results */}
-        <main className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-4" role="status" aria-live="polite">
             <p className="text-sm text-gray-600">
               Showing <span className="font-semibold text-gray-900">{loading ? '…' : artisans.length}</span> artisans
               {category !== 'All' ? ` in ${category}` : city ? ` in ${city}` : ' across Nigeria'}
@@ -176,8 +184,8 @@ function SearchPage() {
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-16">
-              <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" />
+            <div className="text-center py-16" role="alert">
+              <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" aria-hidden="true" />
               <p className="text-gray-500 font-medium">{error}</p>
               <button
                 onClick={() => setReload((r) => r + 1)}
@@ -208,16 +216,16 @@ function SearchPage() {
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#047857]">
                           {a.profession}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <MapPin size={11} />{a.city}
+                        <span className="flex items-center gap-1 text-xs text-gray-600">
+                          <MapPin size={11} aria-hidden="true" />{a.city}
                         </span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-gray-900">
-                        {formatNGN(a.hourlyRate)}<span className="text-xs font-normal text-gray-400">/hr</span>
+                        {formatNGN(a.hourlyRate)}<span className="text-xs font-normal text-gray-600">/hr</span>
                       </p>
-                      <div className={`text-xs mt-1 font-medium ${a.available ? 'text-emerald-600' : 'text-gray-400'}`}>
+                      <div className={`text-xs mt-1 font-medium ${a.available ? 'text-emerald-700' : 'text-gray-600'}`}>
                         {a.available ? '● Available now' : '○ Busy'}
                       </div>
                     </div>
@@ -246,7 +254,7 @@ function SearchPage() {
 
             {artisans.length === 0 && !loading && (
               <div className="text-center py-16">
-                <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" />
+                <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" aria-hidden="true" />
                 <p className="text-gray-500 font-medium">No artisans match your filters</p>
                 <button
                   onClick={() => { setCategory('All'); setMinRating(0); setCity(''); setKeyword('') }}
@@ -258,7 +266,7 @@ function SearchPage() {
             )}
           </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   )

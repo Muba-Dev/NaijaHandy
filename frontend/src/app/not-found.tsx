@@ -15,14 +15,14 @@ export default function NotFound() {
         </div>
         <p className="font-display text-7xl font-bold mb-4 text-[#047857]">404</p>
         <h1 className="font-display text-3xl font-bold text-gray-900 mb-3">Page Not Found</h1>
-        <p className="text-gray-500 mb-8 leading-relaxed">
+        <p className="text-gray-600 mb-8 leading-relaxed">
           Looks like this page took the day off. Even our best artisans need a break sometimes.
         </p>
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold bg-[#047857] hover:opacity-90 transition-opacity"
         >
-          <Home size={18} /> Back to Home Page
+          <Home size={18} aria-hidden="true" /> Back to Home Page
         </Link>
       </div>
     </div>

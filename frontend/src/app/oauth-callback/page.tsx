@@ -56,7 +56,7 @@ function OAuthCallback() {
         {error ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
             <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle size={22} className="text-red-500" />
+              <AlertCircle size={22} className="text-red-600" aria-hidden="true" />
             </div>
             <h1 className="font-display text-xl font-bold text-gray-900 mb-1">Sign-in failed</h1>
             <p className="text-sm text-gray-500 mb-6">{error}</p>
@@ -70,7 +70,7 @@ function OAuthCallback() {
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
             <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
-              <Loader2 size={22} className="text-[#047857] animate-spin" />
+              <Loader2 size={22} className="text-[#047857] animate-spin" aria-hidden="true" />
             </div>
             <h1 className="font-display text-xl font-bold text-gray-900 mb-1">Signing you in…</h1>
             <p className="text-sm text-gray-500">One moment, we&apos;re setting up your dashboard.</p>

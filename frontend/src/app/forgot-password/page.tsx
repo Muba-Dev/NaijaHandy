@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+                  <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
                     {error}
                   </div>
                 )}
@@ -88,7 +88,7 @@ export default function ForgotPasswordPage() {
                   disabled={loading}
                   className="w-full py-3 rounded-xl text-white font-semibold text-sm bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {loading ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
                   {loading ? 'Sending…' : 'Send reset link'}
                 </button>
               </form>

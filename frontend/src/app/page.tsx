@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import {
   Search, Briefcase, MapPin, ArrowRight, Calendar, Shield,
   Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers,
@@ -13,6 +14,7 @@ import ArtisanCard from '@/components/ArtisanCard'
 import type { Artisan } from '@/types'
 
 export default function HomePage() {
+  const router = useRouter()
   const [searchProfession, setSearchProfession] = useState('')
   const [searchCity, setSearchCity] = useState('')
   const [artisans, setArtisans] = useState<Artisan[]>([])
@@ -31,6 +33,11 @@ export default function HomePage() {
     if (searchCity.trim()) params.set('city', searchCity.trim())
     const qs = params.toString()
     return qs ? `/search?${qs}` : '/search'
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    router.push(searchHref())
   }
 
   return (
@@ -62,10 +69,12 @@ export default function HomePage() {
             </p>
 
             {/* Search bar */}
-            <div className="bg-white rounded-2xl p-2 flex flex-col md:flex-row gap-2 shadow-2xl max-w-xl">
+            <form onSubmit={handleSearch} className="bg-white rounded-2xl p-2 flex flex-col md:flex-row gap-2 shadow-2xl max-w-xl">
               <div className="flex items-center gap-2 flex-1 px-3 py-2 border border-gray-100 rounded-xl">
-                <Briefcase size={16} className="text-gray-400 shrink-0" />
+                <Briefcase size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
+                <label htmlFor="home-profession" className="sr-only">Profession</label>
                 <select
+                  id="home-profession"
                   value={searchProfession}
                   onChange={(e) => setSearchProfession(e.target.value)}
                   className="flex-1 text-sm text-gray-700 outline-none bg-transparent"
@@ -77,22 +86,24 @@ export default function HomePage() {
                 </select>
               </div>
               <div className="flex items-center gap-2 flex-1 px-3 py-2 border border-gray-100 rounded-xl">
-                <MapPin size={16} className="text-gray-400 shrink-0" />
+                <MapPin size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
+                <label htmlFor="home-city" className="sr-only">City or area</label>
                 <input
+                  id="home-city"
                   value={searchCity}
                   onChange={(e) => setSearchCity(e.target.value)}
                   placeholder="Enter city or area"
                   className="flex-1 text-sm text-gray-700 outline-none placeholder-gray-400"
                 />
               </div>
-              <Link
-                href={searchHref()}
+              <button
+                type="submit"
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white text-sm bg-[#047857] hover:opacity-90 transition-opacity shrink-0"
               >
-                <Search size={16} />
+                <Search size={16} aria-hidden="true" />
                 Search
-              </Link>
-            </div>
+              </button>
+            </form>
             <p className="text-emerald-200 text-sm mt-3">
               Popular:{' '}
               <Link href="/search?q=plumber" className="underline">Plumber</Link>,{' '}
@@ -158,7 +169,7 @@ export default function HomePage() {
                   <Icon size={22} className="text-[#047857]" />
                 </div>
                 <p className="font-semibold text-gray-900 group-hover:text-[#047857] transition-colors">{cat.name}</p>
-                <p className="text-gray-400 text-sm mt-0.5">
+                <p className="text-gray-600 text-sm mt-0.5">
                   {count.toLocaleString()} {count === 1 ? 'artisan' : 'artisans'}
                 </p>
               </Link>
@@ -185,13 +196,13 @@ export default function HomePage() {
             ))}
           </div>
           {artisans.length === 0 && (
-            <p className="text-center text-gray-400 py-8">No artisans yet. They&apos;ll appear here once the backend is seeded.</p>
+            <p className="text-center text-gray-600 py-8" role="status">No artisans yet. They&apos;ll appear here once the backend is seeded.</p>
           )}
         </div>
       </section>
 
       {/* ── How It Works ─────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 py-20">
+      <section id="how-it-works" className="max-w-7xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
           <h2 className="font-display text-3xl font-bold text-gray-900">How It Works</h2>
           <p className="text-gray-500 mt-2 text-lg">Three simple steps to get the job done</p>

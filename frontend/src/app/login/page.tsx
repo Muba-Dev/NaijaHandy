@@ -120,7 +120,7 @@ function LoginForm() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="w-4 h-4 rounded accent-emerald-600"
+                  className="w-5 h-5 rounded accent-emerald-600"
                 />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
@@ -130,7 +130,7 @@ function LoginForm() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+              <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
                 {error}
               </div>
             )}

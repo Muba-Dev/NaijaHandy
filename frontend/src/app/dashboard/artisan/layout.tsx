@@ -42,11 +42,11 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
             />
             <div>
               <p className="font-semibold text-gray-900 text-sm">{artisan?.name || 'Loading…'}</p>
-              <p className="text-xs text-gray-400">{artisan?.profession || 'Artisan'}</p>
+              <p className="text-xs text-gray-500">{artisan?.profession || 'Artisan'}</p>
             </div>
           </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1" aria-label="Artisan dashboard navigation">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -54,9 +54,10 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
               <Link
                 key={item.id}
                 href={item.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                <Icon size={16} />
+                <Icon size={16} aria-hidden="true" />
                 {item.label}
               </Link>
             )
@@ -77,7 +78,7 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
             <LogOut size={16} /> Log Out
           </button>
         </div>
-        <nav className="flex gap-1 px-2 pb-2 overflow-x-auto">
+        <nav className="flex gap-1 px-2 pb-2 overflow-x-auto" aria-label="Artisan dashboard navigation">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -85,9 +86,10 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
               <Link
                 key={item.id}
                 href={item.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                <Icon size={13} />
+                <Icon size={13} aria-hidden="true" />
                 {item.label}
               </Link>
             )
@@ -96,9 +98,9 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
       </div>
 
       {/* Main */}
-      <main className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
+      <div className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
         <div className="max-w-4xl mx-auto md:mx-0">{children}</div>
-      </main>
+      </div>
     </div>
     </AuthGuard>
   )

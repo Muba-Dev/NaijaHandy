@@ -22,6 +22,31 @@ h1, h2, h3, h4 {
   font-family: var(--font-fraunces), serif;
 }
 
+/* Accessible focus ring for keyboard users (WCAG 2.4.7) */
+:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Anchor targets clear the sticky navbar */
+#main,
+#how-it-works {
+  scroll-margin-top: 5rem;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

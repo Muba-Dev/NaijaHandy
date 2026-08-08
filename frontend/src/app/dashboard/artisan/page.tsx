@@ -47,11 +47,17 @@ export default function ArtisanOverviewPage() {
           <p className="text-gray-500 text-sm mt-0.5">Manage your jobs and schedule</p>
         </div>
         <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-2.5">
-          <span className="text-sm font-medium text-gray-700">Available for Work</span>
-          <button onClick={toggleAvailability}>
+          <span className="text-sm font-medium text-gray-700" id="availability-label">Available for Work</span>
+          <button
+            onClick={toggleAvailability}
+            aria-label={available ? 'Turn availability off' : 'Turn availability on'}
+            aria-pressed={available}
+            aria-labelledby="availability-label"
+            className="p-1 -m-1"
+          >
             {available
-              ? <ToggleRight size={28} className="text-[#047857]" />
-              : <ToggleLeft size={28} className="text-gray-300" />
+              ? <ToggleRight size={28} className="text-[#047857]" aria-hidden="true" />
+              : <ToggleLeft size={28} className="text-gray-500" aria-hidden="true" />
             }
           </button>
         </div>
@@ -77,10 +83,10 @@ export default function ArtisanOverviewPage() {
             <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-gray-500">{s.label}</p>
-                <Icon size={14} className="text-[#047857]" />
+                <Icon size={14} className="text-[#047857]" aria-hidden="true" />
               </div>
               <p className="font-display text-xl font-bold text-gray-900">{s.value}</p>
-              <p className="text-xs text-gray-400">{s.sub}</p>
+              <p className="text-xs text-gray-500">{s.sub}</p>
             </div>
           )
         })}
@@ -91,7 +97,7 @@ export default function ArtisanOverviewPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Job Requests Pending Approval</h2>
           <Link href="/dashboard/artisan/requests" className="flex items-center gap-1 text-sm font-medium text-[#047857]">
-            View all <ChevronRight size={14} />
+            View all <ChevronRight size={14} aria-hidden="true" />
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
@@ -111,26 +117,26 @@ export default function ArtisanOverviewPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <p className="font-medium text-gray-900 text-sm">{r.customer || r.artisan}</p>
-                  <span className="text-xs text-gray-400">{r.date} · {r.time}</span>
+                  <span className="text-xs text-gray-500">{r.date} · {r.time}</span>
                 </div>
                 <p className="text-sm text-gray-600 mt-0.5">{r.description || r.profession}</p>
                 <div className="flex items-center gap-3 mt-1 flex-wrap">
-                  <span className="flex items-center gap-1 text-xs text-gray-400"><MapPin size={11} />Job Request</span>
+                  <span className="flex items-center gap-1 text-xs text-gray-500"><MapPin size={11} aria-hidden="true" />Job Request</span>
                   <span className="text-xs font-semibold text-[#047857]">{formatNGN(r.amount)}</span>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
-                <button onClick={() => respond(r.id, 'CANCELLED')} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+                <button onClick={() => respond(r.id, 'CANCELLED')} className="px-4 py-2 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
                   Decline
                 </button>
-                <button onClick={() => respond(r.id, 'CONFIRMED')} className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity">
+                <button onClick={() => respond(r.id, 'CONFIRMED')} className="px-4 py-2 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity">
                   Accept
                 </button>
               </div>
             </div>
           ))}
           {!loading && pendingRequests.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-8">No pending job requests.</p>
+            <p className="text-center text-gray-500 text-sm py-8">No pending job requests.</p>
           )}
         </div>
       </div>
@@ -140,7 +146,7 @@ export default function ArtisanOverviewPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Upcoming Confirmed Jobs</h2>
           <Link href="/dashboard/artisan/schedule" className="flex items-center gap-1 text-sm font-medium text-[#047857]">
-            My schedule <ChevronRight size={14} />
+            My schedule <ChevronRight size={14} aria-hidden="true" />
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
@@ -157,17 +163,17 @@ export default function ArtisanOverviewPage() {
           ) : upcoming.map((b) => (
             <div key={b.id} className="flex items-center gap-4 px-5 py-4">
               <div className="w-9 h-9 rounded-lg bg-[#047857]/10 flex items-center justify-center shrink-0">
-                <Calendar size={16} className="text-[#047857]" />
+                <Calendar size={16} className="text-[#047857]" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm">{b.customer || 'Customer'}</p>
-                <p className="text-xs text-gray-400">{b.date} at {b.time}</p>
+                <p className="text-xs text-gray-500">{b.date} at {b.time}</p>
               </div>
               <p className="font-semibold text-gray-900 text-sm shrink-0">{formatNGN(b.amount)}</p>
             </div>
           ))}
           {!loading && upcoming.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-8">No confirmed jobs yet. Check your job requests.</p>
+            <p className="text-center text-gray-500 text-sm py-8">No confirmed jobs yet. Check your job requests.</p>
           )}
         </div>
       </div>
@@ -185,7 +191,7 @@ export default function ArtisanOverviewPage() {
                 <div className="w-10 h-10 rounded-xl bg-[#047857]/10 flex items-center justify-center">
                   <Icon size={18} className="text-[#047857]" />
                 </div>
-                <ChevronRight size={16} className="text-gray-300 group-hover:text-[#047857] transition-colors" />
+                <ChevronRight size={16} className="text-gray-300 group-hover:text-[#047857] transition-colors" aria-hidden="true" />
               </div>
               <p className="font-semibold text-gray-900 mt-4">{c.title}</p>
               <p className="text-sm text-gray-500 mt-0.5">{c.desc}</p>

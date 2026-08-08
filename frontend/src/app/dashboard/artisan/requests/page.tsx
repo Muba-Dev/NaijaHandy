@@ -50,6 +50,7 @@ export default function JobRequestsPage() {
           <button
             key={t}
             onClick={() => setActiveTab(t)}
+            aria-pressed={activeTab === t}
             className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === t ? 'text-white bg-[#047857]' : 'bg-white text-gray-600 border border-gray-100 hover:border-gray-200'}`}
           >
             {t} <span className="opacity-70">({counts[t]})</span>
@@ -118,10 +119,10 @@ export default function JobRequestsPage() {
           ))}
 
           {filtered.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-              <Briefcase size={40} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No {activeTab === 'All' ? '' : activeTab.toLowerCase() + ' '}job requests here yet</p>
-              <p className="text-sm text-gray-400 mt-1">New booking requests will appear here.</p>
+            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100" role="status">
+              <Briefcase size={40} className="text-gray-300 mx-auto mb-3" aria-hidden="true" />
+              <p className="text-gray-600 font-medium">No {activeTab === 'All' ? '' : activeTab.toLowerCase() + ' '}job requests here yet</p>
+              <p className="text-sm text-gray-500 mt-1">New booking requests will appear here.</p>
             </div>
           )}
         </div>

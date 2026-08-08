@@ -47,9 +47,9 @@ export default function AuthGuard({
 
   if (!verified) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50" role="status" aria-live="polite">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[#047857] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-[#047857] border-t-transparent rounded-full animate-spin mx-auto mb-3" aria-hidden="true" />
           <p className="text-sm text-gray-500">Checking your session…</p>
         </div>
       </div>

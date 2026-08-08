@@ -155,15 +155,18 @@ export default function BookingHistoryPage() {
         </div>
 
         {paymentMsg && (
-          <div className={`mb-6 flex items-center gap-2 text-sm font-medium rounded-xl px-4 py-3 ${paymentMsg.type === 'success' ? 'text-emerald-800 bg-emerald-50 border border-emerald-100' : 'text-red-800 bg-red-50 border border-red-100'}`}>
-            {paymentMsg.type === 'success' ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertCircle size={16} className="shrink-0" />}
+          <div
+            role="status"
+            className={`mb-6 flex items-center gap-2 text-sm font-medium rounded-xl px-4 py-3 ${paymentMsg.type === 'success' ? 'text-emerald-800 bg-emerald-50 border border-emerald-100' : 'text-red-800 bg-red-50 border border-red-100'}`}
+          >
+            {paymentMsg.type === 'success' ? <CheckCircle2 size={16} className="shrink-0" aria-hidden="true" /> : <AlertCircle size={16} className="shrink-0" aria-hidden="true" />}
             {paymentMsg.text}
           </div>
         )}
 
         {loadError && (
-          <div className="mb-6 flex items-center justify-between gap-2 text-sm font-medium text-red-800 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-            <span className="flex items-center gap-2"><AlertCircle size={16} className="shrink-0" />{loadError}</span>
+          <div role="alert" className="mb-6 flex items-center justify-between gap-2 text-sm font-medium text-red-800 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            <span className="flex items-center gap-2"><AlertCircle size={16} className="shrink-0" aria-hidden="true" />{loadError}</span>
             <button onClick={loadBookings} className="shrink-0 px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold hover:bg-red-200 transition-colors">
               Retry
             </button>
@@ -171,11 +174,12 @@ export default function BookingHistoryPage() {
         )}
 
         {/* Filter tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1" role="group" aria-label="Filter bookings">
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
+              aria-pressed={activeTab === t}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === t ? 'text-white bg-[#047857]' : 'bg-white text-gray-600 border border-gray-100 hover:border-gray-200'}`}
             >
               {t}
@@ -297,11 +301,11 @@ export default function BookingHistoryPage() {
       {/* Cancel confirmation modal */}
       {cancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setCancelConfirm(null)}>
-          <div role="dialog" aria-modal="true" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-4">
-              <h2 className="font-display text-lg font-bold text-gray-900">Cancel this booking?</h2>
-              <button onClick={() => setCancelConfirm(null)} className="text-gray-400 hover:text-gray-600">
-                <X size={18} />
+              <h2 id="cancel-dialog-title" className="font-display text-lg font-bold text-gray-900">Cancel this booking?</h2>
+              <button onClick={() => setCancelConfirm(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
@@ -330,26 +334,28 @@ export default function BookingHistoryPage() {
       {/* Dispute modal */}
       {disputeFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setDisputeFor(null)}>
-          <div role="dialog" aria-modal="true" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-labelledby="dispute-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-4">
-              <h2 className="font-display text-lg font-bold text-gray-900">Raise a dispute</h2>
-              <button onClick={() => setDisputeFor(null)} className="text-gray-400 hover:text-gray-600">
-                <X size={18} />
+              <h2 id="dispute-dialog-title" className="font-display text-lg font-bold text-gray-900">Raise a dispute</h2>
+              <button onClick={() => setDisputeFor(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
               Tell us what went wrong with your booking with{' '}
               <span className="font-semibold text-gray-900">{disputeFor.artisan}</span>. Our team will review it.
             </p>
+            <label htmlFor="dispute-reason" className="sr-only">Describe the issue</label>
             <textarea
+              id="dispute-reason"
               value={disputeReason}
               onChange={(e) => setDisputeReason(e.target.value)}
               rows={4}
               minLength={10}
               placeholder="Describe the issue (min 10 characters)..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors resize-none mb-4"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors resize-none mb-4"
             />
-            {disputeError && <p className="text-xs text-red-500 mb-3">{disputeError}</p>}
+            {disputeError && <p className="text-xs text-red-600 mb-3" role="alert">{disputeError}</p>}
             <div className="flex gap-3">
               <button
                 onClick={() => setDisputeFor(null)}
@@ -371,11 +377,11 @@ export default function BookingHistoryPage() {
       {/* Review modal */}
       {reviewFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setReviewFor(null)}>
-          <div role="dialog" aria-modal="true" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-4">
-              <h2 className="font-display text-lg font-bold text-gray-900">Review your booking</h2>
-              <button onClick={() => setReviewFor(null)} className="text-gray-400 hover:text-gray-600">
-                <X size={18} />
+              <h2 id="review-dialog-title" className="font-display text-lg font-bold text-gray-900">Review your booking</h2>
+              <button onClick={() => setReviewFor(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
@@ -383,32 +389,36 @@ export default function BookingHistoryPage() {
               <span className="font-semibold text-gray-900">{reviewFor.artisan}</span>?
             </p>
 
-            <div className="flex items-center gap-1 mb-4">
+            <div className="flex items-center gap-1 mb-4" role="group" aria-label="Rate your experience">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
                   onClick={() => setReviewRating(star)}
-                  className="p-0.5"
+                  className="p-2 -m-1"
                   aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                  aria-pressed={star <= reviewRating}
                 >
                   <Star
                     size={26}
                     className={star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+                    aria-hidden="true"
                   />
                 </button>
               ))}
               <span className="ml-2 text-sm text-gray-500">{reviewRating ? `${reviewRating}/5` : 'Tap to rate'}</span>
             </div>
 
+            <label htmlFor="review-comment" className="sr-only">Share your experience</label>
             <textarea
+              id="review-comment"
               value={reviewComment}
               onChange={(e) => setReviewComment(e.target.value)}
               rows={4}
               placeholder="Share your experience (min 3 characters)..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors resize-none mb-4"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors resize-none mb-4"
             />
-            {reviewError && <p className="text-xs text-red-500 mb-3">{reviewError}</p>}
+            {reviewError && <p className="text-xs text-red-600 mb-3" role="alert">{reviewError}</p>}
             <div className="flex gap-3">
               <button
                 onClick={() => setReviewFor(null)}

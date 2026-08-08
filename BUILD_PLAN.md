@@ -35,7 +35,7 @@
 1. Replace remaining mock data with real API-driven UI flows.
 2. Add loading, empty, validation, and error states across pages.
 3. Add profile settings, saved artisans, booking history, and search refinements.
-4. Improve responsive accessibility, mobile UX, and SEO-ready content.
+4. ✅ Improve responsive accessibility, mobile UX, and SEO-ready content.
 5. Add real media uploads, map/address selection, and notification support.
 
 ## Phase 4: Quality And Release
@@ -98,8 +98,20 @@ The frontend now uses:
 - ✅ Profile settings, saved artisans, booking history, and search refinements (booking history polished: fixed Rebook links, added Cancel + Raise Dispute flows, tab counts, error/retry states).
 - ✅ Search flow wiring (navbar/hero/popular links deep-link `?q=`, debounce + error state), change-password (backend `POST /auth/change-password` + settings Security tab), review submission (backend `POST /bookings/:id/review` + bookings-page form), navbar Bookings/Saved links, and review-rating distribution derived from `reviews_list`.
 - ✅ Verified: backend build clean, 37 unit tests + 52 e2e tests passing (e2e now covers change-password revocation and review rules), frontend typecheck/build/lint clean.
-- Pending: improve responsive accessibility, mobile UX, SEO-ready content.
+- ✅ Improve responsive accessibility, mobile UX, SEO-ready content (see "Accessibility, mobile UX & SEO" below).
 - Pending: real media uploads, map/address selection, notification support.
+
+### Accessibility, mobile UX & SEO (Phase 3 item 4) — DONE
+
+- ✅ SEO: root `layout.tsx` metadata (title template, canonical, OpenGraph/Twitter, `themeColor`, Organization JSON-LD, skip-to-content link); per-route `layout.tsx` metadata for search/bookings/settings/saved/login/register/forgot-password/reset-password/oauth-callback/dashboard; dynamic `generateMetadata` for `/artisans/[id]` (name + profession + bio + OG profile). `sitemap.ts` (static routes + artisan URLs from API) and `robots.ts` (disallow dashboard/settings/bookings/saved/oauth-callback) generated at build; `NEXT_PUBLIC_APP_URL` documented in `.env.local.example`.
+- ✅ Accessibility: focus-visible rings + reduced-motion support in `globals.css`; `aria-label`/`aria-hidden`/`aria-pressed`/`aria-expanded`/`aria-controls`/`role="status"|"alert"|"switch"|"group"` across Navbar, Footer, AuthGuard, Home, search, artisan profile, bookings (dialogs, star rating, tabs), settings (photo upload, switches, notif checkboxes), all auth pages, customer/artisan/admin dashboards, schedule/requests/earnings/profile, saved, not-found; `h3→h2` heading order; form controls labeled (`htmlFor` + sr-only where needed); calendar day buttons get `aria-label`s; nested `<main>` elements replaced.
+- ✅ Mobile UX + contrast: larger tap targets (checkboxes w-5 h-5, buttons px-4 py-2), footer links w-11 h-11, `text-gray-400` bumped to `gray-500/600` on light backgrounds, real social links (inline SVG brand marks; lucide removed Facebook/Instagram/Twitter) with `target=_blank`, newsletter form extracted to client `NewsletterForm.tsx` (server components can't take event handlers).
+- ✅ Verified: `npm run lint` + `npm run build` clean; build emits `sitemap.xml` + `robots.txt`.
+
+### Next action for another developer
+
+1. Phase 3 item 5: real media uploads (avatar/cover/portfolio), map/address selection, and in-app notification support.
+2. Phase 4: E2E coverage for the new dashboard/SEO work and a Lighthouse/axe audit pass.
 
 ### Targeted tests — DONE
 

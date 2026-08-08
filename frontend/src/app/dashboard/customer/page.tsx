@@ -61,7 +61,7 @@ export default function CustomerDashboardPage() {
             />
             <div>
               <p className="font-semibold text-gray-900 text-sm">{user?.name || 'Loading…'}</p>
-              <p className="text-xs text-gray-400">Customer</p>
+              <p className="text-xs text-gray-500">Customer</p>
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function CustomerDashboardPage() {
       </div>
 
       {/* Main */}
-      <main className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
+      <div className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
         <div className="max-w-4xl">
           <div className="flex items-center justify-between mb-7">
             <div>
@@ -157,7 +157,7 @@ export default function CustomerDashboardPage() {
                       </div>
                     </div>
                     <p className="font-display text-2xl font-bold text-gray-900">{s.value}</p>
-                    <p className="text-xs text-gray-400 mt-1">{s.sub}</p>
+                    <p className="text-xs text-gray-500 mt-1">{s.sub}</p>
                   </div>
                 )
               })}
@@ -183,9 +183,9 @@ export default function CustomerDashboardPage() {
                 ))
               ) : active.length === 0 ? (
                 <div className="text-center py-12 px-5">
-                  <Calendar size={36} className="text-gray-200 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium text-sm">No upcoming bookings</p>
-                  <p className="text-xs text-gray-400 mt-1">Book an artisan and your upcoming jobs will appear here.</p>
+                  <Calendar size={36} className="text-gray-200 mx-auto mb-3" aria-hidden="true" />
+                  <p className="text-gray-600 font-medium text-sm">No upcoming bookings</p>
+                  <p className="text-xs text-gray-500 mt-1">Book an artisan and your upcoming jobs will appear here.</p>
                   <Link href="/search" className="mt-4 inline-block px-4 py-2 rounded-xl text-white text-xs font-semibold bg-[#047857] hover:opacity-90 transition-opacity">
                     Find an Artisan
                   </Link>
@@ -195,7 +195,7 @@ export default function CustomerDashboardPage() {
                   <Image src={b.avatar || DEFAULT_AVATAR} alt={b.artisan} width={44} height={44} className="rounded-xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 text-sm">{b.artisan}</p>
-                    <p className="text-xs text-gray-400">{b.profession} · {b.date} at {b.time}</p>
+                    <p className="text-xs text-gray-500">{b.profession} · {b.date} at {b.time}</p>
                   </div>
                   <StatusBadge status={b.status as BookingStatus} />
                   <p className="font-semibold text-gray-900 text-sm shrink-0">{formatNGN(b.amount)}</p>
@@ -204,7 +204,7 @@ export default function CustomerDashboardPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
     </AuthGuard>
   )

@@ -59,11 +59,12 @@ export default function Navbar() {
         {/* Right */}
         <div className="hidden md:flex items-center gap-3">
           <form onSubmit={submitSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 w-52">
-            <Search size={14} className="text-gray-400 shrink-0" />
+            <Search size={14} className="text-gray-400 shrink-0" aria-hidden="true" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search artisans…"
+              aria-label="Search artisans"
               className="bg-transparent text-sm outline-none flex-1 text-gray-700 placeholder-gray-400"
             />
           </form>
@@ -118,20 +119,27 @@ export default function Navbar() {
         </div>
 
         {/* Mobile burger */}
-        <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+        <button
+          className="md:hidden p-2"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-menu"
+        >
+          {mobileOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-3">
+        <div id="mobile-menu" className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-3">
           <form onSubmit={submitSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2.5">
-            <Search size={15} className="text-gray-400 shrink-0" />
+            <Search size={15} className="text-gray-400 shrink-0" aria-hidden="true" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search artisans…"
+              aria-label="Search artisans"
               className="bg-transparent text-sm outline-none flex-1 text-gray-700 placeholder-gray-400"
             />
           </form>

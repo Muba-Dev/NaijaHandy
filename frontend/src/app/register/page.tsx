@@ -62,12 +62,13 @@ export default function RegisterPage() {
         <p className="text-gray-500 mb-6">Join thousands of Nigerians using NaijaHandy.</p>
 
         {/* Role toggle */}
-        <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+        <div className="flex bg-gray-100 rounded-xl p-1 mb-6" role="group" aria-label="Account type">
           {(['CUSTOMER', 'ARTISAN'] as Role[]).map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => setRole(r)}
+              aria-pressed={role === r}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${role === r ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
             >
               {r === 'CUSTOMER' ? '👤 Customer' : '🔧 Artisan'}
@@ -153,7 +154,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+            <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
               {error}
             </div>
           )}
@@ -171,7 +172,7 @@ export default function RegisterPage() {
           Already have an account?{' '}
           <Link href="/login" className="font-semibold text-[#047857] hover:underline">Log in</Link>
         </p>
-        <p className="text-center text-xs text-gray-400 mt-3">
+        <p className="text-center text-xs text-gray-500 mt-3">
           By registering, you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>
