@@ -18,6 +18,18 @@ export class UploadService {
   }
 
   async uploadAvatar(dataUrl: string): Promise<string> {
+    return this.uploadImage(dataUrl, 'naijahandy/avatars', [{ width: 400, height: 400, crop: 'fill' }], 'avatar')
+  }
+
+  async uploadCover(dataUrl: string): Promise<string> {
+    return this.uploadImage(dataUrl, 'naijahandy/covers', [{ width: 1200, height: 400, crop: 'fill' }], 'cover image')
+  }
+
+  async uploadPortfolio(dataUrl: string): Promise<string> {
+    return this.uploadImage(dataUrl, 'naijahandy/portfolio', [{ width: 1200, height: 900, crop: 'fill' }], 'portfolio image')
+  }
+
+  private async uploadImage(dataUrl: string, folder: string, transformation: Record<string, unknown>[], label: string): Promise<string> {
     const { mime, buffer } = this.parseDataUrl(dataUrl)
 
     if (!mime || !ALLOWED_MIMES.includes(mime)) {
@@ -29,18 +41,18 @@ export class UploadService {
 
     const configured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
     if (!configured) {
-      this.logger.warn('Cloudinary is not configured — storing avatar as a data URL (dev fallback)')
+      this.logger.warn(`Cloudinary is not configured — storing ${label} as a data URL (dev fallback)`)
       return dataUrl
     }
 
     try {
       const result = await cloudinary.uploader.upload(dataUrl, {
-        folder: 'naijahandy/avatars',
-        transformation: [{ width: 400, height: 400, crop: 'fill' }],
+        folder,
+        transformation,
       })
       return result.secure_url
     } catch (err: any) {
-      this.logger.error('Cloudinary upload failed', err?.stack)
+      this.logger.error(`Cloudinary upload failed (${label})`, err?.stack)
       throw new ServiceUnavailableException('Image upload failed. Please try again.')
     }
   }

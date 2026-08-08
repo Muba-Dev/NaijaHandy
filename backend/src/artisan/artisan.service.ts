@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { UploadService } from '../upload/upload.service'
 
 export type RequestUser = { id: string; role: string; isDemo: boolean }
 
 @Injectable()
 export class ArtisanService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private uploadService: UploadService) {}
 
   private hideDemo(user?: RequestUser): boolean {
     return !!user && user.role !== 'ADMIN' && !user.isDemo
@@ -95,5 +96,35 @@ export class ArtisanService {
       if (data[key] !== undefined) patch[key] = data[key]
     }
     return this.prisma.artisanProfile.update({ where: { userId }, data: patch })
+  }
+
+  async updateCover(userId: string, dataUrl: string) {
+    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('Artisan profile not found')
+    const coverImage = await this.uploadService.uploadCover(dataUrl)
+    return this.prisma.artisanProfile.update({
+      where: { id: profile.id },
+      data: { coverImage },
+    })
+  }
+
+  async addPortfolio(userId: string, dataUrl: string, caption?: string) {
+    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('Artisan profile not found')
+    const imageUrl = await this.uploadService.uploadPortfolio(dataUrl)
+    return this.prisma.portfolioItem.create({
+      data: { artisanId: profile.id, imageUrl, caption: caption || null },
+    })
+  }
+
+  async removePortfolio(userId: string, portfolioId: string) {
+    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('Artisan profile not found')
+    const item = await this.prisma.portfolioItem.findFirst({
+      where: { id: portfolioId, artisanId: profile.id },
+    })
+    if (!item) throw new NotFoundException('Portfolio item not found')
+    await this.prisma.portfolioItem.delete({ where: { id: item.id } })
+    return { success: true }
   }
 }

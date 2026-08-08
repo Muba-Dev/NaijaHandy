@@ -13,9 +13,15 @@ export interface Artisan {
   category: string
   available: boolean
   isDemo: boolean
-  portfolio: string[]
+  portfolio: PortfolioItem[]
   services: Service[]
   reviews_list: Review[]
+}
+
+export interface PortfolioItem {
+  id: string
+  imageUrl: string
+  caption?: string | null
 }
 
 export interface Service {

@@ -66,7 +66,7 @@ type RawArtisan = {
   totalReviews: number
   user: { id: string; name: string; city: string | null; avatar: string | null }
   services: { name: string; rate: number }[]
-  portfolio?: { imageUrl: string; caption?: string | null }[]
+  portfolio?: { id: string; imageUrl: string; caption?: string | null }[]
   reviews?: {
     rating: number
     comment: string
@@ -91,7 +91,11 @@ function normalizeArtisan(a: RawArtisan): Artisan {
     category: a.category,
     available: a.available,
     isDemo: a.isDemo,
-    portfolio: (a.portfolio || []).map((p) => p.imageUrl),
+    portfolio: (a.portfolio || []).map((p) => ({
+      id: p.id,
+      imageUrl: p.imageUrl,
+      caption: p.caption ?? null,
+    })),
     services: a.services || [],
     reviews_list: (a.reviews || []).map((r) => ({
       name: r.customer.name,
@@ -226,6 +230,21 @@ export async function fetchCategoryCounts(): Promise<Record<string, number>> {
 
 export async function updateArtisanProfile(payload: Record<string, unknown>) {
   const { data } = await api.patch('/artisans/me', payload)
+  return data.data
+}
+
+export async function updateArtisanCover(image: string) {
+  const { data } = await api.post('/artisans/me/cover', { image })
+  return data.data
+}
+
+export async function uploadPortfolioItem(image: string, caption?: string) {
+  const { data } = await api.post('/artisans/me/portfolio', { image, caption })
+  return data.data
+}
+
+export async function deletePortfolioItem(id: string) {
+  const { data } = await api.delete(`/artisans/me/portfolio/${id}`)
   return data.data
 }
 

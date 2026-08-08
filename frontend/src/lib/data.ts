@@ -24,9 +24,9 @@ export const ARTISANS: Artisan[] = [
     available: true,
     isDemo: true,
     portfolio: [
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=400&h=300&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&h=300&fit=crop&auto=format',
+      { id: 'mock-p1', imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&auto=format' },
+      { id: 'mock-p2', imageUrl: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=400&h=300&fit=crop&auto=format' },
+      { id: 'mock-p3', imageUrl: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&h=300&fit=crop&auto=format' },
     ],
     services: [
       { name: 'Pipe Installation', rate: 8500 },

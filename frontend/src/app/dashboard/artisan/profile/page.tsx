@@ -1,20 +1,49 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { BadgeCheck, MapPin, Star, Save, Loader2 } from 'lucide-react'
-import { fetchMyArtisanProfile, updateArtisanProfile } from '@/lib/api'
+import { BadgeCheck, MapPin, Star, Save, Loader2, Camera, ImagePlus, Trash2 } from 'lucide-react'
+import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, uploadPortfolioItem, deletePortfolioItem } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { CATEGORIES } from '@/lib/data'
-import type { Artisan } from '@/types'
+import type { Artisan, PortfolioItem } from '@/types'
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+
+function readImageAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('Could not read the file'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function validateImage(file: File): string {
+  if (!ALLOWED_TYPES.includes(file.type)) return 'Please choose an image file (JPG, PNG, WebP or GIF).'
+  if (file.size > MAX_IMAGE_BYTES) return 'Image is too large. Maximum size is 4MB.'
+  return ''
+}
 
 export default function MyProfilePage() {
   const [artisan, setArtisan] = useState<Artisan | null>(null)
-  const [form, setForm] = useState({ profession: '', category: '', bio: '', hourlyRate: '', coverImage: '' })
+  const [form, setForm] = useState({ profession: '', category: '', bio: '', hourlyRate: '' })
   const [available, setAvailable] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+
+  const [pendingCover, setPendingCover] = useState('')
+  const [coverStatus, setCoverStatus] = useState<'idle' | 'uploading' | 'saved' | 'error'>('idle')
+  const [coverError, setCoverError] = useState('')
+  const coverInputRef = useRef<HTMLInputElement>(null)
+
+  const [portfolioStatus, setPortfolioStatus] = useState<'idle' | 'uploading' | 'saved' | 'error'>('idle')
+  const [portfolioError, setPortfolioError] = useState('')
+  const [portfolioCaption, setPortfolioCaption] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const portfolioInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchMyArtisanProfile().then((p) => {
@@ -24,7 +53,6 @@ export default function MyProfilePage() {
         category: p.category,
         bio: p.bio,
         hourlyRate: String(p.hourlyRate || ''),
-        coverImage: p.cover || '',
       })
       setAvailable(p.available)
     }).catch(() => setArtisan(null))
@@ -46,7 +74,6 @@ export default function MyProfilePage() {
         category: form.category,
         bio: form.bio,
         hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : undefined,
-        coverImage: form.coverImage || undefined,
         available,
       })
       setSaved(true)
@@ -57,6 +84,86 @@ export default function MyProfilePage() {
       setSaving(false)
     }
   }
+
+  const handleCoverFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCoverStatus('idle')
+    setCoverError('')
+    const message = validateImage(file)
+    if (message) {
+      setCoverStatus('error')
+      setCoverError(message)
+      if (coverInputRef.current) coverInputRef.current.value = ''
+      return
+    }
+    try {
+      const dataUrl = await readImageAsDataUrl(file)
+      setPendingCover(dataUrl)
+    } catch {
+      setCoverStatus('error')
+      setCoverError('Could not read the selected image. Please try again.')
+    }
+  }
+
+  const handleUploadCover = async () => {
+    if (!pendingCover) return
+    setCoverStatus('uploading')
+    setCoverError('')
+    try {
+      await updateArtisanCover(pendingCover)
+      setPendingCover('')
+      setCoverStatus('saved')
+      if (coverInputRef.current) coverInputRef.current.value = ''
+      fetchMyArtisanProfile().then(setArtisan).catch(() => undefined)
+    } catch (err: unknown) {
+      setCoverStatus('error')
+      setCoverError(getApiErrorMessage(err, 'Failed to upload cover. Please try again.'))
+    }
+  }
+
+  const handlePortfolioFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPortfolioStatus('idle')
+    setPortfolioError('')
+    const message = validateImage(file)
+    if (message) {
+      setPortfolioStatus('error')
+      setPortfolioError(message)
+      if (portfolioInputRef.current) portfolioInputRef.current.value = ''
+      return
+    }
+    setPortfolioStatus('uploading')
+    try {
+      const dataUrl = await readImageAsDataUrl(file)
+      const item = await uploadPortfolioItem(dataUrl, portfolioCaption.trim() || undefined)
+      setArtisan((a) => (a ? { ...a, portfolio: [item, ...a.portfolio] } : a))
+      setPortfolioCaption('')
+      setPortfolioStatus('saved')
+    } catch (err: unknown) {
+      setPortfolioStatus('error')
+      setPortfolioError(getApiErrorMessage(err, 'Failed to add photo. Please try again.'))
+    } finally {
+      if (portfolioInputRef.current) portfolioInputRef.current.value = ''
+    }
+  }
+
+  const handleDeletePortfolio = async (item: PortfolioItem) => {
+    setDeletingId(item.id)
+    setPortfolioError('')
+    try {
+      await deletePortfolioItem(item.id)
+      setArtisan((a) => (a ? { ...a, portfolio: a.portfolio.filter((p) => p.id !== item.id) } : a))
+    } catch (err: unknown) {
+      setPortfolioStatus('error')
+      setPortfolioError(getApiErrorMessage(err, 'Failed to delete photo. Please try again.'))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const coverPreview = pendingCover || artisan?.cover || ''
 
   return (
     <>
@@ -92,6 +199,69 @@ export default function MyProfilePage() {
             {available ? 'Available for Work' : 'Unavailable'}
           </div>
         </div>
+      </div>
+
+      {/* Cover photo */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+        <h2 className="font-semibold text-gray-900 mb-4">Cover Photo</h2>
+        {coverPreview ? (
+          <Image
+            src={coverPreview}
+            alt="Profile cover preview"
+            width={1200}
+            height={400}
+            className="w-full h-40 sm:h-52 object-cover rounded-xl mb-4"
+          />
+        ) : (
+          <div className="w-full h-40 sm:h-52 rounded-xl bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm mb-4">
+            No cover photo yet
+          </div>
+        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            ref={coverInputRef}
+            id="cover-upload"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={handleCoverFile}
+          />
+          <label
+            htmlFor="cover-upload"
+            aria-disabled={coverStatus === 'uploading'}
+            className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
+          >
+            <Camera size={15} aria-hidden="true" />
+            {pendingCover ? 'Choose a different photo' : 'Choose photo'}
+          </label>
+          {pendingCover && (
+            <button
+              type="button"
+              onClick={handleUploadCover}
+              disabled={coverStatus === 'uploading'}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-60"
+            >
+              {coverStatus === 'uploading' ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
+              {coverStatus === 'uploading' ? 'Uploading…' : 'Upload Cover'}
+            </button>
+          )}
+          {pendingCover && (
+            <button
+              type="button"
+              onClick={() => { setPendingCover(''); setCoverStatus('idle'); setCoverError(''); if (coverInputRef.current) coverInputRef.current.value = '' }}
+              className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">JPG, PNG, WebP or GIF. Maximum 4MB.</p>
+        {coverStatus === 'saved' && (
+          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">Cover photo updated.</div>
+        )}
+        {coverStatus === 'error' && coverError && (
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{coverError}</div>
+        )}
       </div>
 
       {/* Edit form */}
@@ -131,27 +301,16 @@ export default function MyProfilePage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Hourly Rate (₦)</label>
-            <input
-              type="number"
-              min={0}
-              value={form.hourlyRate}
-              onChange={set('hourlyRate')}
-              placeholder="e.g. 8500"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Cover Image URL</label>
-            <input
-              value={form.coverImage}
-              onChange={set('coverImage')}
-              placeholder="https://…"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
-            />
-          </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Hourly Rate (₦)</label>
+          <input
+            type="number"
+            min={0}
+            value={form.hourlyRate}
+            onChange={set('hourlyRate')}
+            placeholder="e.g. 8500"
+            className="w-full max-w-sm border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+          />
         </div>
 
         <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 mb-5">
@@ -188,6 +347,77 @@ export default function MyProfilePage() {
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
       </form>
+
+      {/* Portfolio */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 mt-6">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+          <h2 className="font-semibold text-gray-900">Portfolio</h2>
+          <p className="text-xs text-gray-500">Showcase your best work</p>
+        </div>
+
+        {(artisan?.portfolio?.length || 0) > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+            {artisan!.portfolio.map((item) => (
+              <div key={item.id} className="group relative rounded-xl overflow-hidden bg-gray-100">
+                <Image src={item.imageUrl} alt={item.caption || 'Portfolio photo'} width={400} height={300} className="w-full h-32 md:h-36 object-cover" />
+                {item.caption && (
+                  <p className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-xs px-3 py-1.5">{item.caption}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleDeletePortfolio(item)}
+                  disabled={deletingId === item.id}
+                  aria-label={`Delete portfolio photo${item.caption ? `: ${item.caption}` : ''}`}
+                  className="absolute top-2 right-2 p-2 rounded-lg bg-black/60 text-white hover:bg-red-600 transition-colors disabled:opacity-60"
+                >
+                  {deletingId === item.id ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Trash2 size={14} aria-hidden="true" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-sm mt-2">No portfolio photos yet. Add your first photo below.</p>
+        )}
+
+        <div className="mt-5 border-t border-gray-100 pt-4">
+          <p className="text-sm font-medium text-gray-700 mb-2">Add a photo</p>
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+            <div className="flex-1 w-full">
+              <label htmlFor="portfolio-caption" className="block text-xs font-medium text-gray-500 mb-1">Caption (optional)</label>
+              <input
+                id="portfolio-caption"
+                value={portfolioCaption}
+                onChange={(e) => { setPortfolioCaption(e.target.value); setPortfolioStatus('idle') }}
+                placeholder="e.g. Kitchen repaint in Ikeja"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#047857] transition-colors"
+              />
+            </div>
+            <input
+              ref={portfolioInputRef}
+              id="portfolio-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="sr-only"
+              onChange={handlePortfolioFile}
+            />
+            <label
+              htmlFor="portfolio-upload"
+              aria-disabled={portfolioStatus === 'uploading'}
+              className="inline-flex items-center gap-2 shrink-0 cursor-pointer text-sm font-medium px-4 py-2.5 rounded-xl bg-[#047857] text-white hover:opacity-90 transition-opacity aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
+            >
+              {portfolioStatus === 'uploading' ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <ImagePlus size={15} aria-hidden="true" />}
+              {portfolioStatus === 'uploading' ? 'Uploading…' : 'Upload Photo'}
+            </label>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">JPG, PNG, WebP or GIF. Maximum 4MB.</p>
+          {portfolioStatus === 'saved' && (
+            <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">Photo added to your portfolio.</div>
+          )}
+          {portfolioStatus === 'error' && portfolioError && (
+            <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{portfolioError}</div>
+          )}
+        </div>
+      </div>
     </>
   )
 }

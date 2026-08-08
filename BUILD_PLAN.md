@@ -99,7 +99,8 @@ The frontend now uses:
 - ✅ Search flow wiring (navbar/hero/popular links deep-link `?q=`, debounce + error state), change-password (backend `POST /auth/change-password` + settings Security tab), review submission (backend `POST /bookings/:id/review` + bookings-page form), navbar Bookings/Saved links, and review-rating distribution derived from `reviews_list`.
 - ✅ Verified: backend build clean, 37 unit tests + 52 e2e tests passing (e2e now covers change-password revocation and review rules), frontend typecheck/build/lint clean.
 - ✅ Improve responsive accessibility, mobile UX, SEO-ready content (see "Accessibility, mobile UX & SEO" below).
-- Pending: real media uploads, map/address selection, notification support.
+- ✅ Real media uploads for artisans (see "Media uploads" below).
+- Pending: map/address selection, notification support.
 
 ### Accessibility, mobile UX & SEO (Phase 3 item 4) — DONE
 
@@ -108,9 +109,21 @@ The frontend now uses:
 - ✅ Mobile UX + contrast: larger tap targets (checkboxes w-5 h-5, buttons px-4 py-2), footer links w-11 h-11, `text-gray-400` bumped to `gray-500/600` on light backgrounds, real social links (inline SVG brand marks; lucide removed Facebook/Instagram/Twitter) with `target=_blank`, newsletter form extracted to client `NewsletterForm.tsx` (server components can't take event handlers).
 - ✅ Verified: `npm run lint` + `npm run build` clean; build emits `sitemap.xml` + `robots.txt`.
 
+### Media uploads (Phase 3 item 5) — DONE
+
+- ✅ Backend: `UploadService` generalized behind a private `uploadImage(dataUrl, folder, transformation, label)` — `uploadAvatar` (400×400), `uploadCover` (1200×400 fill → `naijahandy/covers`), `uploadPortfolio` (1200×900 fill → `naijahandy/portfolio`). All share mime (JPG/PNG/WebP/GIF) + 4MB validation and the Cloudinary-less dev fallback (stores the data URL).
+- ✅ Backend endpoints (`ARTISAN` guard), `ArtisanModule` now imports `UploadModule`:
+  - `POST /api/artisans/me/cover` (body `{ image }`) → updates profile `coverImage`.
+  - `POST /api/artisans/me/portfolio` (body `{ image, caption? }`) → creates a `PortfolioItem`.
+  - `DELETE /api/artisans/me/portfolio/:id` → deletes an item owned by the artisan (404 otherwise).
+- ✅ Unit tests: `ArtisanService.updateCover` / `addPortfolio` / `removePortfolio` (upload called, ownership, profile-missing + item-missing 404s). Backend build + 54 unit tests green.
+- ✅ Frontend: `PortfolioItem` type (`{ id, imageUrl, caption }`), `Artisan.portfolio` changed `string[] → PortfolioItem[]` (normalizer + mock data updated), `updateArtisanCover` / `uploadPortfolioItem` / `deletePortfolioItem` helpers in `api.ts`.
+- ✅ Artisan profile page (`/dashboard/artisan/profile`): cover URL text field replaced with file-picker + preview + upload button; new portfolio card (grid with delete-per-item, optional caption, add-photo uploader). Same validation/feedback pattern (`role="status"` / `role="alert"`) as settings. Public `/artisans/[id]` portfolio tab renders `imageUrl` + caption alt text.
+- ✅ Verified: backend `npm run build` + `npm test` clean; frontend `npm run lint` + `npm run build` clean (22 routes).
+
 ### Next action for another developer
 
-1. Phase 3 item 5: real media uploads (avatar/cover/portfolio), map/address selection, and in-app notification support.
+1. Phase 3 item 5 remaining: map/address selection and in-app notification support.
 2. Phase 4: E2E coverage for the new dashboard/SEO work and a Lighthouse/axe audit pass.
 
 ### Targeted tests — DONE

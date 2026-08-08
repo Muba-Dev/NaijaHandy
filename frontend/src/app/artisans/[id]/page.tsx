@@ -253,8 +253,8 @@ export default function ArtisanProfilePage() {
                     <h2 className="font-display text-xl font-bold text-gray-900 mb-4">Portfolio</h2>
                     {artisan.portfolio.length > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {artisan.portfolio.map((img, i) => (
-                          <Image key={i} src={img} alt={`${artisan.name} portfolio photo ${i + 1}`} width={400} height={300} className="rounded-xl w-full h-40 object-cover hover:scale-105 transition-transform cursor-pointer" />
+                        {artisan.portfolio.map((item, i) => (
+                          <Image key={item.id || i} src={item.imageUrl} alt={item.caption || `${artisan.name} portfolio photo ${i + 1}`} width={400} height={300} className="rounded-xl w-full h-40 object-cover hover:scale-105 transition-transform cursor-pointer" />
                         ))}
                       </div>
                     ) : (

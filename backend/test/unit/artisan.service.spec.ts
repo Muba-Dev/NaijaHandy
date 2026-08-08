@@ -1,9 +1,12 @@
 import { ArtisanService } from '../../src/artisan/artisan.service'
+import { NotFoundException } from '@nestjs/common'
 
 describe('ArtisanService', () => {
   const artisanProfile = { groupBy: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() }
-  const prisma = { artisanProfile } as any
-  const service = new ArtisanService(prisma)
+  const portfolioItem = { create: jest.fn(), findFirst: jest.fn(), delete: jest.fn() }
+  const prisma = { artisanProfile, portfolioItem } as any
+  const uploadService = { uploadCover: jest.fn(), uploadPortfolio: jest.fn() } as any
+  const service = new ArtisanService(prisma, uploadService)
 
   afterEach(() => jest.clearAllMocks())
 
@@ -93,6 +96,84 @@ describe('ArtisanService', () => {
       expect(artisanProfile.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'art-1', approvalStatus: 'APPROVED' } }),
       )
+    })
+  })
+
+  describe('updateCover', () => {
+    it('uploads the cover and updates the profile', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1' })
+      uploadService.uploadCover.mockResolvedValue('https://cloudinary.com/cover.jpg')
+      artisanProfile.update.mockResolvedValue({ id: 'profile-1', coverImage: 'https://cloudinary.com/cover.jpg' })
+
+      await service.updateCover('u1', 'data:image/jpeg;base64,xxx')
+
+      expect(uploadService.uploadCover).toHaveBeenCalledWith('data:image/jpeg;base64,xxx')
+      expect(artisanProfile.update).toHaveBeenCalledWith({
+        where: { id: 'profile-1' },
+        data: { coverImage: 'https://cloudinary.com/cover.jpg' },
+      })
+    })
+
+    it('throws when the artisan profile does not exist', async () => {
+      artisanProfile.findUnique.mockResolvedValue(null)
+      await expect(service.updateCover('u1', 'data:image/jpeg;base64,xxx')).rejects.toThrow(NotFoundException)
+      expect(uploadService.uploadCover).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('addPortfolio', () => {
+    it('uploads the image and creates a portfolio item', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1' })
+      uploadService.uploadPortfolio.mockResolvedValue('https://cloudinary.com/portfolio.jpg')
+      portfolioItem.create.mockResolvedValue({ id: 'p1', imageUrl: 'https://cloudinary.com/portfolio.jpg', caption: 'Kitchen repaint' })
+
+      await service.addPortfolio('u1', 'data:image/png;base64,xxx', 'Kitchen repaint')
+
+      expect(uploadService.uploadPortfolio).toHaveBeenCalledWith('data:image/png;base64,xxx')
+      expect(portfolioItem.create).toHaveBeenCalledWith({
+        data: { artisanId: 'profile-1', imageUrl: 'https://cloudinary.com/portfolio.jpg', caption: 'Kitchen repaint' },
+      })
+    })
+
+    it('creates the item with a null caption when none is provided', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1' })
+      uploadService.uploadPortfolio.mockResolvedValue('https://cloudinary.com/p.jpg')
+      await service.addPortfolio('u1', 'data:image/jpeg;base64,xxx')
+      expect(portfolioItem.create).toHaveBeenCalledWith({
+        data: { artisanId: 'profile-1', imageUrl: 'https://cloudinary.com/p.jpg', caption: null },
+      })
+    })
+
+    it('throws when the artisan profile does not exist', async () => {
+      artisanProfile.findUnique.mockResolvedValue(null)
+      await expect(service.addPortfolio('u1', 'data:image/jpeg;base64,xxx')).rejects.toThrow(NotFoundException)
+    })
+  })
+
+  describe('removePortfolio', () => {
+    it('deletes a portfolio item owned by the artisan', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1' })
+      portfolioItem.findFirst.mockResolvedValue({ id: 'p1', artisanId: 'profile-1' })
+
+      await expect(service.removePortfolio('u1', 'p1')).resolves.toEqual({ success: true })
+
+      expect(portfolioItem.findFirst).toHaveBeenCalledWith({
+        where: { id: 'p1', artisanId: 'profile-1' },
+      })
+      expect(portfolioItem.delete).toHaveBeenCalledWith({ where: { id: 'p1' } })
+    })
+
+    it('throws when the item does not belong to the artisan', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1' })
+      portfolioItem.findFirst.mockResolvedValue(null)
+
+      await expect(service.removePortfolio('u1', 'p1')).rejects.toThrow(NotFoundException)
+      expect(portfolioItem.delete).not.toHaveBeenCalled()
+    })
+
+    it('throws when the artisan profile does not exist', async () => {
+      artisanProfile.findUnique.mockResolvedValue(null)
+      await expect(service.removePortfolio('u1', 'p1')).rejects.toThrow(NotFoundException)
     })
   })
 })

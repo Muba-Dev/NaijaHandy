@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards, Req, Patch, Body } from '@nestjs/common'
+import { Controller, Get, Param, Query, UseGuards, Req, Patch, Body, Post, Delete } from '@nestjs/common'
 import { ArtisanService } from './artisan.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard'
@@ -39,5 +39,26 @@ export class ArtisanController {
   @Patch('me')
   async updateMe(@Req() req: any, @Body() body: any) {
     return { data: await this.artisanService.updateMe(req.user.id, body) }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ARTISAN')
+  @Post('me/cover')
+  async updateCover(@Req() req: any, @Body() body: { image?: string }) {
+    return { data: await this.artisanService.updateCover(req.user.id, body.image || '') }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ARTISAN')
+  @Post('me/portfolio')
+  async addPortfolio(@Req() req: any, @Body() body: { image?: string; caption?: string }) {
+    return { data: await this.artisanService.addPortfolio(req.user.id, body.image || '', body.caption) }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ARTISAN')
+  @Delete('me/portfolio/:id')
+  async removePortfolio(@Req() req: any, @Param('id') id: string) {
+    return { data: await this.artisanService.removePortfolio(req.user.id, id) }
   }
 }
