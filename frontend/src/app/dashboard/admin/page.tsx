@@ -224,7 +224,7 @@ export default function AdminDashboardPage() {
                   <span className="ml-auto w-5 h-5 rounded-full bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center">{stats.pendingArtisans}</span>
                 )}
                 {t.id === 'disputes' && stats && stats.openDisputes > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
+                  <span className="ml-auto w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
                 )}
               </button>
             )
@@ -262,7 +262,7 @@ export default function AdminDashboardPage() {
                   <span className="ml-0.5 w-4 h-4 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">{stats.pendingArtisans}</span>
                 )}
                 {t.id === 'disputes' && stats && stats.openDisputes > 0 && (
-                  <span className="ml-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
+                  <span className="ml-0.5 w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
                 )}
               </button>
             )

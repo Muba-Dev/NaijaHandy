@@ -94,7 +94,7 @@ export default function Navbar() {
               <Link href="/notifications" aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`} className="relative p-2 text-gray-500 hover:text-[#047857] transition-colors">
                 <Bell size={18} aria-hidden="true" />
                 {unread > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 )}
@@ -194,7 +194,7 @@ export default function Navbar() {
                 <Bell size={15} aria-hidden="true" />
                 Notifications
                 {unread > 0 && (
-                  <span className="min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 )}
