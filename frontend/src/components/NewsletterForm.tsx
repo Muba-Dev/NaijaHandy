@@ -27,7 +27,7 @@ export default function NewsletterForm() {
         aria-label="Subscribe to newsletter"
         className="px-4 py-2 rounded-lg text-white font-semibold text-sm bg-[#047857] hover:opacity-90 flex items-center gap-1.5"
       >
-        {subscribed ? <CheckCircle2 size={14} aria-hidden="true" /> : <Send size={14} aria-hidden="true" />} Go
+        {subscribed ? <CheckCircle2 size={14} aria-hidden="true" /> : <Send size={14} aria-hidden="true" />} Subscribe
       </button>
     </form>
   )

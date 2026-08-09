@@ -62,7 +62,7 @@ export default function ArtisanCard({ artisan }: Props) {
         </Link>
         {artisan.isDemo ? (
           <span
-            className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-gray-100 text-gray-500 text-center cursor-not-allowed"
+            className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-gray-100 text-gray-700 text-center cursor-not-allowed"
             title="Demo profile — not bookable"
           >
             Demo profile

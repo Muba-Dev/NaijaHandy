@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const APP_URL = 'https://naijahandy.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://naija-handy.vercel.app'
 const API_URL = 'http://localhost:4000/api'
 
 async function topArtisan(): Promise<{ id: string; user: { name: string }; profession: string }> {

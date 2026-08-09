@@ -10,6 +10,10 @@
 /test-results
 /playwright-report
 
+# lighthouse audit reports (local)
+/lighthouse
+/lh-server.log
+
 # next.js
 /.next/
 /out/

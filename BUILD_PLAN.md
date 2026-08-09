@@ -142,7 +142,7 @@ The frontend now uses:
 
 ### Next action for another developer
 
-1. Phase 4 remaining: a Lighthouse audit pass (axe automated accessibility audit is **DONE** — `e2e/a11y.spec.ts`, see below; E2E coverage for the new dashboard/SEO work is done — 21 Playwright tests).
+1. Phase 4 remaining: investigate the **production `GET /api/artisans/:id` 500** (see the Lighthouse section above — needs Render logs / prod-DB access). Axe + Lighthouse audits are done.
 
 ### Targeted tests — DONE
 
@@ -178,6 +178,23 @@ The frontend now uses:
   - Leaflet: pin markers set `interactive={false} keyboard={false}` (Leaflet no longer adds an unnamed `role="button"`/`tabindex` → `aria-command-name`); map tiles get `alt=""` via a `tileload` listener + container sweep (`image-alt`); attribution link styled `#0f766e` + underlined (`link-in-text-block`).
   - Notifications timestamps `text-gray-400` → `text-gray-700` (2.41:1 on the emerald unread-card tint); demo-profile "not bookable" banner `bg-gray-300 text-white` → `bg-amber-50 text-amber-800` border; profile cover placeholder `text-gray-400` → `text-gray-600`.
   - Spec robustness: `goto` with `waitUntil: 'domcontentloaded'` (avoid slow third-party resources), then `main` visible + `networkidle` (10s cap) + 500ms paint-settle (axe can catch mid-`transition-opacity` frames on disabled→enabled buttons and report false color-contrast failures).
+- ✅ Lighthouse audit (`lighthouse@12.8.2`, headless Chrome, categories perf/a11y/best-practices/seo; JSON reports kept in `frontend/lighthouse/`, gitignored):
+  - **Fixes from the audit:**
+    - **Live sitemap/robots used a dead domain.** `NEXT_PUBLIC_APP_URL` default in `sitemap.ts`, `robots.ts`, and `layout.tsx` (`metadataBase`) was `https://naijahandy.vercel.app` — but the real deployment is `https://naija-handy.vercel.app` (the other 404s). The env var is unset in production, so the broken default shipped and the live sitemap pointed at the wrong domain. Corrected default → `https://naija-handy.vercel.app` (also fixed the hardcoded base in `e2e/seo.spec.ts`).
+    - **Newsletter button `label-content-name-mismatch`**: `aria-label="Subscribe to newsletter"` vs visible text "Go" → button text now "Subscribe" (accessible name contains the visible text). Fixes the flag on every page footer.
+    - **`ArtisanCard` disabled "Demo profile" chip** `bg-gray-100 text-gray-500` was 4.07:1 (fails AA) → `text-gray-700`. This surfaced only with demo data on the live home grid (local e2e DB had few demo cards in the scanned viewport).
+  - **Login page split (server + client)**: `/login` was a fully `'use client'` page using `useSearchParams()`; refactored into `src/app/login/LoginForm.tsx` (client form) + `src/app/login/page.tsx` (server page with a `<Suspense>` boundary) so the shell is statically prerendered instead of a full-CSR bailout.
+  - **Intentional `noindex`**: `/login`, `/register`, and all `/dashboard/*` routes deliberately set `robots: { index: false }` (auth/app pages — correct product decision). Lighthouse reports ~SEO 69 on `/login` because of it; public pages are 100.
+  - **Scores** (current source, local prod-mode build; live numbers in brackets for the stale pre-fix build):
+    - `/` → Perf 82 [live 66], A11y 100 [96], Best-practices 96* [100], SEO 100. (*96 = CORS console errors when auditing from localhost; the live origin is allow-listed so live is 100.)
+    - `/search` → Perf 67 [live 78], A11y 100 [94], BP 96* [100], SEO 100.
+    - `/login` → Perf 91, A11y 100, BP 100, SEO 69 (intentional noindex).
+  - **Perf notes (not fixed — structural)**: LCP on `/` is the low-opacity hero Unsplash image (already `priority`); `/search` LCP locally is the CORS-blocked "Could not load" error (data-driven pages are distorted on localhost; live numbers are the real ones). Main-thread work from JS bundles + `render-blocking-resources` (187ms, the static CSS chunk) + ~11KB `legacy-javascript` are the remaining levers.
+  - **⚠️ PRODUCTION INCIDENT found via the artisan-page audit**: `GET /api/artisans/:id` **500s for every artisan on the live API** (list/categories/health all work). The live artisan pages show an empty/loading state. Diagnosis so far (requires Render logs / prod-DB access to pin down — **open item**):
+    - Not missing columns: a non-existent cuid returns 404, so the full `findOne` query (incl. the `user` `latitude`/`longitude` selects) executes on prod.
+    - Not reproducible on the current code: `findOne` works on the local Supabase DB including with portfolio items and reviews (real and orphaned-customer variants) — the full-stack path is exercised by `e2e/dashboard.spec.ts` ("location card … public profile shows …").
+    - Deployed backend looks current (notifications live, `isDemo`/`totalReviews` in list, user select = current shape), but prod data differs (local DB has 0 reviews; prod has reviews + demo seed data).
+    - Next step for someone with prod access: check Render logs for the Prisma error on `/api/artisans/:id`, or run the exact `findOne` query against the prod DB.
 - ✅ Deployment (Vercel / Render / Neon) — **DONE**: frontend live, backend live, DB migrated+seeded, Paystack mock, CI green.
 
 ### Next action for another developer

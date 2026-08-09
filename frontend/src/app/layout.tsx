@@ -4,7 +4,7 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://naijahandy.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://naija-handy.vercel.app'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
