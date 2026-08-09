@@ -258,3 +258,119 @@ The frontend now uses:
 - ✅ Backend: `npm run build` (tsc), `npm test` (46 unit), `npm run test:e2e` (58 e2e) all passing. Frontend: `npm run lint` + `npm run build` clean.
 - ✅ Deployed and verified live: backend healthy (`/api/health` → `{"status":"ok","db":"up"}`); logged-out `/api/artisans` returns the 11 profiles (10 demo + 1 real) with demo badge, logged-in non-demo sees zero demo, demo artisans non-bookable, CI green on the new CI DB.
 - ✅ Commit `2b76c5f` (on `origin/main`) carries all five items above; Render + Vercel auto-deploy on push.
+
+## Next Milestone: Growth Roadmap (planned — not started)
+
+**Goal:** Make NaijaHandy the most trusted and fastest artisan marketplace in Nigeria.
+
+**Current gaps (what's already shipped vs. what's missing):**
+- Trust: "Verified" badge exists (admin approval flag) but there is **no real ID/document verification**.
+- Reviews: text + star rating only — **no photos, no verified-buyer tag**.
+- Booking: manual form → Paystack; **no instant/WhatsApp path, no formal price estimate**.
+- Discovery: filters exist (category, city, minRating, available, sortBy) but **no price range, distance, or emergency/same-day jobs**.
+- Retention: saved artisans, booking history, rebook links, notifications all shipped — **no rewards, no referral program**.
+- Differentiation: disputes + admin moderation shipped — **no service guarantee, escrow, or response-time signals**.
+
+**Priority roadmap:**
+
+### P0 — Trust
+
+1. **Feature: Real ID verification (document upload + admin review)**
+   - Problem: "Verified" is just an admin flag; users can't tell real artisans from demo/impersonators.
+   - Benefit: buyers trust booking = more first bookings.
+   - Effort: Medium (reuse `UploadService`; new document endpoint + admin review UI + badge states).
+   - Success: % of real artisans verified; higher conversion on verified profiles.
+
+2. **Feature: Reviews with photos + verified-buyer tag**
+   - Problem: buyers can't judge work quality from text alone.
+   - Benefit: richer social proof; repeat-booking confidence.
+   - Effort: Medium (`Review.photos` schema + upload + moderation + display).
+   - Success: % of reviews with photos; review completion rate up.
+
+3. **Feature: Skill badges**
+   - Problem: a profession like "Plumber" is vague; users can't see specialty.
+   - Benefit: clearer matching.
+   - Effort: Easy (derive from the existing services list; badge UI).
+   - Success: more shortlist/profile engagement.
+
+4. **Feature: Completed-job history**
+   - Problem: users can't see proof of work.
+   - Benefit: confidence; separates real pros.
+   - Effort: Easy (completed bookings already stored — surface count + timeline on the profile).
+   - Success: more profile views → bookings.
+
+### P1 — Conversion
+
+5. **Feature: WhatsApp booking**
+   - Problem: Nigerians book via WhatsApp; the current flow forces form + payment.
+   - Benefit: instant conversations; big conversion lift.
+   - Effort: Easy (frontend `wa.me` deep link with prefilled message on the profile page).
+   - Success: % of bookings started via WhatsApp.
+
+6. **Feature: Instant booking (one-tap request with saved details)**
+   - Problem: multi-field form friction.
+   - Benefit: fewer drop-offs.
+   - Effort: Medium (prefill from profile/saved address; reduce required fields).
+   - Success: checkout completion rate.
+
+7. **Feature: Upfront price estimates**
+   - Problem: users fear hidden costs.
+   - Benefit: trust + clearer decision.
+   - Effort: Medium (per-service rate → estimate summary before booking; optional quote-request flow).
+   - Success: estimate acceptance rate.
+
+8. **Feature: Better search filters (price range, distance, urgency)**
+   - Problem: can't narrow by budget/area/need-speed.
+   - Benefit: faster matching.
+   - Effort: Medium (backend query params + UI).
+   - Success: search-to-booking rate.
+
+### P2 — Retention
+
+9. **Feature: Repeat booking ("Book again" prefilled)**
+   - Problem: rehiring a good artisan is manual.
+   - Benefit: habit loop.
+   - Effort: Easy (rebook exists in history — prefill and shorten to one tap).
+   - Success: % of repeat bookings.
+   - Note: **saved artisans already shipped** (original plan's P2 item) — do not rebuild.
+
+10. **Feature: Customer rewards (points/credits after completed jobs)**
+    - Problem: no reason to come back.
+    - Benefit: loyalty.
+    - Effort: Hard (ledger/credits model + apply to payment).
+    - Success: return/retention rate.
+
+11. **Feature: Referral program**
+    - Problem: no word-of-mouth engine.
+    - Benefit: cheap growth.
+    - Effort: Medium (referral codes + credit on first booking).
+    - Success: referral-sourced signups.
+
+### P3 — Differentiation
+
+12. **Feature: Response-time badges**
+    - Problem: users don't know if an artisan is responsive.
+    - Benefit: quality signal.
+    - Effort: Medium (measure time from booking request → first response; badge in search/profile).
+    - Success: higher booking on fast responders.
+
+13. **Feature: Service guarantee (NaijaHandy Guarantee)**
+    - Problem: fear of poor/overpriced work.
+    - Benefit: risk-reversal.
+    - Effort: Medium (policy page + tie into existing dispute flow).
+    - Success: fewer cancellations; better conversion.
+
+14. **Feature: Emergency / same-day jobs**
+    - Problem: urgent jobs (leak, lockout) have no fast path.
+    - Benefit: differentiated high-intent segment.
+    - Effort: Medium (urgent flag + filter + notify nearby artisans).
+    - Success: emergency-job volume.
+
+15. **Feature: Escrow protection (hold payment until job done)**
+    - Problem: paying upfront is scary for customers; paying after is scary for artisans.
+    - Benefit: two-sided safety — category-defining trust.
+    - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
+    - Success: completed-booking trust; fewer disputes.
+
+**Suggested first sprint (high impact, low effort):** WhatsApp booking, skill badges, completed-job history, response-time badges — then P0 trust.
+**Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
