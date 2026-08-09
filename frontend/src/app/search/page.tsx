@@ -66,14 +66,16 @@ function SearchPage() {
               className="flex-1 text-sm outline-none bg-transparent text-gray-700"
             />
           </div>
-          <button
-            onClick={() => setMobileFilter(!mobileFilter)}
-            aria-expanded={mobileFilter}
-            aria-controls="filter-sidebar"
-            className="md:hidden flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700"
-          >
-            <Filter size={15} aria-hidden="true" /> Filters
-          </button>
+          <h2 className="md:hidden">
+            <button
+              onClick={() => setMobileFilter(!mobileFilter)}
+              aria-expanded={mobileFilter}
+              aria-controls="filter-sidebar"
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700"
+            >
+              <Filter size={15} aria-hidden="true" /> Filters
+            </button>
+          </h2>
           <div className="hidden md:flex items-center gap-2">
             <label htmlFor="sort-select" className="text-sm text-gray-500">Sort:</label>
             <select
