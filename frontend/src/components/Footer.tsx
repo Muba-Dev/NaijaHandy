@@ -52,7 +52,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
         {/* Brand */}
         <div>
-          <div className="mb-4"><Brand compact /></div>
+          <div className="mb-4"><Brand compact dark /></div>
           <p className="text-gray-300 text-sm leading-relaxed">
             Nigeria&apos;s premier platform for connecting skilled artisans with customers who need quality work done right.
           </p>

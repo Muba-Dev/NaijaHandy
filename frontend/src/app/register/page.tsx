@@ -69,7 +69,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => setRole(r)}
               aria-pressed={role === r}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${role === r ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${role === r ? 'bg-white shadow text-gray-900' : 'text-gray-700'}`}
             >
               {r === 'CUSTOMER' ? '👤 Customer' : '🔧 Artisan'}
             </button>
@@ -79,8 +79,9 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
               <input
+                id="name"
                 value={form.name}
                 onChange={set('name')}
                 placeholder="Amaka Okonkwo"
@@ -89,8 +90,9 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
               <input
+                id="phone"
                 value={form.phone}
                 onChange={set('phone')}
                 placeholder="+234 801 234 5678"
@@ -101,8 +103,9 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
             <input
+              id="email"
               type="email"
               value={form.email}
               onChange={set('email')}
@@ -113,8 +116,9 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">City / State</label>
+            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1.5">City / State</label>
             <select
+              id="city"
               value={form.city}
               onChange={set('city')}
               required
@@ -127,8 +131,9 @@ export default function RegisterPage() {
 
           {role === 'ARTISAN' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Profession / Skill</label>
+              <label htmlFor="profession" className="block text-sm font-medium text-gray-700 mb-1.5">Profession / Skill</label>
               <select
+                id="profession"
                 value={form.profession}
                 onChange={set('profession')}
                 required
@@ -141,8 +146,9 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
             <input
+              id="password"
               type="password"
               value={form.password}
               onChange={set('password')}

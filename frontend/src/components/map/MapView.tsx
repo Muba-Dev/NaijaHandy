@@ -1,6 +1,7 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 
 const pinIcon = L.divIcon({
@@ -16,6 +17,30 @@ function ClickHandler({ onSelect }: { onSelect?: (lat: number, lng: number) => v
       if (onSelect) onSelect(e.latlng.lat, e.latlng.lng)
     },
   })
+  return null
+}
+
+function DecorativeTiles() {
+  const map = useMap()
+  useEffect(() => {
+    const mark = (e: { tile?: HTMLImageElement }) => {
+      if (e.tile) e.tile.setAttribute('alt', '')
+    }
+    const markExisting = () => {
+      map.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer && layer.getContainer()) {
+          layer.getContainer().querySelectorAll('img').forEach((img) => img.setAttribute('alt', ''))
+        }
+      })
+    }
+    map.on('tileload', mark)
+    markExisting()
+    const timer = window.setTimeout(markExisting, 500)
+    return () => {
+      map.off('tileload', mark)
+      window.clearTimeout(timer)
+    }
+  }, [map])
   return null
 }
 
@@ -44,7 +69,8 @@ export default function MapView({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap contributors"
         />
-        <Marker position={[lat, lng]} icon={pinIcon} />
+        <DecorativeTiles />
+        <Marker position={[lat, lng]} icon={pinIcon} interactive={false} keyboard={false} />
         {interactive && <ClickHandler onSelect={onSelect} />}
       </MapContainer>
     </div>

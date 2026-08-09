@@ -180,8 +180,9 @@ export default function ProfileSettingsPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                    <label htmlFor="full-name" className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
                     <input
+                      id="full-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
@@ -189,8 +190,9 @@ export default function ProfileSettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
                     <input
+                      id="email"
                       type="email"
                       value={user?.email || ''}
                       disabled
@@ -198,8 +200,9 @@ export default function ProfileSettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
                     <input
+                      id="phone"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -208,8 +211,9 @@ export default function ProfileSettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
                     <input
+                      id="city"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="Lagos"
@@ -249,8 +253,9 @@ export default function ProfileSettingsPage() {
                     { label: 'Confirm New Password', value: confirmPassword, setter: setConfirmPassword, key: 'confirm' },
                   ].map((f) => (
                     <div key={f.key}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">{f.label}</label>
+                      <label htmlFor={`password-${f.key}`} className="block text-sm font-medium text-gray-700 mb-1.5">{f.label}</label>
                       <input
+                        id={`password-${f.key}`}
                         type="password"
                         value={f.value}
                         onChange={(e) => f.setter(e.target.value)}

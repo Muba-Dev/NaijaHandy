@@ -114,7 +114,7 @@ export default function NotificationsPage() {
                     <span className="flex-1 min-w-0">
                       <span className="block text-sm font-semibold text-gray-900">{n.title}</span>
                       <span className="block text-sm text-gray-600 mt-0.5">{n.body}</span>
-                      <span className="block text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</span>
+                      <span className="block text-xs text-gray-700 mt-1">{timeAgo(n.createdAt)}</span>
                     </span>
                     <ArrowRight size={15} className="text-gray-400 shrink-0 mt-1.5" aria-hidden="true" />
                   </button>
@@ -124,7 +124,7 @@ export default function NotificationsPage() {
                     <span className="flex-1 min-w-0">
                       <span className="block text-sm font-semibold text-gray-900">{n.title}</span>
                       <span className="block text-sm text-gray-600 mt-0.5">{n.body}</span>
-                      <span className="block text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</span>
+                      <span className="block text-xs text-gray-700 mt-1">{timeAgo(n.createdAt)}</span>
                     </span>
                   </div>
                 )}

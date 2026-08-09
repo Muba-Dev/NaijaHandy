@@ -60,3 +60,9 @@ h1, h2, h3, h4 {
     font-family: var(--font-fraunces), serif;
   }
 }
+
+/* Leaflet attribution link must be distinguishable from surrounding text (WCAG 1.4.1) */
+.leaflet-control-attribution a {
+  color: #0f766e;
+  text-decoration: underline;
+}

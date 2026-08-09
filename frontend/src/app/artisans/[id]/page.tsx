@@ -401,7 +401,7 @@ export default function ArtisanProfilePage() {
               </div>
 
               {artisan.isDemo ? (
-                <div className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-gray-300 cursor-not-allowed">
+                <div className="block w-full py-3.5 rounded-xl font-semibold text-sm text-center bg-amber-50 text-amber-800 border border-amber-200 cursor-not-allowed">
                   Demo profile — not bookable
                 </div>
               ) : (

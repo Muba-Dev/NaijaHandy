@@ -254,7 +254,7 @@ export default function MyProfilePage() {
             className="w-full h-40 sm:h-52 object-cover rounded-xl mb-4"
           />
         ) : (
-          <div className="w-full h-40 sm:h-52 rounded-xl bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm mb-4">
+          <div className="w-full h-40 sm:h-52 rounded-xl bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center text-gray-600 text-sm mb-4">
             No cover photo yet
           </div>
         )}
@@ -348,8 +348,9 @@ export default function MyProfilePage() {
         <h2 className="font-semibold text-gray-900 mb-5">Edit Profile</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Profession</label>
+            <label htmlFor="profession" className="block text-sm font-medium text-gray-700 mb-1.5">Profession</label>
             <input
+              id="profession"
               value={form.profession}
               onChange={set('profession')}
               placeholder="e.g. Master Plumber"
@@ -357,8 +358,9 @@ export default function MyProfilePage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
             <select
+              id="category"
               value={form.category}
               onChange={set('category')}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors text-gray-700"

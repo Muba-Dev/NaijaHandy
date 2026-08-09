@@ -53,7 +53,7 @@ export default function JobRequestsPage() {
             aria-pressed={activeTab === t}
             className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === t ? 'text-white bg-[#047857]' : 'bg-white text-gray-600 border border-gray-100 hover:border-gray-200'}`}
           >
-            {t} <span className="opacity-70">({counts[t]})</span>
+            {t} <span>({counts[t]})</span>
           </button>
         ))}
       </div>
