@@ -28,8 +28,11 @@ function DecorativeTiles() {
     }
     const markExisting = () => {
       map.eachLayer((layer) => {
-        if (layer instanceof L.TileLayer && layer.getContainer()) {
-          layer.getContainer().querySelectorAll('img').forEach((img) => img.setAttribute('alt', ''))
+        if (layer instanceof L.TileLayer) {
+          const container = layer.getContainer()
+          if (container) {
+            container.querySelectorAll('img').forEach((img) => img.setAttribute('alt', ''))
+          }
         }
       })
     }

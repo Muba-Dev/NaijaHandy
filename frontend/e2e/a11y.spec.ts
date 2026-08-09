@@ -26,12 +26,10 @@ async function loginAsArtisan(page: Page, email: string): Promise<void> {
 }
 
 async function visitSettled(page: Page, path: string): Promise<void> {
-  console.log('a11y: visiting', path)
-  await page.goto(path)
+  await page.goto(path, { waitUntil: 'domcontentloaded' })
   await expect(page.locator('main').first()).toBeVisible({ timeout: 15_000 })
   await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
-  await page.waitForFunction(() => document.getAnimations().length === 0, { timeout: 10_000 }).catch(() => {})
-  await page.waitForTimeout(150)
+  await page.waitForTimeout(500)
 }
 
 async function expectNoAxeViolations(page: Page, path: string): Promise<void> {

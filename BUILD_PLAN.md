@@ -142,7 +142,7 @@ The frontend now uses:
 
 ### Next action for another developer
 
-1. Phase 4 remaining: a Lighthouse/axe audit pass (E2E coverage for the new dashboard/SEO work is done — 18 Playwright tests).
+1. Phase 4 remaining: a Lighthouse audit pass (axe automated accessibility audit is **DONE** — `e2e/a11y.spec.ts`, see below; E2E coverage for the new dashboard/SEO work is done — 21 Playwright tests).
 
 ### Targeted tests — DONE
 
@@ -171,6 +171,13 @@ The frontend now uses:
   - **New — dashboard work (`dashboard.spec.ts`)**: booking request → artisan bell badge shows unread count, `/notifications` lists it, click → deep link to job requests where the booking appears; artisan cover + portfolio uploads (data-URL dev fallback) with success states and portfolio delete; location card — click map → type address → Save → "Location saved.", then the public profile shows the Location card + "Open in Google Maps" + Leaflet map.
   - CI job `frontend-e2e` in `.github/workflows/ci.yml` (Playwright install, DB seed, artifact upload), gated on the `DATABASE_URL` secret.
 - ✅ E2E reliability fixes along the way: login/register selectors scoped to `main form` (the footer newsletter form added the same `input[type="email"]`, tripping strict-mode); global `express-rate-limit` raised to `max: 1000` when `NODE_ENV=test` (the 100/15min production limit was 429-ing the full suite); `MapPicker` now propagates typed addresses to the parent and only auto-fills a reverse-geocoded address when the user hasn't typed since the map click (fixed the save-no-address bug).
+- ✅ Accessibility (axe) audit (`e2e/a11y.spec.ts`, `@axe-core/playwright`): scans 16 pages (home, search, auth, artisan profile, customer dashboard/bookings/saved/settings/notifications, artisan dashboard/requests/schedule/earnings/profile) and fails on any `serious`/`critical` violation. Fixes made:
+  - Brand "Handy" span needed a `dark` variant (`text-emerald-400` + white "Naija") for the dark footer (was `#047857` on `#111827`, 3.23:1).
+  - Register page: role-toggle inactive buttons `text-gray-500` → `text-gray-700` (2.8:1 → 4.9:1); City/Profession `<select>`s + all inputs got `htmlFor`/`id` label associations (`select-name`/`label`).
+  - Job-requests tab counts lost their `opacity-70` (white-on-emerald dropped to 3.53:1); settings form + artisan-profile form fields got `htmlFor`/`id` associations.
+  - Leaflet: pin markers set `interactive={false} keyboard={false}` (Leaflet no longer adds an unnamed `role="button"`/`tabindex` → `aria-command-name`); map tiles get `alt=""` via a `tileload` listener + container sweep (`image-alt`); attribution link styled `#0f766e` + underlined (`link-in-text-block`).
+  - Notifications timestamps `text-gray-400` → `text-gray-700` (2.41:1 on the emerald unread-card tint); demo-profile "not bookable" banner `bg-gray-300 text-white` → `bg-amber-50 text-amber-800` border; profile cover placeholder `text-gray-400` → `text-gray-600`.
+  - Spec robustness: `goto` with `waitUntil: 'domcontentloaded'` (avoid slow third-party resources), then `main` visible + `networkidle` (10s cap) + 500ms paint-settle (axe can catch mid-`transition-opacity` frames on disabled→enabled buttons and report false color-contrast failures).
 - ✅ Deployment (Vercel / Render / Neon) — **DONE**: frontend live, backend live, DB migrated+seeded, Paystack mock, CI green.
 
 ### Next action for another developer
