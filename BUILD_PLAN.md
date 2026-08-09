@@ -142,7 +142,7 @@ The frontend now uses:
 
 ### Next action for another developer
 
-1. Phase 4 remaining: investigate the **production `GET /api/artisans/:id` 500** (see the Lighthouse section above — needs Render logs / prod-DB access). Axe + Lighthouse audits are done.
+1. Phase 4 is complete: prod `GET /api/artisans/:id` 500 resolved (missing prod migrations — see the Lighthouse section above), all Lighthouse audits green (100 on A11y/BP/SEO across `/`, `/search`, `/artisans/[id]`), CI green.
 
 ### Targeted tests — DONE
 
@@ -185,10 +185,13 @@ The frontend now uses:
     - **`ArtisanCard` disabled "Demo profile" chip** `bg-gray-100 text-gray-500` was 4.07:1 (fails AA) → `text-gray-700`. This surfaced only with demo data on the live home grid (local e2e DB had few demo cards in the scanned viewport).
   - **Login page split (server + client)**: `/login` was a fully `'use client'` page using `useSearchParams()`; refactored into `src/app/login/LoginForm.tsx` (client form) + `src/app/login/page.tsx` (server page with a `<Suspense>` boundary) so the shell is statically prerendered instead of a full-CSR bailout.
   - **Intentional `noindex`**: `/login`, `/register`, and all `/dashboard/*` routes deliberately set `robots: { index: false }` (auth/app pages — correct product decision). Lighthouse reports ~SEO 69 on `/login` because of it; public pages are 100.
-  - **Scores** (current source, local prod-mode build; live numbers in brackets for the stale pre-fix build):
-    - `/` → Perf 82 [live 66], A11y 100 [96], Best-practices 96* [100], SEO 100. (*96 = CORS console errors when auditing from localhost; the live origin is allow-listed so live is 100.)
-    - `/search` → Perf 67 [live 78], A11y 100 [94], BP 96* [100], SEO 100.
-    - `/login` → Perf 91, A11y 100, BP 100, SEO 69 (intentional noindex).
+   - **Artisan profile SSR (fixed the last SEO gap)**: `/artisans/[id]` was a `'use client'` page with per-page dynamic `generateMetadata` in the layout. During React hydration the `<head>` is cleared, so the meta description was missing at Lighthouse's `load` moment (present again at networkidle) → SEO 92. Refactored to a server component: `page.tsx` now `await`s `fetchArtisanById(id)` server-side (same call `generateMetadata` already makes, so it's proven safe — the axios client's interceptor no-ops without `window`) and renders `<ArtisanProfileClient artisan={artisan} />` (`src/components/artisan/ArtisanProfileClient.tsx`, which holds all the interactive state). The head is now stable SSR HTML and the profile content (h1/LCP) ships in the initial HTML instead of after a client fetch.
+   - **Mobile heading order (`/search`)**: Lighthouse audits in **mobile emulation** (412x823). The filter sidebar is `hidden md:block`, so on mobile its `h2 "Filters"` is `display:none` and the result cards' `h3`s followed the sr-only `h1` directly → skipped heading level (A11y 98). Made the mobile "Filters" toggle a real `<h2>` (visible on mobile, `md:hidden` on desktop) so every viewport renders h1 → h2 → h3.
+   - **Scores** (final live, Lighthouse mobile, post all fixes — reports `live-home3.json`, `live-search3.json`, `live-artisan4.json`):
+     - `/` → Perf 88, A11y 100, Best-practices 100, SEO 100.
+     - `/search` → Perf 76, A11y 100, BP 100, SEO 100.
+     - `/artisans/[id]` → Perf 77, A11y 100, BP 100, SEO 100 (was 58 / 100 / 100 / 92).
+     - `/login` → Perf 91, A11y 100, BP 100, SEO 69 (intentional noindex).
   - **Perf notes (not fixed — structural)**: LCP on `/` is the low-opacity hero Unsplash image (already `priority`); `/search` LCP locally is the CORS-blocked "Could not load" error (data-driven pages are distorted on localhost; live numbers are the real ones). Main-thread work from JS bundles + `render-blocking-resources` (187ms, the static CSS chunk) + ~11KB `legacy-javascript` are the remaining levers.
   - **⚠️ PRODUCTION INCIDENT (RESOLVED)**: `GET /api/artisans/:id` **500'd for every artisan on the live API** (list/categories/health all worked). **Root cause:** the prod DB was **behind the deployed code by two migrations** — `_prisma_migrations` on prod ended at `20260806120000_add_demo_flags`; `20260808222651_add_notifications` and `20260809000000_add_user_location` (adds `users.address`/`latitude`/`longitude`, which `findOne` selects at `artisan.service.ts:69`) were never applied. The `findOne` query against the missing columns threw Prisma P2021 → Nest's generic 500. `list`/`categories` worked because they never select those columns; local worked because the local DB had the migrations. A non-existent cuid 404'd because no row was found (the broken columns were never SELECTed). The Render log line the customer saw (`ERR_ERL_UNEXPECTED_X_FORWARDED_FOR`) was a separate config bug, not the 500.
     - **Fix (done, via Supabase SQL Editor):** applied the two missing migrations manually (idempotent SQL: `ALTER TABLE users ADD COLUMN IF NOT EXISTS address/latitude/longitude` + full `notifications` table/index/FK) and inserted matching `_prisma_migrations` rows with the exact Prisma checksums (`f6b3de…b321f`, `e1936e…c4e5`) so future `prisma migrate deploy` won't re-apply or conflict. Verified live: `GET /api/artisans/cmsamk6b60004956gefs6r6rx` → 200 with full payload.
