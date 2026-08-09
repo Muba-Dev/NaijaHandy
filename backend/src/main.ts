@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { ValidationPipe } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import express from 'express'
@@ -15,8 +16,9 @@ const rawBodyCapture = (req: any, _res: any, buffer: Buffer) => {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: false })
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false })
   app.use(helmet())
+  app.set('trust proxy', 1)
   app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' })
   if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined'))
