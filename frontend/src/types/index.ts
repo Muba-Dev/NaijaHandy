@@ -3,6 +3,7 @@ export interface Artisan {
   name: string
   profession: string
   city: string
+  phone?: string | null
   address?: string | null
   latitude?: number | null
   longitude?: number | null

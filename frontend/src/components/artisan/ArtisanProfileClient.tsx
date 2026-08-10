@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench } from 'lucide-react'
 import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
-import { formatNGN, isAuthenticated, getApiErrorMessage } from '@/lib/utils'
+import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import LocationMap from '@/components/map/LocationMap'
@@ -93,6 +93,19 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
 
   const tabs = ['about', 'services', 'portfolio', 'reviews']
 
+  const whatsappMessage = (() => {
+    const lines = [
+      `Hello ${artisan?.name}!`,
+      `I found you on NaijaHandy and I'd like to book your ${artisan?.profession} service.`,
+    ]
+    if (bookingDate) lines.push(`Date: ${bookingDate}`)
+    if (bookingTime) lines.push(`Time: ${bookingTime}`)
+    if (jobDesc.trim()) lines.push(`Job details: ${jobDesc.trim()}`)
+    lines.push(`Rate: ${formatNGN(artisan?.hourlyRate ?? 0)}/hr`)
+    return lines.join('\n')
+  })()
+  const whatsappLink = buildWhatsAppLink(artisan?.phone, whatsappMessage)
+
   if (!artisan) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -150,9 +163,21 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
             <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
               <Phone size={15} />Call
             </button>
-            <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <MessageSquare size={15} />Message
-            </button>
+            {whatsappLink && !artisan.isDemo ? (
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Message ${artisan.name} on WhatsApp`}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <MessageSquare size={15} />Message
+              </a>
+            ) : (
+              <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <MessageSquare size={15} />Message
+              </button>
+            )}
             <button
               onClick={toggleSave}
               disabled={saving}
@@ -381,13 +406,25 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                   Demo profile — not bookable
                 </div>
               ) : (
-                <button
-                  onClick={handleBook}
-                  disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
-                  className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
-                </button>
+                <>
+                  <button
+                    onClick={handleBook}
+                    disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
+                    className="block w-full py-3.5 rounded-xl text-white font-semibold text-sm text-center bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
+                  </button>
+                  {whatsappLink && (
+                    <a
+                      href={whatsappLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-full items-center justify-center gap-2 mt-3 py-3.5 rounded-xl font-semibold text-sm text-white text-center bg-[#075E54] hover:opacity-90 transition-opacity"
+                    >
+                      <MessageSquare size={15} aria-hidden="true" />Book via WhatsApp
+                    </a>
+                  )}
+                </>
               )}
               {bookingError && <p className="text-center text-xs text-red-600 mt-2" role="alert">{bookingError}</p>}
               <p className="text-center text-xs text-gray-500 mt-2.5">You&apos;ll be redirected to secure Paystack checkout to complete payment</p>

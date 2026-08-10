@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { deleteE2EBookings, deleteE2EUsers } from './support/db'
-import { login, createBookableArtisan } from './support/helpers'
+import { login, createBookableArtisan, fillBookingDate } from './support/helpers'
 
 const MARKER = `E2E booking ${Date.now()}`
 const API_URL = 'http://localhost:4000/api'
@@ -30,7 +30,7 @@ test.describe('Booking & payment', () => {
 
     await page.goto(`/artisans/${artisan.id}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
-    await page.locator('input[type="date"]').fill(futureDate())
+    await fillBookingDate(page, futureDate())
     await page.getByRole('combobox').selectOption({ label: '10:00 AM' })
     await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — install a kitchen tap`)
     await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()

@@ -259,7 +259,7 @@ The frontend now uses:
 - ✅ Deployed and verified live: backend healthy (`/api/health` → `{"status":"ok","db":"up"}`); logged-out `/api/artisans` returns the 11 profiles (10 demo + 1 real) with demo badge, logged-in non-demo sees zero demo, demo artisans non-bookable, CI green on the new CI DB.
 - ✅ Commit `2b76c5f` (on `origin/main`) carries all five items above; Render + Vercel auto-deploy on push.
 
-## Next Milestone: Growth Roadmap (planned — not started)
+## Next Milestone: Growth Roadmap (in progress — WhatsApp booking shipped)
 
 **Goal:** Make NaijaHandy the most trusted and fastest artisan marketplace in Nigeria.
 
@@ -372,5 +372,16 @@ The frontend now uses:
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Suggested first sprint (high impact, low effort):** WhatsApp booking, skill badges, completed-job history, response-time badges — then P0 trust.
+**Suggested first sprint (high impact, low effort):** WhatsApp booking (✅ done — see below), skill badges, completed-job history, response-time badges — then P0 trust.
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
+
+### WhatsApp booking (Growth Roadmap P1.5) — DONE
+
+- ✅ `Artisan.phone` now flows to the UI: added to the `Artisan` type + `RawArtisan` normalizer (the backend already returned `phone` on `GET /api/artisans/:id`).
+- ✅ `buildWhatsAppLink(phone, message)` helper in `frontend/src/lib/utils.ts`: strips non-digits, prepends `234` to Nigerian `0…` numbers, rejects invalid/short numbers, returns a `https://wa.me/<digits>?text=<encoded>` link.
+- ✅ Public artisan profile (`ArtisanProfileClient.tsx`):
+  - Header "Message" button now opens a WhatsApp chat (teal `#075E54`, AA-contrast safe) prefilled with a greeting, the requested service, and the artisan's hourly rate; non-demo only.
+  - Booking sidebar gains a full-width **"Book via WhatsApp"** button that deep-links `wa.me` with the form's date/time/job-description prefilled. Demo profiles keep the not-bookable notice (no WhatsApp path).
+- ✅ E2E (`browse.spec.ts`): bookable profile shows the WhatsApp link; prefilled message contains the artisan name, date, time, and job description; demo profile hides it. `createBookableArtisan` registers with a phone.
+- ✅ **Test-infra fix (pre-existing flake):** React 19's controlled `<input type="date">` intermittently ignores Playwright's programmatic `fill()` (date state stayed empty → flaky booking + WhatsApp tests). New `fillBookingDate(page, date)` helper clicks + types the `mmddyyyy` digits (5/5 reliable vs 1/3) and asserts the controlled value; now used by `browse.spec.ts` and `booking.spec.ts`.
+- ✅ Verified: frontend `npm run lint` + `npm run build` clean; Playwright `browse` (4) + `booking` (4) specs green. No backend changes required.

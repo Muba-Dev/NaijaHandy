@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createBookableArtisan } from './support/helpers'
+import { createBookableArtisan, fillBookingDate } from './support/helpers'
 import { deleteE2EUsers } from './support/db'
 
 test.afterAll(async () => {
@@ -26,6 +26,7 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
     await expect(page.getByText('Demo profile — not bookable').first()).toBeVisible()
     await expect(page.getByPlaceholder('Describe the job in detail...')).not.toBeVisible()
+    await expect(page.getByRole('link', { name: 'Book via WhatsApp' })).toHaveCount(0)
   })
 
   test('bookable artisan profile shows details and the booking form', async ({ page }) => {
@@ -35,5 +36,26 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByText('Proceed to Book & Pay')).toBeVisible()
     await expect(page.getByPlaceholder('Describe the job in detail...')).toBeVisible()
     await expect(page.getByRole('combobox')).toBeVisible()
+  })
+
+  test('bookable artisan profile offers WhatsApp booking with prefilled details', async ({ page }) => {
+    const artisan = await createBookableArtisan()
+    await page.goto(`/artisans/${artisan.id}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
+
+    await fillBookingDate(page, '2030-01-15')
+    await page.getByRole('combobox').selectOption({ label: '10:00 AM' })
+    await page.getByPlaceholder('Describe the job in detail...').fill('Fix a leaking kitchen tap')
+
+    const whatsapp = page.getByRole('link', { name: 'Book via WhatsApp' })
+    await expect(whatsapp).toBeVisible()
+    await expect(whatsapp).toHaveAttribute('href', /https:\/\/wa\.me\/2347012345678\?text=/)
+    await expect(whatsapp).toHaveAttribute('href', /Date%3A%202030-01-15/)
+    await expect(whatsapp).toHaveAttribute('href', /Time%3A%2010%3A00%20AM/)
+    await expect(whatsapp).toHaveAttribute('href', /Fix%20a%20leaking%20kitchen%20tap/)
+    const href = await whatsapp.getAttribute('href')
+    expect(decodeURIComponent(href || '')).toContain('Hello')
+
+    await expect(page.getByRole('link', { name: /Message/ }).first()).toHaveAttribute('href', href)
   })
 })

@@ -8,6 +8,15 @@ export function formatNGN(amount: number): string {
   return `₦${amount.toLocaleString('en-NG')}`
 }
 
+export function buildWhatsAppLink(phone: string | null | undefined, message: string): string | null {
+  if (!phone) return null
+  let digits = phone.replace(/\D/g, '')
+  if (!digits) return null
+  if (digits.startsWith('0')) digits = `234${digits.slice(1)}`
+  if (digits.length < 10) return null
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+}
+
 export function getApiErrorMessage(err: unknown, fallback: string): string {
   if (err && typeof err === 'object' && 'response' in err) {
     const data = (err as { response?: { data?: unknown } }).response?.data
