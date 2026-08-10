@@ -9,6 +9,7 @@ import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsa
 import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
+import SkillBadges from '@/components/SkillBadges'
 import LocationMap from '@/components/map/LocationMap'
 import type { Artisan } from '@/types'
 
@@ -226,6 +227,12 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                   <div>
                     <h2 className="font-display text-xl font-bold text-gray-900 mb-3">About {artisan.name}</h2>
                     <p className="text-gray-600 leading-relaxed">{artisan.bio}</p>
+                    {artisan.services.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Specialties</h3>
+                        <SkillBadges services={artisan.services} />
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
                       {[
                         { label: 'Hourly Rate', value: formatNGN(artisan.hourlyRate) },

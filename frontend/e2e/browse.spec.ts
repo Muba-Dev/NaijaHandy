@@ -18,6 +18,8 @@ test.describe('Browsing artisans', () => {
   test('search page lists artisans from the API', async ({ page }) => {
     await page.goto('/search')
     await expect(page.getByText('Emeka Okafor')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('Pipe Installation').first()).toBeVisible()
+    await expect(page.getByText('+1 more').first()).toBeVisible()
   })
 
   test('demo artisan profile shows the not-bookable notice', async ({ page }) => {
@@ -27,6 +29,18 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByText('Demo profile — not bookable').first()).toBeVisible()
     await expect(page.getByPlaceholder('Describe the job in detail...')).not.toBeVisible()
     await expect(page.getByRole('link', { name: 'Book via WhatsApp' })).toHaveCount(0)
+  })
+
+  test('artisan profile shows specialty skill badges derived from services', async ({ page }) => {
+    const res = await fetch('http://localhost:4000/api/artisans?q=Emeka')
+    const json = (await res.json()) as { data: Array<{ id: string; user: { name: string } }> }
+    const emeka = json.data[0]
+    await page.goto(`/artisans/${emeka.id}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(emeka.user.name, { timeout: 20_000 })
+    await expect(page.getByRole('heading', { name: 'Specialties' })).toBeVisible()
+    await expect(page.getByText('Pipe Installation').first()).toBeVisible()
+    await expect(page.getByText('Emergency Leak Repair').first()).toBeVisible()
+    await expect(page.getByText('Drain Cleaning').first()).toBeVisible()
   })
 
   test('bookable artisan profile shows details and the booking form', async ({ page }) => {

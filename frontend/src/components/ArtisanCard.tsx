@@ -5,6 +5,7 @@ import type { Artisan } from '@/types'
 import { formatNGN } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from './StarRating'
+import SkillBadges from './SkillBadges'
 
 interface Props {
   artisan: Artisan
@@ -47,7 +48,8 @@ export default function ArtisanCard({ artisan }: Props) {
           />
           <span className="sr-only">{artisan.available ? 'Available now' : 'Currently busy'}</span>
         </div>
-        <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-4">{artisan.bio}</p>
+        <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-3">{artisan.bio}</p>
+        <SkillBadges services={artisan.services} limit={3} className="mb-4" />
         <div className="flex items-center justify-between">
           <StarRating value={artisan.rating} count={artisan.reviews} />
           <span className="text-xs text-gray-500 font-medium">{formatNGN(artisan.hourlyRate)}/hr</span>

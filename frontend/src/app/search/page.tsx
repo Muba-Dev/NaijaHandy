@@ -10,6 +10,7 @@ import { fetchArtisans } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
+import SkillBadges from '@/components/SkillBadges'
 import type { Artisan } from '@/types'
 
 function SearchPage() {
@@ -233,6 +234,7 @@ function SearchPage() {
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 mt-2 line-clamp-2">{a.bio}</p>
+                  <SkillBadges services={a.services} limit={3} className="mt-2" />
                   <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
                     <StarRating value={a.rating} count={a.reviews} />
                     <div className="flex gap-2">

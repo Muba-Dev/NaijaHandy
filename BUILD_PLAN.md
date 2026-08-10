@@ -385,3 +385,13 @@ The frontend now uses:
 - ✅ E2E (`browse.spec.ts`): bookable profile shows the WhatsApp link; prefilled message contains the artisan name, date, time, and job description; demo profile hides it. `createBookableArtisan` registers with a phone.
 - ✅ **Test-infra fix (pre-existing flake):** React 19's controlled `<input type="date">` intermittently ignores Playwright's programmatic `fill()` (date state stayed empty → flaky booking + WhatsApp tests). New `fillBookingDate(page, date)` helper clicks + types the `mmddyyyy` digits (5/5 reliable vs 1/3) and asserts the controlled value; now used by `browse.spec.ts` and `booking.spec.ts`.
 - ✅ Verified: frontend `npm run lint` + `npm run build` clean; Playwright `browse` (4) + `booking` (4) specs green. No backend changes required.
+
+### Skill badges (Growth Roadmap P0.3) — DONE
+
+- ✅ New `SkillBadges` component (`frontend/src/components/SkillBadges.tsx`): renders pill chips from the existing `services` list (`bg-[#ECFDF5]`/`text-[#047857]`, AA-clean), optional `limit` with a `+N more` chip, returns `null` when there are no services.
+- ✅ Shown in three places, all data-driven off the already-shipped `services` payload:
+  - `ArtisanCard` (home featured grid) — up to 3 chips + `+N more` below the bio.
+  - `/search` result cards — up to 3 chips + `+N more` below the bio (the search page has its own inline card markup, not `ArtisanCard`).
+  - Public artisan profile About tab — a **Specialties** `h3` (keeps `h1→h2→h3` order) listing all service names as badges above the stats grid.
+- ✅ No backend changes (list/detail endpoints already return `services`).
+- ✅ E2E (`browse.spec.ts`): search card shows badge chips + `+1 more` (Emeka, 4 seeded services); Emeka's profile shows the Specialties heading + `Pipe Installation`/`Emergency Leak Repair`/`Drain Cleaning`. Verified: frontend lint + build clean; Playwright `browse` (5) green.
