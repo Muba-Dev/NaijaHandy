@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera } from 'lucide-react'
+import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw } from 'lucide-react'
 import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -267,6 +267,14 @@ export default function BookingHistoryPage() {
                         <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600">
                           <CheckCircle2 size={13} />Reviewed
                         </span>
+                      )}
+                      {b.status === 'Completed' && (
+                        <Link
+                          href={`/artisans/${b.artisanId}?bookagain=1&time=${encodeURIComponent(b.time)}&desc=${encodeURIComponent(b.description || '')}`}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-[#047857]/30 rounded-lg text-[#047857] hover:bg-[#047857]/5 transition-colors"
+                        >
+                          <RefreshCw size={13} />Book Again
+                        </Link>
                       )}
                       {b.status === 'Pending' && (
                         <button

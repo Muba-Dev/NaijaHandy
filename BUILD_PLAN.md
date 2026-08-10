@@ -441,3 +441,10 @@ The frontend now uses:
   - Admin → Reviews: thumbnail link to the review photo for moderation.
 - ✅ Tests: `booking.service.spec.ts` — review with photo stores the uploaded URL; upload errors propagate. Backend **77 unit tests** green.
 - ✅ E2E (`review.spec.ts`): book + pay → artisan confirms/completes → customer leaves a 5-star review with a photo → public profile shows the photo + **Verified buyer**; also hardened the e2e cleanup to delete reviews before bookings (FK order). Verified: backend 77 tests; frontend lint + build clean; full Playwright suite **26/26** green.
+
+### Repeat booking — one-tap rehire (Growth Roadmap P2.9) — DONE
+
+- ✅ `/bookings` (customer history): completed booking cards now show a **Book Again** button that links to the artisan's profile with the previous time + job description as query params (`?bookagain=1&time=…&desc=…`).
+- ✅ Public profile booking sidebar: when arriving via `bookagain=1`, it pre-fills the time and job description from the last job, defaults the date to today, shows a green **Rebooking** banner, and smooth-scrolls the booking form into view — so rehiring a trusted artisan is one tap.
+- ✅ Frontend-only change (no backend/schema work needed — rebook reuses the existing create-booking flow).
+- ✅ E2E (`booking.spec.ts`): book + pay → artisan completes → **Book Again** → profile pre-filled (time, description, date) + banner → one-tap re-books and pays through mock Paystack. Verified: frontend lint + build clean; full Playwright suite **27/27** green.

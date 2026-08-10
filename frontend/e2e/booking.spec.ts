@@ -10,6 +10,16 @@ function futureDate(days = 45): string {
   return d.toISOString().slice(0, 10)
 }
 
+async function artisanToken(email: string): Promise<string> {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: 'password123' }),
+  })
+  if (!res.ok) throw new Error(`Artisan login failed: ${res.status}`)
+  return ((await res.json()) as { accessToken: string }).accessToken
+}
+
 async function topArtisan(): Promise<{ id: string; user: { id: string; name: string }; hourlyRate: number }> {
   const res = await fetch(`${API_URL}/artisans`)
   if (!res.ok) throw new Error(`GET /api/artisans failed: ${res.status}`)
@@ -168,5 +178,52 @@ test.describe('Booking & payment', () => {
     await page.getByRole('dialog').getByPlaceholder(/min 10 characters/).fill('Artisan never completed the agreed work properly')
     await page.getByRole('dialog').getByRole('button', { name: 'Submit Dispute' }).click()
     await expect(page.getByText('Dispute raised — our team will review it shortly.')).toBeVisible({ timeout: 20_000 })
+  })
+
+  test('rebooks a completed artisan with pre-filled job details', async ({ page }) => {
+    const artisan = await createBookableArtisan()
+
+    await login(page)
+
+    // First booking: book and pay through mock Paystack.
+    await page.goto(`/artisans/${artisan.id}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
+    await fillBookingDate(page, futureDate())
+    await page.getByRole('combobox').selectOption({ label: '10:00 AM' })
+    await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — rebook me`)
+    await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
+    await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
+
+    // The artisan completes the job.
+    const token = await artisanToken(artisan.email)
+    const list = await fetch(`${API_URL}/bookings`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!list.ok) throw new Error(`GET /api/bookings failed: ${list.status}`)
+    const json = (await list.json()) as { data: Array<{ id: string; description: string | null }> }
+    const booking = json.data.find((b) => b.description?.includes(`${MARKER} — rebook me`))
+    expect(booking).toBeTruthy()
+    for (const status of ['CONFIRMED', 'COMPLETED']) {
+      const res = await fetch(`${API_URL}/bookings/${booking!.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      })
+      expect(res.ok).toBeTruthy()
+    }
+
+    // The completed card offers "Book Again", which pre-fills the profile form.
+    await page.goto('/bookings')
+    const card = page.locator('div.bg-white.rounded-2xl', { hasText: `${MARKER} — rebook me` })
+    await expect(card.getByText('Completed')).toBeVisible({ timeout: 15_000 })
+    await card.getByRole('link', { name: 'Book Again' }).click()
+    await expect(page).toHaveURL(/bookagain=1/, { timeout: 15_000 })
+
+    await expect(page.getByText(/Rebooking/)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('combobox')).toHaveValue('10:00 AM')
+    await expect(page.getByPlaceholder('Describe the job in detail...')).toHaveValue(`${MARKER} — rebook me`)
+    await expect(page.locator('input[type="date"]')).not.toHaveValue('')
+
+    // One tap re-books the same artisan.
+    await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
+    await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
   })
 })

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { MapPin, CheckCircle, Clock, XCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { MapPin, CheckCircle, Clock, XCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap, RefreshCw } from 'lucide-react'
 import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
 import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink, isWhatsAppPhone } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -15,10 +15,12 @@ import type { Artisan } from '@/types'
 
 export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | null }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('about')
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('')
   const [jobDesc, setJobDesc] = useState('')
+  const [rebookActive, setRebookActive] = useState(false)
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [bookingError, setBookingError] = useState('')
@@ -33,6 +35,20 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
         .catch(() => setSaved(false))
     }
   }, [artisan])
+
+  useEffect(() => {
+    if (searchParams.get('bookagain') !== '1') return
+    const time = searchParams.get('time')
+    const desc = searchParams.get('desc')
+    setBookingTime(time || '')
+    setJobDesc(desc || '')
+    setRebookActive(true)
+    setBookingDate(new Date().toLocaleDateString('en-CA'))
+    const t = window.setTimeout(() => {
+      document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [searchParams])
 
   const toggleSave = async () => {
     if (!artisan) return
@@ -378,8 +394,16 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
           </div>
 
           {/* Sticky booking sidebar */}
-          <div className="w-full lg:w-80 shrink-0">
+          <div id="booking-form" className="w-full lg:w-80 shrink-0">
             <div className="bg-white rounded-2xl border border-gray-100 p-5 sticky top-20">
+              {rebookActive && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
+                  <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                    <RefreshCw size={13} aria-hidden="true" />Rebooking {artisan.name}
+                  </p>
+                  <p className="text-xs text-emerald-700 mt-1">Your previous job details are pre-filled — pick a date and book again.</p>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <span className="font-display text-2xl font-bold text-gray-900">{formatNGN(artisan.hourlyRate)}</span>
