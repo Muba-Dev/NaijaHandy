@@ -411,3 +411,19 @@ The frontend now uses:
 - ✅ Refactored `frontend/src/lib/utils.ts`: extracted `parsePhoneDigits()` (shared digit-normalisation) + new `isWhatsAppPhone()`; `buildWhatsAppLink()` reuses it.
 - ✅ Public artisan profile header now shows a neutral **Quick responder** badge (Zap icon, amber) for any artisan with a valid WhatsApp-parseable phone number **and** `available: true` — the roadmap's "low effort now" proxy signal. Neutral by design: no harm while unmeasured; can be upgraded to measured first-response time later.
 - ✅ E2E (`browse.spec.ts`): Emeka (valid phone + available) shows `Quick responder`; Chidi (busy) does not. Verified: frontend lint + build clean; Playwright `browse` (6) green.
+
+### Real ID verification (Growth Roadmap P0.1) — DONE
+
+- ✅ Schema: new `verificationDocUrl` column on `ArtisanProfile`; `verificationStatus` extended to `UNVERIFIED | PENDING | VERIFIED | REJECTED` (migration `20260810215747_add_verification_document`).
+- ✅ Backend:
+  - `UploadService.uploadVerificationDocument` (folder `naijahandy/verification`, no crop).
+  - `POST /api/artisans/me/verification-document` (artisan auth): uploads the ID image, sets status `PENDING`; blocks resubmission while a doc is already pending; allows resubmission after a rejection.
+  - Public `findOne` **strips `verificationDocUrl`** (never leaks the document) but exposes `verificationStatus` for badge states.
+  - Admin `setArtisanVerification` now accepts `REJECTED`; verify/reject send an email + in-app notification (`IDENTITY_VERIFIED`/`IDENTITY_REJECTED` — new notification types).
+- ✅ Frontend:
+  - Public profile header badges: **Verification pending** (amber) / **Verification rejected** (red) alongside the existing Verified badge.
+  - Artisan dashboard → My Profile: new **ID Verification** card with status pill (Not submitted / Pending review / Rejected / Verified), document upload, previously-submitted preview, and clear reject/pending messaging.
+  - Admin → Artisans: verification pill tones for PENDING/REJECTED, a **View ID** link to the submitted document, and Verify/Reject actions when pending (Verify/Unverify otherwise).
+- ✅ Tests: `artisan.service.spec.ts` — submit sets PENDING + stores URL, blocks while pending, allows resubmit after rejection, NotFound when missing, and `findOne` strips the doc URL. Backend **76 unit tests** green.
+- ✅ E2E (`verification.spec.ts`): artisan uploads a 1×1 PNG → dashboard shows Pending review → admin rejects → dashboard shows Rejected → admin verifies → dashboard shows Verified; public profile shows **Verified Artisan**; public API returns `verified: true` with **no** `verificationDocUrl`.
+- ✅ Verified: backend `tsc` + 76 unit tests; frontend lint + build clean; Playwright browse (6) + booking (4) + verification (1) + dashboard/settings/auth/seo/a11y (14) all green.

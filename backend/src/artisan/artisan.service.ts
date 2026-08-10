@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { UploadService } from '../upload/upload.service'
 
@@ -86,7 +86,8 @@ export class ArtisanService {
         select: { id: true, description: true, date: true },
       }),
     ])
-    return { ...artisan, completedJobsCount, recentCompletedJobs }
+    const { verificationDocUrl: _docUrl, ...publicProfile } = artisan
+    return { ...publicProfile, completedJobsCount, recentCompletedJobs }
   }
 
   async findMe(userId: string) {
@@ -123,6 +124,19 @@ export class ArtisanService {
     const imageUrl = await this.uploadService.uploadPortfolio(dataUrl)
     return this.prisma.portfolioItem.create({
       data: { artisanId: profile.id, imageUrl, caption: caption || null },
+    })
+  }
+
+  async submitVerificationDocument(userId: string, dataUrl: string) {
+    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('Artisan profile not found')
+    if (profile.verificationStatus === 'PENDING') {
+      throw new BadRequestException('A verification document is already pending review')
+    }
+    const verificationDocUrl = await this.uploadService.uploadVerificationDocument(dataUrl)
+    return this.prisma.artisanProfile.update({
+      where: { id: profile.id },
+      data: { verificationDocUrl, verificationStatus: 'PENDING' },
     })
   }
 

@@ -57,6 +57,13 @@ export class ArtisanController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ARTISAN')
+  @Post('me/verification-document')
+  async submitVerificationDocument(@Req() req: any, @Body() body: { image?: string }) {
+    return { data: await this.artisanService.submitVerificationDocument(req.user.id, body.image || '') }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ARTISAN')
   @Delete('me/portfolio/:id')
   async removePortfolio(@Req() req: any, @Param('id') id: string) {
     return { data: await this.artisanService.removePortfolio(req.user.id, id) }

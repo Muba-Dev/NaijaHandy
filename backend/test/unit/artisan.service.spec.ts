@@ -1,12 +1,12 @@
 import { ArtisanService } from '../../src/artisan/artisan.service'
-import { NotFoundException } from '@nestjs/common'
+import { NotFoundException, BadRequestException } from '@nestjs/common'
 
 describe('ArtisanService', () => {
   const artisanProfile = { groupBy: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() }
   const portfolioItem = { create: jest.fn(), findFirst: jest.fn(), delete: jest.fn() }
   const booking = { count: jest.fn(), findMany: jest.fn() }
   const prisma = { artisanProfile, portfolioItem, booking } as any
-  const uploadService = { uploadCover: jest.fn(), uploadPortfolio: jest.fn() } as any
+  const uploadService = { uploadCover: jest.fn(), uploadPortfolio: jest.fn(), uploadVerificationDocument: jest.fn() } as any
   const service = new ArtisanService(prisma, uploadService)
 
   afterEach(() => jest.clearAllMocks())
@@ -115,6 +115,21 @@ describe('ArtisanService', () => {
         expect.objectContaining({ where: { artisanId: 'art-1', status: 'COMPLETED' }, orderBy: { createdAt: 'desc' }, take: 5 }),
       )
     })
+
+    it('strips the verification document URL from the public payload but keeps the status', async () => {
+      artisanProfile.findFirst.mockResolvedValue({
+        id: 'profile-1',
+        verificationStatus: 'PENDING',
+        verificationDocUrl: 'https://private/doc.jpg',
+      })
+      booking.count.mockResolvedValue(0)
+      booking.findMany.mockResolvedValue([])
+
+      const result = await service.findOne('art-1')
+
+      expect(result.verificationStatus).toBe('PENDING')
+      expect(result).not.toHaveProperty('verificationDocUrl')
+    })
   })
 
   describe('updateCover', () => {
@@ -165,6 +180,46 @@ describe('ArtisanService', () => {
     it('throws when the artisan profile does not exist', async () => {
       artisanProfile.findUnique.mockResolvedValue(null)
       await expect(service.addPortfolio('u1', 'data:image/jpeg;base64,xxx')).rejects.toThrow(NotFoundException)
+    })
+  })
+
+  describe('submitVerificationDocument', () => {
+    it('uploads the document and sets the status to PENDING', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1', verificationStatus: 'UNVERIFIED' })
+      uploadService.uploadVerificationDocument.mockResolvedValue('https://cloudinary.com/id.jpg')
+      artisanProfile.update.mockResolvedValue({ id: 'profile-1', verificationStatus: 'PENDING', verificationDocUrl: 'https://cloudinary.com/id.jpg' })
+
+      const result = await service.submitVerificationDocument('u1', 'data:image/jpeg;base64,xxx')
+
+      expect(uploadService.uploadVerificationDocument).toHaveBeenCalledWith('data:image/jpeg;base64,xxx')
+      expect(artisanProfile.update).toHaveBeenCalledWith({
+        where: { id: 'profile-1' },
+        data: { verificationDocUrl: 'https://cloudinary.com/id.jpg', verificationStatus: 'PENDING' },
+      })
+      expect(result.verificationStatus).toBe('PENDING')
+    })
+
+    it('allows resubmission after a rejection', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1', verificationStatus: 'REJECTED' })
+      uploadService.uploadVerificationDocument.mockResolvedValue('https://cloudinary.com/id2.jpg')
+      artisanProfile.update.mockResolvedValue({ id: 'profile-1', verificationStatus: 'PENDING' })
+
+      await expect(service.submitVerificationDocument('u1', 'data:image/jpeg;base64,xxx')).resolves.toMatchObject({
+        verificationStatus: 'PENDING',
+      })
+    })
+
+    it('blocks resubmission while a document is already pending', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ id: 'profile-1', userId: 'u1', verificationStatus: 'PENDING' })
+
+      await expect(service.submitVerificationDocument('u1', 'data:image/jpeg;base64,xxx')).rejects.toThrow(BadRequestException)
+      expect(uploadService.uploadVerificationDocument).not.toHaveBeenCalled()
+    })
+
+    it('throws when the artisan profile does not exist', async () => {
+      artisanProfile.findUnique.mockResolvedValue(null)
+      await expect(service.submitVerificationDocument('u1', 'data:image/jpeg;base64,xxx')).rejects.toThrow(NotFoundException)
+      expect(uploadService.uploadVerificationDocument).not.toHaveBeenCalled()
     })
   })
 

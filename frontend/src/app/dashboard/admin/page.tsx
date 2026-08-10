@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
-  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw,
+  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText,
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import StatusBadge from '@/components/StatusBadge'
@@ -44,6 +44,13 @@ function Pill({ label, tone }: { label: string; tone: 'green' | 'amber' | 'red' 
 
 function approvalTone(s: string): 'green' | 'amber' | 'red' | 'gray' {
   if (s === 'APPROVED') return 'green'
+  if (s === 'PENDING') return 'amber'
+  if (s === 'REJECTED') return 'red'
+  return 'gray'
+}
+
+function verificationTone(s: string): 'green' | 'amber' | 'red' | 'gray' {
+  if (s === 'VERIFIED') return 'green'
   if (s === 'PENDING') return 'amber'
   if (s === 'REJECTED') return 'red'
   return 'gray'
@@ -338,7 +345,7 @@ export default function AdminDashboardPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-gray-900 text-sm">{a.user.name}</p>
                         <Pill label={a.approvalStatus} tone={approvalTone(a.approvalStatus)} />
-                        <Pill label={a.verificationStatus} tone={a.verificationStatus === 'VERIFIED' ? 'green' : 'gray'} />
+                        <Pill label={a.verificationStatus} tone={verificationTone(a.verificationStatus)} />
                         <Pill label={a.user.status} tone={a.user.status === 'SUSPENDED' ? 'red' : 'green'} />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
@@ -356,7 +363,26 @@ export default function AdminDashboardPage() {
                           <X size={13} /> Reject
                         </button>
                       )}
-                      {a.verificationStatus !== 'VERIFIED' ? (
+                      {a.verificationDocUrl && (
+                        <a
+                          href={a.verificationDocUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          <FileText size={13} /> View ID
+                        </a>
+                      )}
+                      {a.verificationStatus === 'PENDING' ? (
+                        <>
+                          <button disabled={busyId === a.id} onClick={() => onVerify(a.id, 'VERIFIED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50">
+                            <Check size={13} /> Verify
+                          </button>
+                          <button disabled={busyId === a.id} onClick={() => onVerify(a.id, 'REJECTED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50">
+                            <X size={13} /> Reject
+                          </button>
+                        </>
+                      ) : a.verificationStatus !== 'VERIFIED' ? (
                         <button disabled={busyId === a.id} onClick={() => onVerify(a.id, 'VERIFIED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50">
                           <Check size={13} /> Verify
                         </button>

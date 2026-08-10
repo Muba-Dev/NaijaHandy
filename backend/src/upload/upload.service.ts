@@ -29,6 +29,10 @@ export class UploadService {
     return this.uploadImage(dataUrl, 'naijahandy/portfolio', [{ width: 1200, height: 900, crop: 'fill' }], 'portfolio image')
   }
 
+  async uploadVerificationDocument(dataUrl: string): Promise<string> {
+    return this.uploadImage(dataUrl, 'naijahandy/verification', [], 'verification document')
+  }
+
   private async uploadImage(dataUrl: string, folder: string, transformation: Record<string, unknown>[], label: string): Promise<string> {
     const { mime, buffer } = this.parseDataUrl(dataUrl)
 

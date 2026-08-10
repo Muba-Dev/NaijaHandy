@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap } from 'lucide-react'
+import { MapPin, CheckCircle, Clock, XCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap } from 'lucide-react'
 import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
 import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink, isWhatsAppPhone } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -143,6 +143,16 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
               {artisan.verified && (
                 <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#ECFDF5] text-[#047857]">
                   <CheckCircle size={12} /> Verified Artisan
+                </span>
+              )}
+              {artisan.verificationStatus === 'PENDING' && (
+                <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+                  <Clock size={12} /> Verification pending
+                </span>
+              )}
+              {artisan.verificationStatus === 'REJECTED' && (
+                <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-700">
+                  <XCircle size={12} /> Verification rejected
                 </span>
               )}
               {artisan.isDemo && (

@@ -4,7 +4,7 @@ import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
 
 const APPROVAL_STATUSES = ['PENDING', 'APPROVED', 'REJECTED']
-const VERIFICATION_STATUSES = ['UNVERIFIED', 'VERIFIED']
+const VERIFICATION_STATUSES = ['UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED']
 const USER_STATUSES = ['ACTIVE', 'SUSPENDED']
 const REVIEW_STATUSES = ['APPROVED', 'HIDDEN']
 const DISPUTE_STATUSES = ['OPEN', 'RESOLVED', 'DISMISSED']
@@ -103,7 +103,7 @@ export class AdminService {
     if (!VERIFICATION_STATUSES.includes(verificationStatus)) throw new BadRequestException('Invalid verification status')
     const artisan = await this.prisma.artisanProfile.findUnique({
       where: { id },
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true } } },
     })
     if (!artisan) throw new NotFoundException('Artisan not found')
     const updated = await this.prisma.artisanProfile.update({
@@ -115,6 +115,17 @@ export class AdminService {
       name: artisan.user.name,
       verificationStatus,
     })
+    if (verificationStatus === 'VERIFIED' || verificationStatus === 'REJECTED') {
+      await this.notificationsService.create(artisan.user.id, {
+        type: verificationStatus === 'VERIFIED' ? 'IDENTITY_VERIFIED' : 'IDENTITY_REJECTED',
+        title: verificationStatus === 'VERIFIED' ? 'Identity verified' : 'Verification rejected',
+        body:
+          verificationStatus === 'VERIFIED'
+            ? 'Your identity document was approved. You now carry the verified badge.'
+            : 'Your identity document was rejected. Please review and resubmit.',
+        link: '/dashboard/artisan/profile',
+      })
+    }
     return updated
   }
 

@@ -11,6 +11,8 @@ export const NOTIFICATION_TYPES = [
   'PROFILE_APPROVED',
   'PROFILE_REJECTED',
   'PAYMENT_RECEIVED',
+  'IDENTITY_VERIFIED',
+  'IDENTITY_REJECTED',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]

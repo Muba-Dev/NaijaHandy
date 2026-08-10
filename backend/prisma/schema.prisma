@@ -104,7 +104,8 @@ model ArtisanProfile {
   verified    Boolean  @default(false)
   available   Boolean  @default(true)
   approvalStatus    String @default("PENDING")   // PENDING | APPROVED | REJECTED
-  verificationStatus String @default("UNVERIFIED") // UNVERIFIED | VERIFIED
+  verificationStatus String @default("UNVERIFIED") // UNVERIFIED | PENDING | VERIFIED | REJECTED
+  verificationDocUrl String?
   isDemo   Boolean  @default(false)
   avgRating   Float    @default(0)
   totalReviews Int     @default(0)

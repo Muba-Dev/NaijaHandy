@@ -11,6 +11,8 @@ export interface Artisan {
   reviews: number
   hourlyRate: number
   verified: boolean
+  verificationStatus: string
+  verificationDocUrl?: string | null
   bio: string
   avatar: string
   cover: string
@@ -108,7 +110,7 @@ export interface AuthUser {
 export type AdminUserRole = 'CUSTOMER' | 'ARTISAN' | 'ADMIN'
 export type UserStatus = 'ACTIVE' | 'SUSPENDED'
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
-export type VerificationStatus = 'UNVERIFIED' | 'VERIFIED'
+export type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'REJECTED'
 export type ReviewStatus = 'APPROVED' | 'HIDDEN'
 export type DisputeStatus = 'OPEN' | 'RESOLVED' | 'DISMISSED'
 
@@ -136,6 +138,7 @@ export interface AdminArtisan {
   totalReviews: number
   approvalStatus: ApprovalStatus
   verificationStatus: VerificationStatus
+  verificationDocUrl?: string | null
   createdAt: string
   user: {
     id: string

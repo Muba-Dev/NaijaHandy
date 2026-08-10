@@ -60,6 +60,8 @@ type RawArtisan = {
   hourlyRate: number
   coverImage: string | null
   verified: boolean
+  verificationStatus?: string
+  verificationDocUrl?: string | null
   available: boolean
   isDemo: boolean
   avgRating: number
@@ -91,6 +93,8 @@ function normalizeArtisan(a: RawArtisan): Artisan {
     reviews: a.totalReviews,
     hourlyRate: a.hourlyRate,
     verified: a.verified,
+    verificationStatus: a.verificationStatus || 'UNVERIFIED',
+    verificationDocUrl: a.verificationDocUrl ?? null,
     bio: a.bio,
     avatar: a.user.avatar || '',
     cover: a.coverImage || '',
@@ -252,6 +256,11 @@ export async function updateArtisanCover(image: string) {
 
 export async function uploadPortfolioItem(image: string, caption?: string) {
   const { data } = await api.post('/artisans/me/portfolio', { image, caption })
+  return data.data
+}
+
+export async function submitVerificationDocument(image: string) {
+  const { data } = await api.post('/artisans/me/verification-document', { image })
   return data.data
 }
 
