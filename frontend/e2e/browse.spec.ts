@@ -43,6 +43,19 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByText('Drain Cleaning').first()).toBeVisible()
   })
 
+  test('artisan profile shows real completed-job history', async ({ page }) => {
+    const res = await fetch('http://localhost:4000/api/artisans?q=Chidi')
+    const json = (await res.json()) as { data: Array<{ id: string; user: { name: string } }> }
+    const chidi = json.data[0]
+    await page.goto(`/artisans/${chidi.id}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(chidi.user.name, { timeout: 20_000 })
+    await expect(page.getByRole('heading', { name: 'Work History' })).toBeVisible()
+    await expect(page.getByText('Build custom bookshelf').first()).toBeVisible()
+    await expect(
+      page.locator('div.bg-gray-50.rounded-xl', { hasText: 'Jobs Completed' }).getByText('1', { exact: true }),
+    ).toBeVisible()
+  })
+
   test('bookable artisan profile shows details and the booking form', async ({ page }) => {
     const artisan = await createBookableArtisan()
     await page.goto(`/artisans/${artisan.id}`)

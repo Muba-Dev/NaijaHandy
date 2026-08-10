@@ -77,7 +77,16 @@ export class ArtisanService {
       },
     })
     if (!artisan) throw new NotFoundException('Artisan not found')
-    return artisan
+    const [completedJobsCount, recentCompletedJobs] = await Promise.all([
+      this.prisma.booking.count({ where: { artisanId: id, status: 'COMPLETED' } }),
+      this.prisma.booking.findMany({
+        where: { artisanId: id, status: 'COMPLETED' },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, description: true, date: true },
+      }),
+    ])
+    return { ...artisan, completedJobsCount, recentCompletedJobs }
   }
 
   async findMe(userId: string) {

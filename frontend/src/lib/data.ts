@@ -34,6 +34,8 @@ export const ARTISANS: Artisan[] = [
       { name: 'Bathroom Fitting', rate: 45000 },
       { name: 'Drain Cleaning', rate: 6000 },
     ],
+    completedJobsCount: 0,
+    recentCompletedJobs: [],
     reviews_list: [
       { name: 'Chisom Eze', rating: 5, comment: 'Fixed our burst pipe in under an hour. Absolutely professional!', date: '2 weeks ago', avatar: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=40&h=40&fit=crop&auto=format' },
       { name: 'Bayo Adeleke', rating: 5, comment: 'Emeka is incredibly skilled and punctual. Highly recommended.', date: '1 month ago', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&auto=format' },
@@ -57,6 +59,8 @@ export const ARTISANS: Artisan[] = [
     isDemo: true,
     portfolio: [],
     services: [],
+    completedJobsCount: 0,
+    recentCompletedJobs: [],
     reviews_list: [],
   },
   {
@@ -76,6 +80,8 @@ export const ARTISANS: Artisan[] = [
     isDemo: true,
     portfolio: [],
     services: [],
+    completedJobsCount: 0,
+    recentCompletedJobs: [],
     reviews_list: [],
   },
   {
@@ -95,6 +101,8 @@ export const ARTISANS: Artisan[] = [
     isDemo: true,
     portfolio: [],
     services: [],
+    completedJobsCount: 0,
+    recentCompletedJobs: [],
     reviews_list: [],
   },
   {
@@ -114,6 +122,8 @@ export const ARTISANS: Artisan[] = [
     isDemo: true,
     portfolio: [],
     services: [],
+    completedJobsCount: 0,
+    recentCompletedJobs: [],
     reviews_list: [],
   },
   {
@@ -133,6 +143,8 @@ export const ARTISANS: Artisan[] = [
     isDemo: true,
     portfolio: [],
     services: [],
+    completedJobsCount: 0,
+    recentCompletedJobs: [],
     reviews_list: [],
   },
 ]

@@ -4,7 +4,8 @@ import { NotFoundException } from '@nestjs/common'
 describe('ArtisanService', () => {
   const artisanProfile = { groupBy: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() }
   const portfolioItem = { create: jest.fn(), findFirst: jest.fn(), delete: jest.fn() }
-  const prisma = { artisanProfile, portfolioItem } as any
+  const booking = { count: jest.fn(), findMany: jest.fn() }
+  const prisma = { artisanProfile, portfolioItem, booking } as any
   const uploadService = { uploadCover: jest.fn(), uploadPortfolio: jest.fn() } as any
   const service = new ArtisanService(prisma, uploadService)
 
@@ -95,6 +96,23 @@ describe('ArtisanService', () => {
       await service.findOne('art-1').catch(() => null)
       expect(artisanProfile.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'art-1', approvalStatus: 'APPROVED' } }),
+      )
+    })
+
+    it('returns the completed-job count and recent completed jobs', async () => {
+      artisanProfile.findFirst.mockResolvedValue({ id: 'profile-1' })
+      booking.count.mockResolvedValue(3)
+      booking.findMany.mockResolvedValue([{ id: 'b1', description: 'Fix leaking sink', date: new Date('2026-07-19') }])
+
+      const result = await service.findOne('art-1')
+
+      expect(result).toMatchObject({
+        completedJobsCount: 3,
+        recentCompletedJobs: [{ id: 'b1', description: 'Fix leaking sink', date: expect.any(Date) }],
+      })
+      expect(booking.count).toHaveBeenCalledWith({ where: { artisanId: 'art-1', status: 'COMPLETED' } })
+      expect(booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { artisanId: 'art-1', status: 'COMPLETED' }, orderBy: { createdAt: 'desc' }, take: 5 }),
       )
     })
   })

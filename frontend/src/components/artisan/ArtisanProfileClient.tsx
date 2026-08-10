@@ -236,7 +236,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
                       {[
                         { label: 'Hourly Rate', value: formatNGN(artisan.hourlyRate) },
-                        { label: 'Jobs Completed', value: `${artisan.reviews}+` },
+                        { label: 'Jobs Completed', value: String(artisan.completedJobsCount) },
                         { label: 'Avg. Rating', value: `${artisan.rating} / 5` },
                         { label: 'Verification', value: artisan.verified ? 'Verified' : 'Pending' },
                         { label: 'Availability', value: artisan.available ? 'Available now' : 'Currently busy' },
@@ -248,6 +248,22 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                         </div>
                       ))}
                     </div>
+                    {artisan.recentCompletedJobs.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Work History</h3>
+                        <div className="space-y-3">
+                          {artisan.recentCompletedJobs.map((j) => (
+                            <div key={j.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <CheckCircle size={16} className="text-[#047857] shrink-0" aria-hidden="true" />
+                                <span className="text-sm text-gray-800 truncate">{j.description}</span>
+                              </div>
+                              <span className="text-xs text-gray-500 shrink-0 ml-3">{j.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

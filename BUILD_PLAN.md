@@ -395,3 +395,13 @@ The frontend now uses:
   - Public artisan profile About tab — a **Specialties** `h3` (keeps `h1→h2→h3` order) listing all service names as badges above the stats grid.
 - ✅ No backend changes (list/detail endpoints already return `services`).
 - ✅ E2E (`browse.spec.ts`): search card shows badge chips + `+1 more` (Emeka, 4 seeded services); Emeka's profile shows the Specialties heading + `Pipe Installation`/`Emergency Leak Repair`/`Drain Cleaning`. Verified: frontend lint + build clean; Playwright `browse` (5) green.
+
+### Completed-job history (Growth Roadmap P0.4) — DONE
+
+- ✅ Backend `ArtisanService.findOne` now returns `completedJobsCount` (count of `COMPLETED` bookings for the artisan) + `recentCompletedJobs` (last 5 completed bookings: `id`, `description`, `date`), fetched in parallel with `Promise.all`. No schema change.
+- ✅ Frontend: `Artisan` type gains `completedJobsCount` + `recentCompletedJobs` (new `CompletedJob` type); normalizer maps + formats dates (`en-NG` locale); mock data updated.
+- ✅ Public profile About tab:
+  - The **Jobs Completed** stat now shows the **real** completed-booking count (previously a fake `reviews+` figure).
+  - New **Work History** section (visible only when there are completed jobs) lists recent jobs with a check icon, truncated description, and the job date.
+- ✅ Unit test: `artisan.service.spec.ts` asserts the count + recent-jobs query shape (`where { artisanId, status: 'COMPLETED' }`, `take: 5`). Backend build + **71 unit tests** green.
+- ✅ E2E (`browse.spec.ts`): Chidi (1 seeded completed booking) shows the Work History heading, `Build custom bookshelf`, and a `Jobs Completed` stat of `1`. Verified: frontend lint + build clean; Playwright `browse` (6) + `booking` (4) specs green.

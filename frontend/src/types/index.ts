@@ -17,9 +17,17 @@ export interface Artisan {
   category: string
   available: boolean
   isDemo: boolean
+  completedJobsCount: number
+  recentCompletedJobs: CompletedJob[]
   portfolio: PortfolioItem[]
   services: Service[]
   reviews_list: Review[]
+}
+
+export interface CompletedJob {
+  id: string
+  description: string
+  date: string
 }
 
 export interface PortfolioItem {

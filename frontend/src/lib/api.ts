@@ -67,6 +67,8 @@ type RawArtisan = {
   user: { id: string; name: string; city: string | null; avatar: string | null; phone?: string | null; address?: string | null; latitude?: number | null; longitude?: number | null }
   services: { name: string; rate: number }[]
   portfolio?: { id: string; imageUrl: string; caption?: string | null }[]
+  completedJobsCount?: number
+  recentCompletedJobs?: { id: string; description: string; date: string }[]
   reviews?: {
     rating: number
     comment: string
@@ -95,6 +97,12 @@ function normalizeArtisan(a: RawArtisan): Artisan {
     category: a.category,
     available: a.available,
     isDemo: a.isDemo,
+    completedJobsCount: a.completedJobsCount ?? 0,
+    recentCompletedJobs: (a.recentCompletedJobs || []).map((j) => ({
+      id: j.id,
+      description: j.description,
+      date: new Date(j.date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }),
+    })),
     portfolio: (a.portfolio || []).map((p) => ({
       id: p.id,
       imageUrl: p.imageUrl,
