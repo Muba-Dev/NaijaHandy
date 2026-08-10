@@ -427,3 +427,17 @@ The frontend now uses:
 - ✅ Tests: `artisan.service.spec.ts` — submit sets PENDING + stores URL, blocks while pending, allows resubmit after rejection, NotFound when missing, and `findOne` strips the doc URL. Backend **76 unit tests** green.
 - ✅ E2E (`verification.spec.ts`): artisan uploads a 1×1 PNG → dashboard shows Pending review → admin rejects → dashboard shows Rejected → admin verifies → dashboard shows Verified; public profile shows **Verified Artisan**; public API returns `verified: true` with **no** `verificationDocUrl`.
 - ✅ Verified: backend `tsc` + 76 unit tests; frontend lint + build clean; Playwright browse (6) + booking (4) + verification (1) + dashboard/settings/auth/seo/a11y (14) all green.
+
+### Review photos + verified-buyer tag (Growth Roadmap P0.2) — DONE
+
+- ✅ Schema: optional `photoUrl` on `Review` (migration `add_review_photo`).
+- ✅ Backend:
+  - `UploadService.uploadReviewPhoto` (folder `naijahandy/reviews`, 800×600 fill).
+  - `BookingService.createReview` now takes an optional `photoUrl`, uploads before persisting, and stores it; `BookingModule` imports `UploadModule`.
+  - `POST /api/bookings/:id/review` accepts an optional `photoUrl`.
+- ✅ Frontend:
+  - `/bookings`: the review dialog lets the customer attach a photo (preview + remove) and submits it with the rating/comment.
+  - Public profile Reviews tab: renders the work photo and a **Verified buyer** badge next to the reviewer name (reviews only come from completed bookings, so the tag is always accurate).
+  - Admin → Reviews: thumbnail link to the review photo for moderation.
+- ✅ Tests: `booking.service.spec.ts` — review with photo stores the uploaded URL; upload errors propagate. Backend **77 unit tests** green.
+- ✅ E2E (`review.spec.ts`): book + pay → artisan confirms/completes → customer leaves a 5-star review with a photo → public profile shows the photo + **Verified buyer**; also hardened the e2e cleanup to delete reviews before bookings (FK order). Verified: backend 77 tests; frontend lint + build clean; full Playwright suite **26/26** green.

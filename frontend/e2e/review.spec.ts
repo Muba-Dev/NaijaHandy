@@ -60,8 +60,10 @@ test.describe('Review with photo', () => {
     }
 
     await page.goto('/bookings')
-    await expect(page.getByText('Completed').first()).toBeVisible({ timeout: 15_000 })
-    await page.getByRole('button', { name: 'Leave Review' }).first().click()
+    const card = page.locator('div.bg-white.rounded-2xl', { hasText: MARKER })
+    await expect(card.getByText('Completed')).toBeVisible({ timeout: 15_000 })
+    await card.getByRole('button', { name: 'Leave Review' }).click()
+    await expect(page.getByRole('dialog').getByText(artisan.user.name)).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: '5 stars' }).click()
     await page.getByLabel('Share your experience').fill(`${MARKER} — excellent work, very tidy.`)
     await page.locator('#review-photo').setInputFiles({
@@ -71,7 +73,8 @@ test.describe('Review with photo', () => {
     })
     await expect(page.getByAltText('Review photo preview')).toBeVisible()
     await page.getByRole('button', { name: 'Submit Review' }).click()
-    await expect(page.getByText('Reviewed').first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Thanks! Your review has been published.')).toBeVisible({ timeout: 15_000 })
+    await expect(card.getByText('Reviewed')).toBeVisible({ timeout: 15_000 })
 
     // The public profile shows the photo review with the verified-buyer tag.
     await page.goto(`/artisans/${artisan.id}`)
