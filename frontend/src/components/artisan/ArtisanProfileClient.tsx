@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench } from 'lucide-react'
+import { MapPin, CheckCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap } from 'lucide-react'
 import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
-import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink } from '@/lib/utils'
+import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink, isWhatsAppPhone } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import SkillBadges from '@/components/SkillBadges'
@@ -158,6 +158,11 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
               <span className={`text-sm font-medium ${artisan.available ? 'text-emerald-700' : 'text-gray-600'}`}>
                 {artisan.available ? '● Available Now' : '○ Currently Busy'}
               </span>
+              {isWhatsAppPhone(artisan.phone) && artisan.available && (
+                <span className="flex items-center gap-1 text-sm text-gray-500">
+                  <Zap size={14} className="text-[#F59E0B]" aria-hidden="true" />Quick responder
+                </span>
+              )}
             </div>
           </div>
           <div className="flex gap-2 shrink-0 flex-wrap">

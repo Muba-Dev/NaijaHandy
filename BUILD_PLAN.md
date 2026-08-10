@@ -405,3 +405,9 @@ The frontend now uses:
   - New **Work History** section (visible only when there are completed jobs) lists recent jobs with a check icon, truncated description, and the job date.
 - ✅ Unit test: `artisan.service.spec.ts` asserts the count + recent-jobs query shape (`where { artisanId, status: 'COMPLETED' }`, `take: 5`). Backend build + **71 unit tests** green.
 - ✅ E2E (`browse.spec.ts`): Chidi (1 seeded completed booking) shows the Work History heading, `Build custom bookshelf`, and a `Jobs Completed` stat of `1`. Verified: frontend lint + build clean; Playwright `browse` (6) + `booking` (4) specs green.
+
+### Response-time badges (Growth Roadmap P3.12 — low-effort proxy) — DONE
+
+- ✅ Refactored `frontend/src/lib/utils.ts`: extracted `parsePhoneDigits()` (shared digit-normalisation) + new `isWhatsAppPhone()`; `buildWhatsAppLink()` reuses it.
+- ✅ Public artisan profile header now shows a neutral **Quick responder** badge (Zap icon, amber) for any artisan with a valid WhatsApp-parseable phone number **and** `available: true` — the roadmap's "low effort now" proxy signal. Neutral by design: no harm while unmeasured; can be upgraded to measured first-response time later.
+- ✅ E2E (`browse.spec.ts`): Emeka (valid phone + available) shows `Quick responder`; Chidi (busy) does not. Verified: frontend lint + build clean; Playwright `browse` (6) green.

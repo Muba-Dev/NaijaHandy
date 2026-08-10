@@ -41,6 +41,7 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByText('Pipe Installation').first()).toBeVisible()
     await expect(page.getByText('Emergency Leak Repair').first()).toBeVisible()
     await expect(page.getByText('Drain Cleaning').first()).toBeVisible()
+    await expect(page.getByText('Quick responder').first()).toBeVisible()
   })
 
   test('artisan profile shows real completed-job history', async ({ page }) => {
@@ -54,6 +55,7 @@ test.describe('Browsing artisans', () => {
     await expect(
       page.locator('div.bg-gray-50.rounded-xl', { hasText: 'Jobs Completed' }).getByText('1', { exact: true }),
     ).toBeVisible()
+    await expect(page.getByText('Quick responder')).toHaveCount(0)
   })
 
   test('bookable artisan profile shows details and the booking form', async ({ page }) => {
