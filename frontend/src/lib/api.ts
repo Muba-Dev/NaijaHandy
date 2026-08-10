@@ -74,6 +74,7 @@ type RawArtisan = {
   reviews?: {
     rating: number
     comment: string
+    photoUrl?: string | null
     createdAt: string
     customer: { name: string; avatar: string | null }
   }[]
@@ -119,6 +120,7 @@ function normalizeArtisan(a: RawArtisan): Artisan {
       comment: r.comment,
       date: new Date(r.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }),
       avatar: r.customer.avatar || '',
+      photoUrl: r.photoUrl ?? null,
     })),
   }
 }
@@ -307,8 +309,8 @@ export async function verifyPayment(reference: string) {
   return data.data
 }
 
-export async function createReview(bookingId: string, rating: number, comment: string) {
-  const { data } = await api.post(`/bookings/${encodeURIComponent(bookingId)}/review`, { rating, comment })
+export async function createReview(bookingId: string, rating: number, comment: string, photoUrl?: string) {
+  const { data } = await api.post(`/bookings/${encodeURIComponent(bookingId)}/review`, { rating, comment, photoUrl })
   return data.data
 }
 

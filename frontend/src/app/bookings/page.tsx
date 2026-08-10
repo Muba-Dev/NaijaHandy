@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2 } from 'lucide-react'
+import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera } from 'lucide-react'
 import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -32,8 +32,18 @@ export default function BookingHistoryPage() {
   const [reviewFor, setReviewFor] = useState<Booking | null>(null)
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
+  const [reviewPhoto, setReviewPhoto] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewError, setReviewError] = useState('')
+  const reviewPhotoInputRef = useRef<HTMLInputElement>(null)
+
+  const readPhotoAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(new Error('Could not read the file'))
+      reader.readAsDataURL(file)
+    })
 
   const loadBookings = () => {
     setLoading(true)
@@ -110,11 +120,12 @@ export default function BookingHistoryPage() {
     setReviewSubmitting(true)
     setReviewError('')
     try {
-      await createReview(reviewFor.id, reviewRating, reviewComment)
+      await createReview(reviewFor.id, reviewRating, reviewComment, reviewPhoto || undefined)
       setBookings((bs) => bs.map((b) => (b.id === reviewFor.id ? { ...b, reviewed: true } : b)))
       setReviewFor(null)
       setReviewComment('')
       setReviewRating(0)
+      setReviewPhoto('')
       setPaymentMsg({ type: 'success', text: 'Thanks! Your review has been published.' })
     } catch (err) {
       setReviewError(getApiErrorMessage(err, 'Could not submit your review. Please try again.'))
@@ -416,8 +427,45 @@ export default function BookingHistoryPage() {
               onChange={(e) => setReviewComment(e.target.value)}
               rows={4}
               placeholder="Share your experience (min 3 characters)..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors resize-none mb-4"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors resize-none mb-3"
             />
+
+            {reviewPhoto && (
+              <div className="relative inline-block mb-3">
+                <Image src={reviewPhoto} alt="Review photo preview" width={200} height={150} className="h-28 w-40 object-cover rounded-xl border border-gray-100" />
+                <button
+                  type="button"
+                  onClick={() => { setReviewPhoto(''); if (reviewPhotoInputRef.current) reviewPhotoInputRef.current.value = '' }}
+                  aria-label="Remove review photo"
+                  className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-900 text-white hover:bg-red-600 transition-colors"
+                >
+                  <X size={13} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+            <div className="mb-3">
+              <input
+                ref={reviewPhotoInputRef}
+                id="review-photo"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setReviewError('')
+                  try {
+                    setReviewPhoto(await readPhotoAsDataUrl(file))
+                  } catch {
+                    setReviewError('Could not read the selected photo. Please try again.')
+                  }
+                }}
+              />
+              <label htmlFor="review-photo" className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer hover:text-gray-900 transition-colors">
+                <Camera size={14} aria-hidden="true" />
+                {reviewPhoto ? 'Change photo (optional)' : 'Add a photo (optional)'}
+              </label>
+            </div>
             {reviewError && <p className="text-xs text-red-600 mb-3" role="alert">{reviewError}</p>}
             <div className="flex gap-3">
               <button

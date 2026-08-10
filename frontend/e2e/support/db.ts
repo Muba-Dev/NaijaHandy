@@ -14,6 +14,10 @@ export async function deleteE2EBookings(marker: string): Promise<void> {
     await client.connect()
     await client.query('BEGIN')
     await client.query(
+      'DELETE FROM "reviews" WHERE "bookingId" IN (SELECT id FROM "bookings" WHERE description LIKE $1)',
+      [`%${marker}%`],
+    )
+    await client.query(
       'DELETE FROM "payments" WHERE "bookingId" IN (SELECT id FROM "bookings" WHERE description LIKE $1)',
       [`%${marker}%`],
     )

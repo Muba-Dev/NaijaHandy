@@ -349,14 +349,22 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                           <div className="flex items-start gap-3">
                             <Image src={r.avatar || DEFAULT_AVATAR} alt={r.name} width={40} height={40} className="rounded-full object-cover" />
                             <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-semibold text-gray-900 text-sm">{r.name}</p>
+                              <div className="flex items-center justify-between flex-wrap gap-1">
+                                <p className="flex items-center gap-1.5 font-semibold text-gray-900 text-sm">
+                                  {r.name}
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#ECFDF5] text-[#047857]">
+                                    <CheckCircle size={10} aria-hidden="true" />Verified buyer
+                                  </span>
+                                </p>
                                 <span className="text-xs text-gray-500">{r.date}</span>
                               </div>
                               <div className="flex gap-0.5 my-1">
                                 {Array.from({ length: r.rating }).map((_, i) => <Star key={i} size={12} className="fill-amber-400 text-amber-400" aria-hidden="true" />)}
                               </div>
                               <p className="text-sm text-gray-600">{r.comment}</p>
+                              {r.photoUrl && (
+                                <Image src={r.photoUrl} alt={`Work photo from ${r.name}`} width={320} height={240} className="mt-2 rounded-xl border border-gray-100 h-36 w-56 object-cover" />
+                              )}
                             </div>
                           </div>
                         </div>

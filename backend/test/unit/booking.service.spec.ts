@@ -9,7 +9,8 @@ describe('BookingService', () => {
   const prisma = { booking, dispute, review, artisanProfile } as any
   const emailService = { sendBookingStatusEmail: jest.fn() } as any
   const notificationsService = { create: jest.fn() } as any
-  const service = new BookingService(prisma, emailService, notificationsService)
+  const uploadService = { uploadReviewPhoto: jest.fn() } as any
+  const service = new BookingService(prisma, emailService, notificationsService, uploadService)
 
   const baseBooking = {
     id: 'b1',
@@ -141,6 +142,36 @@ describe('BookingService', () => {
         title: 'New review',
         body: expect.any(String),
         link: '/artisans/art-1',
+      })
+    })
+
+    it('uploads a review photo and stores its URL on the review', async () => {
+      booking.findUnique.mockResolvedValue({
+        ...baseBooking,
+        status: 'COMPLETED',
+        customer: { id: 'c1', name: 'Chisom Eze' },
+        artisan: { id: 'art-1', user: { id: 'a1' } },
+      })
+      review.findUnique.mockResolvedValue(null)
+      uploadService.uploadReviewPhoto.mockResolvedValue('https://cloudinary.com/review.jpg')
+      const create = jest.fn().mockResolvedValue({ id: 'r1', rating: 5, photoUrl: 'https://cloudinary.com/review.jpg' })
+      prisma.$transaction = jest.fn(async (fn: any) => fn({
+        review: { create },
+        artisanProfile: { findUnique: jest.fn().mockResolvedValue({ avgRating: 4, totalReviews: 2 }), update: jest.fn() },
+      }))
+
+      await service.createReview('c1', 'b1', 5, 'Great work!', 'data:image/jpeg;base64,xxx')
+
+      expect(uploadService.uploadReviewPhoto).toHaveBeenCalledWith('data:image/jpeg;base64,xxx')
+      expect(create).toHaveBeenCalledWith({
+        data: {
+          bookingId: 'b1',
+          customerId: 'c1',
+          artisanId: 'art-1',
+          rating: 5,
+          comment: 'Great work!',
+          photoUrl: 'https://cloudinary.com/review.jpg',
+        },
       })
     })
   })

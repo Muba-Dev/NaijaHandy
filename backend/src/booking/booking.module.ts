@@ -5,9 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module'
 import { AuthModule } from '../auth/auth.module'
 import { EmailModule } from '../email/email.module'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { UploadModule } from '../upload/upload.module'
 
 @Module({
-  imports: [PrismaModule, AuthModule, EmailModule, NotificationsModule],
+  imports: [PrismaModule, AuthModule, EmailModule, NotificationsModule, UploadModule],
   controllers: [BookingController],
   providers: [BookingService],
 })

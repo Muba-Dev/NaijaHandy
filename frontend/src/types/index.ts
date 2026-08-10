@@ -59,6 +59,7 @@ export interface Review {
   comment: string
   date: string
   avatar: string
+  photoUrl?: string | null
 }
 
 export interface Category {
@@ -154,6 +155,7 @@ export interface AdminReview {
   id: string
   rating: number
   comment: string
+  photoUrl?: string | null
   status: ReviewStatus
   createdAt: string
   customer: { id: string; name: string; avatar: string | null }

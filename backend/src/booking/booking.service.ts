@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
+import { UploadService } from '../upload/upload.service'
 import { BOOKING_STATUSES, canTransitionBookingStatus } from '../domain/booking'
 
 @Injectable()
@@ -10,6 +11,7 @@ export class BookingService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private notificationsService: NotificationsService,
+    private uploadService: UploadService,
   ) {}
 
   async create(userId: string, data: any) {
@@ -154,7 +156,7 @@ export class BookingService {
     })
   }
 
-  async createReview(userId: string, bookingId: string, rating: number, comment: string) {
+  async createReview(userId: string, bookingId: string, rating: number, comment: string, photoUrl?: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -169,9 +171,11 @@ export class BookingService {
     const existing = await this.prisma.review.findUnique({ where: { bookingId } })
     if (existing) throw new ForbiddenException('This booking has already been reviewed')
 
+    const storedPhotoUrl = photoUrl ? await this.uploadService.uploadReviewPhoto(photoUrl) : null
+
     const review = await this.prisma.$transaction(async (tx) => {
       const created = await tx.review.create({
-        data: { bookingId, customerId: userId, artisanId: booking.artisanId, rating, comment },
+        data: { bookingId, customerId: userId, artisanId: booking.artisanId, rating, comment, photoUrl: storedPhotoUrl },
       })
 
       const profile = await tx.artisanProfile.findUnique({

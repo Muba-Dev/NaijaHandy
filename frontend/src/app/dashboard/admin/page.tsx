@@ -481,6 +481,11 @@ export default function AdminDashboardPage() {
                       </div>
                       <p className="text-xs text-gray-500 mt-1">on {r.artisan.profession} — {r.artisan.user.name} · {fmtDate(r.createdAt)}</p>
                       <p className="text-sm text-gray-600 mt-1.5">{r.comment}</p>
+                      {r.photoUrl && (
+                        <a href={r.photoUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-2">
+                          <Image src={r.photoUrl} alt="Review photo" width={160} height={120} className="h-20 w-32 object-cover rounded-lg border border-gray-100" />
+                        </a>
+                      )}
                     </div>
                     <div className="flex gap-2 shrink-0">
                       {r.status !== 'APPROVED' ? (

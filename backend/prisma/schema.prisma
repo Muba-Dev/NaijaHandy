@@ -194,6 +194,7 @@ model Review {
   artisanId  String
   rating    Int      // 1–5
   comment   String
+  photoUrl  String?
   status    String   @default("APPROVED") // APPROVED | HIDDEN
   createdAt DateTime @default(now())
 
