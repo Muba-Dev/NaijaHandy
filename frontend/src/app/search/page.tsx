@@ -13,6 +13,14 @@ import StarRating from '@/components/StarRating'
 import SkillBadges from '@/components/SkillBadges'
 import type { Artisan } from '@/types'
 
+const PRICE_BANDS: { id: string; label: string; min?: number; max?: number }[] = [
+  { id: 'any', label: 'Any price' },
+  { id: 'under-5000', label: 'Under ₦5,000', max: 5000 },
+  { id: '5000-10000', label: '₦5,000 – ₦10,000', min: 5000, max: 10000 },
+  { id: '10000-20000', label: '₦10,000 – ₦20,000', min: 10000, max: 20000 },
+  { id: 'over-20000', label: 'Over ₦20,000', min: 20000 },
+]
+
 function SearchPage() {
   const searchParams = useSearchParams()
   const initialQ = searchParams.get('q') || ''
@@ -24,6 +32,10 @@ function SearchPage() {
   const [debouncedKeyword, setDebouncedKeyword] = useState(initialQ)
   const [city, setCity] = useState(initialCity)
   const [availableOnly, setAvailableOnly] = useState(false)
+  const [priceBand, setPriceBand] = useState('any')
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [locating, setLocating] = useState(false)
+  const [locError, setLocError] = useState('')
   const [mobileFilter, setMobileFilter] = useState(false)
   const [artisans, setArtisans] = useState<Artisan[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,12 +56,58 @@ function SearchPage() {
     if (city.trim()) params.city = city.trim()
     if (minRating > 0) params.minRating = String(minRating)
     if (availableOnly) params.available = 'true'
-    params.sortBy = sortBy === 'Rating' ? 'rating' : 'hourlyRate'
+    if (priceBand !== 'any') {
+      const band = PRICE_BANDS.find((b) => b.id === priceBand)
+      if (band?.min) params.minPrice = String(band.min)
+      if (band?.max) params.maxPrice = String(band.max)
+    }
+    if (location) {
+      params.lat = String(location.lat)
+      params.lng = String(location.lng)
+      params.radius = '50'
+      params.sortBy = 'distance'
+    } else {
+      params.sortBy = sortBy === 'Rating' ? 'rating' : 'hourlyRate'
+    }
     fetchArtisans(params)
       .then(setArtisans)
       .catch(() => setError('Could not load artisans. Check your connection and try again.'))
       .finally(() => setLoading(false))
-  }, [category, minRating, sortBy, debouncedKeyword, city, availableOnly, reload])
+  }, [category, minRating, sortBy, debouncedKeyword, city, availableOnly, priceBand, location, reload])
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocError('Location is not supported by this browser.')
+      return
+    }
+    setLocating(true)
+    setLocError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setSortBy('Nearest')
+        setLocating(false)
+      },
+      () => {
+        setLocError('Location unavailable — filter by city instead.')
+        setLocating(false)
+      },
+      { timeout: 10_000 },
+    )
+  }
+
+  const clearFilters = () => {
+    setCategory('All')
+    setMinRating(0)
+    setCity('')
+    setKeyword('')
+    setPriceBand('any')
+    setAvailableOnly(false)
+    if (location) {
+      setLocation(null)
+      setSortBy('Rating')
+    }
+  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50">
@@ -83,10 +141,17 @@ function SearchPage() {
               id="sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none"
+              disabled={!!location}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none disabled:bg-gray-50 disabled:text-gray-400"
             >
-              <option>Rating</option>
-              <option>Hourly Rate</option>
+              {location ? (
+                <option>Nearest</option>
+              ) : (
+                <>
+                  <option>Rating</option>
+                  <option>Hourly Rate</option>
+                </>
+              )}
             </select>
           </div>
         </div>
@@ -134,7 +199,23 @@ function SearchPage() {
               </div>
             </div>
 
-            <div>
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Price</p>
+              <div className="space-y-1.5">
+                {PRICE_BANDS.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setPriceBand(b.id)}
+                    aria-pressed={priceBand === b.id}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${priceBand === b.id ? 'text-white font-medium bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Location</p>
               <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
                 <MapPin size={14} className="text-gray-400 shrink-0" aria-hidden="true" />
@@ -146,6 +227,27 @@ function SearchPage() {
                   className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400"
                 />
               </div>
+              {location ? (
+                <div className="mt-2 flex items-center justify-between gap-2 bg-[#ECFDF5] border border-emerald-200 rounded-lg px-3 py-2">
+                  <span className="text-xs font-medium text-emerald-800">Using your location</span>
+                  <button
+                    onClick={() => { setLocation(null); setSortBy('Rating') }}
+                    className="text-xs font-semibold text-[#047857] hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleUseMyLocation}
+                  disabled={locating}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-[#047857] hover:text-[#047857] transition-colors disabled:opacity-60"
+                >
+                  <MapPin size={14} aria-hidden="true" />
+                  {locating ? 'Locating…' : 'Use my location'}
+                </button>
+              )}
+              {locError && <p className="text-xs text-red-600 mt-1.5" role="alert">{locError}</p>}
             </div>
 
             <div className="mt-5">
@@ -222,6 +324,9 @@ function SearchPage() {
                         <span className="flex items-center gap-1 text-xs text-gray-600">
                           <MapPin size={11} aria-hidden="true" />{a.city}
                         </span>
+                        {a.distanceKm != null && (
+                          <span className="text-xs text-gray-600">{a.distanceKm} km away</span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
@@ -267,7 +372,7 @@ function SearchPage() {
                 <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" aria-hidden="true" />
                 <p className="text-gray-500 font-medium">No artisans match your filters</p>
                 <button
-                  onClick={() => { setCategory('All'); setMinRating(0); setCity(''); setKeyword('') }}
+                  onClick={clearFilters}
                   className="mt-2 text-sm font-medium text-[#047857]"
                 >
                   Clear filters

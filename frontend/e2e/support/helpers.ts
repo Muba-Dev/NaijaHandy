@@ -30,7 +30,7 @@ export async function fillBookingDate(page: Page, date: string): Promise<void> {
 // Registered artisans start as non-demo (isDemo=false) but PENDING approval, so
 // they are hidden from public browsing. This helper registers one and has the
 // seeded admin approve it, returning a fully bookable profile.
-export async function createBookableArtisan(): Promise<{
+export async function createBookableArtisan(opts: { latitude?: number; longitude?: number } = {}): Promise<{
   id: string
   user: { id: string; name: string }
   hourlyRate: number
@@ -53,6 +53,15 @@ export async function createBookableArtisan(): Promise<{
   })
   if (!reg.ok) throw new Error(`Registering an artisan failed: ${reg.status}`)
   const { accessToken } = (await reg.json()) as { accessToken: string }
+
+  if (opts.latitude != null && opts.longitude != null) {
+    const loc = await fetch(`${API_URL}/users/me`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ latitude: opts.latitude, longitude: opts.longitude }),
+    })
+    if (!loc.ok) throw new Error(`Setting artisan location failed: ${loc.status}`)
+  }
 
   const me = await fetch(`${API_URL}/artisans/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },

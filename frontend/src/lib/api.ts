@@ -67,6 +67,7 @@ type RawArtisan = {
   avgRating: number
   totalReviews: number
   user: { id: string; name: string; city: string | null; avatar: string | null; phone?: string | null; address?: string | null; latitude?: number | null; longitude?: number | null }
+  distanceKm?: number | null
   services: { name: string; rate: number }[]
   portfolio?: { id: string; imageUrl: string; caption?: string | null }[]
   completedJobsCount?: number
@@ -90,6 +91,7 @@ function normalizeArtisan(a: RawArtisan): Artisan {
     address: a.user.address ?? null,
     latitude: a.user.latitude ?? null,
     longitude: a.user.longitude ?? null,
+    distanceKm: a.distanceKm ?? null,
     rating: a.avgRating,
     reviews: a.totalReviews,
     hourlyRate: a.hourlyRate,

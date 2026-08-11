@@ -7,6 +7,7 @@ export interface Artisan {
   address?: string | null
   latitude?: number | null
   longitude?: number | null
+  distanceKm?: number | null
   rating: number
   reviews: number
   hourlyRate: number

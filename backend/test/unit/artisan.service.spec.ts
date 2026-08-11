@@ -1,4 +1,4 @@
-import { ArtisanService } from '../../src/artisan/artisan.service'
+import { ArtisanService, haversineKm } from '../../src/artisan/artisan.service'
 import { NotFoundException, BadRequestException } from '@nestjs/common'
 
 describe('ArtisanService', () => {
@@ -129,6 +129,99 @@ describe('ArtisanService', () => {
 
       expect(result.verificationStatus).toBe('PENDING')
       expect(result).not.toHaveProperty('verificationDocUrl')
+    })
+  })
+
+  describe('findAll price and distance filters', () => {
+    it('filters by price range using the min service rate or hourly rate fallback', async () => {
+      artisanProfile.findMany.mockResolvedValue([])
+      await service.findAll({ minPrice: '5000', maxPrice: '10000' }, undefined)
+      expect(artisanProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            approvalStatus: 'APPROVED',
+            AND: [
+              {
+                OR: [
+                  { services: { some: { rate: { gte: 5000, lte: 10000 } } } },
+                  { services: { none: {} }, hourlyRate: { gte: 5000, lte: 10000 } },
+                ],
+              },
+            ],
+          },
+        }),
+      )
+    })
+
+    it('applies only a lower bound when only minPrice is given', async () => {
+      artisanProfile.findMany.mockResolvedValue([])
+      await service.findAll({ minPrice: '20000' }, undefined)
+      expect(artisanProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: [
+              {
+                OR: [
+                  { services: { some: { rate: { gte: 20000 } } } },
+                  { services: { none: {} }, hourlyRate: { gte: 20000 } },
+                ],
+              },
+            ],
+          }),
+        }),
+      )
+    })
+
+    it('combines keyword and price filters in AND clauses', async () => {
+      artisanProfile.findMany.mockResolvedValue([])
+      await service.findAll({ q: 'plumber', maxPrice: '10000' }, undefined)
+      const call = (artisanProfile.findMany.mock.calls[0] as [unknown])[0] as any
+      expect(call.where.AND).toHaveLength(2)
+      expect(call.where.AND[0].OR).toBeDefined()
+      expect(call.where.AND[1].OR).toBeDefined()
+    })
+
+    it('sorts by distance, filters by radius, and attaches distanceKm when lat/lng are provided', async () => {
+      artisanProfile.findMany.mockResolvedValue([
+        { id: 'near', user: { latitude: 6.5244, longitude: 3.3792 }, services: [] },
+        { id: 'far', user: { latitude: 7.0244, longitude: 3.3792 }, services: [] },
+        { id: 'noloc', user: { latitude: null, longitude: null }, services: [] },
+      ])
+      const result = await service.findAll({ lat: '6.5244', lng: '3.3792', radius: '50' }, undefined)
+      expect(result.map((a) => a.id)).toEqual(['near'])
+      expect(result[0].distanceKm).toBe(0)
+      const call = (artisanProfile.findMany.mock.calls[0] as [unknown])[0] as any
+      expect(call.include.user.select).toEqual(expect.objectContaining({ latitude: true, longitude: true }))
+    })
+
+    it('excludes artisans without coordinates when a location is provided', async () => {
+      artisanProfile.findMany.mockResolvedValue([{ id: 'noloc', user: { latitude: null, longitude: null }, services: [] }])
+      const result = await service.findAll({ lat: '6.5', lng: '3.3', radius: '500' }, undefined)
+      expect(result).toEqual([])
+    })
+
+    it('falls back to rating sort when distance is requested without a location', async () => {
+      artisanProfile.findMany.mockResolvedValue([])
+      await service.findAll({ sortBy: 'distance' }, undefined)
+      expect(artisanProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { avgRating: 'desc' } }),
+      )
+    })
+  })
+
+  describe('haversineKm', () => {
+    it('returns 0 for identical coordinates', () => {
+      expect(haversineKm(6.5244, 3.3792, 6.5244, 3.3792)).toBe(0)
+    })
+
+    it('returns null when the target has no coordinates', () => {
+      expect(haversineKm(6.5244, 3.3792, null, 3.3792)).toBeNull()
+    })
+
+    it('computes a sane distance for a roughly 1-degree latitude offset', () => {
+      const d = haversineKm(6.5244, 3.3792, 7.5244, 3.3792)
+      expect(d).toBeGreaterThan(100)
+      expect(d).toBeLessThan(120)
     })
   })
 

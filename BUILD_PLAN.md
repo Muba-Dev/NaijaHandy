@@ -319,7 +319,7 @@ The frontend now uses:
    - Effort: Medium (per-service rate → estimate summary before booking; optional quote-request flow).
    - Success: estimate acceptance rate.
 
-8. **Feature: Better search filters (price range, distance, urgency)**
+8. **Feature: Better search filters (price range, distance, urgency)** — ✅ DONE (see below)
    - Problem: can't narrow by budget/area/need-speed.
    - Benefit: faster matching.
    - Effort: Medium (backend query params + UI).
@@ -372,8 +372,8 @@ The frontend now uses:
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, and upfront price estimates — all DONE below.
-**Remaining (best next):** 6. Instant booking, 8. Better search filters (P1); 13. Service guarantee, 14. Emergency/same-day jobs (P3). Harder backlog: 10. Customer rewards, 11. Referral program, 15. Escrow protection.
+**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, and better search filters — all DONE below.
+**Remaining (best next):** 6. Instant booking (P1); 13. Service guarantee, 14. Emergency/same-day jobs (P3). Harder backlog: 10. Customer rewards, 11. Referral program, 15. Escrow protection.
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
@@ -457,3 +457,17 @@ The frontend now uses:
 - ✅ **"From ₦X" pricing surfaced on cards**: home `ArtisanCard` and `/search` result cards now show **From ₦X** (lowest service rate) instead of a plain hourly rate when the artisan has priced services.
 - ✅ WhatsApp booking message now includes the chosen service, duration, and estimated total.
 - ✅ E2E (`booking.spec.ts`): a bookable artisan with two seeded services (₦15,000 / ₦8,000) → estimate defaults to ₦30,500 (2hrs), re-prices to ₦16,500 on service change and ₦8,500 on 1hr, and the customer is charged exactly ₦8,500 through mock Paystack. All e2e specs switched from ambiguous `getByRole('combobox')` to `getByLabel('Time')`. Verified: frontend lint + build clean; full Playwright suite **28/28** green.
+
+### Better search filters — price range + distance (Growth Roadmap P1.8) — DONE
+
+- ✅ Backend `ArtisanService.findAll`:
+  - New query params `minPrice`/`maxPrice` filter by the **effective rate** (lowest service rate, falling back to `hourlyRate` for artisans without services) — the exact figure the "From ₦X" cards already display. Implemented as `AND[ price-OR, keyword-OR ]` so price and keyword searches compose.
+  - New query params `lat`/`lng`/`radius` (default 50 km) + `sortBy=distance`: fetches matching artisans (list endpoint now selects `user.latitude/longitude`), computes **Haversine** distance in JS, excludes coordinate-less artisans, filters to the radius, sorts ascending, attaches `distanceKm` (1 decimal), and paginates via slice. `sortBy=distance` without a location falls back to rating sort.
+  - Exported `haversineKm()` pure helper.
+- ✅ Frontend `/search`:
+  - New **Price** filter section with preset bands (Any / Under ₦5k / ₦5k–₦10k / ₦10k–₦20k / Over ₦20k) sending `minPrice`/`maxPrice`.
+  - **Use my location** button (`navigator.geolocation`) activates distance mode (`lat/lng/radius=50`, auto-selects **Nearest** sort, shows a "Using your location" chip with Clear; graceful "Location unavailable" message on denial). Sort dropdown shows **Nearest** (disabled) while location is active.
+  - Result cards show **"X km away"** when the backend returns `distanceKm`.
+  - "Clear filters" (empty state) now also resets price band + location.
+- ✅ Tests: `artisan.service.spec.ts` — price-bounds where shape, lower-bound-only, keyword+price AND composition, distance ordering + radius filtering + coordinate-less exclusion, rating fallback, and `haversineKm` (zero/null/sanity). Backend **86 unit tests** green.
+- ✅ E2E (`search-filters.spec.ts`): price band hides a ₦25,000 artisan while showing a ₦3,000 one (service-rate pricing); with browser geolocation granted, a 0 km artisan shows "0 km away" while a ~55 km one is excluded by the 50 km radius. `createBookableArtisan` helper now accepts optional `{ latitude, longitude }` (set via `PATCH /api/users/me`). Verified: frontend lint + build clean; Playwright `search-filters` (2) green.

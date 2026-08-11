@@ -1,8 +1,26 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Prisma, type ArtisanProfile } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { UploadService } from '../upload/upload.service'
 
 export type RequestUser = { id: string; role: string; isDemo: boolean }
+
+export function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number | null | undefined,
+  lng2: number | null | undefined,
+): number | null {
+  if (lat2 == null || lng2 == null) return null
+  const R = 6371
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
 
 @Injectable()
 export class ArtisanService {
@@ -12,34 +30,72 @@ export class ArtisanService {
     return !!user && user.role !== 'ADMIN' && !user.isDemo
   }
 
-  async findAll(filters: any, user?: RequestUser) {
-    const { q, category, city, minRating, available, sortBy = 'rating', page = 1, limit = 12 } = filters
+  async findAll(filters: any, user?: RequestUser): Promise<Array<ArtisanProfile & { distanceKm?: number | null }>> {
+    const { q, category, city, minRating, available, sortBy = 'rating', page = 1, limit = 12, minPrice, maxPrice, lat, lng, radius } = filters
     const skip = (Number(page) - 1) * Number(limit)
 
     const keyword = typeof q === 'string' && q.trim() ? q.trim() : undefined
 
+    const priceBounds = {
+      ...(minPrice !== undefined && minPrice !== '' && !isNaN(Number(minPrice)) ? { gte: Number(minPrice) } : {}),
+      ...(maxPrice !== undefined && maxPrice !== '' && !isNaN(Number(maxPrice)) ? { lte: Number(maxPrice) } : {}),
+    }
+    const hasPriceFilter = Object.keys(priceBounds).length > 0
+
+    const originLat = lat !== undefined && lat !== '' && !isNaN(Number(lat)) ? Number(lat) : undefined
+    const originLng = lng !== undefined && lng !== '' && !isNaN(Number(lng)) ? Number(lng) : undefined
+    const hasLocation = originLat !== undefined && originLng !== undefined
+    const maxDistanceKm = radius !== undefined && radius !== '' && !isNaN(Number(radius)) ? Number(radius) : 50
+
+    const andClauses: Prisma.ArtisanProfileWhereInput[] = []
+    if (keyword) {
+      andClauses.push({
+        OR: [
+          { profession: { contains: keyword, mode: 'insensitive' } },
+          { category: { contains: keyword, mode: 'insensitive' } },
+          { user: { is: { name: { contains: keyword, mode: 'insensitive' } } } },
+        ],
+      })
+    }
+    if (hasPriceFilter) {
+      andClauses.push({
+        OR: [
+          { services: { some: { rate: priceBounds } } },
+          { services: { none: {} }, hourlyRate: priceBounds },
+        ],
+      })
+    }
+
+    const where: Prisma.ArtisanProfileWhereInput = {
+      approvalStatus: 'APPROVED',
+      ...(this.hideDemo(user) ? { isDemo: false } : {}),
+      ...(category ? { category: String(category) } : {}),
+      ...(city ? { user: { city: String(city) } } : {}),
+      ...(minRating ? { avgRating: { gte: Number(minRating) } } : {}),
+      ...(available === 'true' ? { available: true } : {}),
+      ...(andClauses.length ? { AND: andClauses } : {}),
+    }
+
+    const include: Prisma.ArtisanProfileInclude = {
+      user: { select: { id: true, name: true, city: true, avatar: true, latitude: true, longitude: true } },
+      services: true,
+    }
+
+    if (hasLocation) {
+      const artisans = await this.prisma.artisanProfile.findMany({ where, include })
+      const withDistance = artisans
+        .map((a) => {
+          const d = haversineKm(originLat, originLng, a.user.latitude, a.user.longitude)
+          return { ...a, distanceKm: d == null ? null : Math.round(d * 10) / 10 }
+        })
+        .filter((a) => a.distanceKm != null && a.distanceKm <= maxDistanceKm)
+        .sort((a, b) => (a.distanceKm! - b.distanceKm!))
+      return withDistance.slice(skip, skip + Number(limit))
+    }
+
     return this.prisma.artisanProfile.findMany({
-      where: {
-        approvalStatus: 'APPROVED',
-        ...(this.hideDemo(user) ? { isDemo: false } : {}),
-        ...(keyword
-          ? {
-              OR: [
-                { profession: { contains: keyword, mode: 'insensitive' } },
-                { category: { contains: keyword, mode: 'insensitive' } },
-                { user: { is: { name: { contains: keyword, mode: 'insensitive' } } } },
-              ],
-            }
-          : {}),
-        ...(category ? { category: String(category) } : {}),
-        ...(city ? { user: { city: String(city) } } : {}),
-        ...(minRating ? { avgRating: { gte: Number(minRating) } } : {}),
-        ...(available === 'true' ? { available: true } : {}),
-      },
-      include: {
-        user: { select: { id: true, name: true, city: true, avatar: true } },
-        services: true,
-      },
+      where,
+      include: { user: { select: { id: true, name: true, city: true, avatar: true } }, services: true },
       orderBy: sortBy === 'hourlyRate' ? { hourlyRate: 'asc' } : { avgRating: 'desc' },
       skip,
       take: Number(limit),
