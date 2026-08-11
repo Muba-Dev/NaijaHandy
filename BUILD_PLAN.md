@@ -325,22 +325,29 @@ The frontend now uses:
    - Effort: Medium (backend query params + UI).
    - Success: search-to-booking rate.
 
+9. **Feature: Help & Support centre + AI assistant** — Phase 1 (Help Centre + contact form + support inbox) ✅ DONE; Phase 2 (AI) pending
+   - Problem: WhatsApp was repurposed to support chat, but there's still **no in-app help** — users stuck before/during booking have nowhere to go and leave.
+   - Benefit: fewer drop-offs, fewer support tickets, and instant answers to recurring questions (pricing, payments, trust, disputes).
+   - Effort: Medium-Hard (Phase 1 = static Help Centre + contact form — Easy; Phase 2 = AI assistant over the help content — Hard).
+   - Success: % of stuck users who complete a booking after using help; support-ticket deflection rate.
+   - See full spec + Phase 1 DONE below.
+
 ### P2 — Retention
 
-9. **Feature: Repeat booking ("Book again" prefilled)** — ✅ DONE (see below)
+10. **Feature: Repeat booking ("Book again" prefilled)** — ✅ DONE (see below)
    - Problem: rehiring a good artisan is manual.
    - Benefit: habit loop.
    - Effort: Easy (rebook exists in history — prefill and shorten to one tap).
    - Success: % of repeat bookings.
    - Note: **saved artisans already shipped** (original plan's P2 item) — do not rebuild.
 
-10. **Feature: Customer rewards (points/credits after completed jobs)**
+11. **Feature: Customer rewards (points/credits after completed jobs)**
     - Problem: no reason to come back.
     - Benefit: loyalty.
     - Effort: Hard (ledger/credits model + apply to payment).
     - Success: return/retention rate.
 
-11. **Feature: Referral program**
+12. **Feature: Referral program**
     - Problem: no word-of-mouth engine.
     - Benefit: cheap growth.
     - Effort: Medium (referral codes + credit on first booking).
@@ -348,32 +355,32 @@ The frontend now uses:
 
 ### P3 — Differentiation
 
-12. **Feature: Response-time badges** — ✅ DONE (low-effort proxy shipped; measured first-response time is the upgrade path)
+13. **Feature: Response-time badges** — ✅ DONE (low-effort proxy shipped; measured first-response time is the upgrade path)
     - Problem: users don't know if an artisan is responsive.
     - Benefit: quality signal.
     - Effort: Medium (measure time from booking request → first response; badge in search/profile).
     - Success: higher booking on fast responders.
 
-13. **Feature: Service guarantee (NaijaHandy Guarantee)**
+14. **Feature: Service guarantee (NaijaHandy Guarantee)**
     - Problem: fear of poor/overpriced work.
     - Benefit: risk-reversal.
     - Effort: Medium (policy page + tie into existing dispute flow).
     - Success: fewer cancellations; better conversion.
 
-14. **Feature: Emergency / same-day jobs**
+15. **Feature: Emergency / same-day jobs**
     - Problem: urgent jobs (leak, lockout) have no fast path.
     - Benefit: differentiated high-intent segment.
     - Effort: Medium (urgent flag + filter + notify nearby artisans).
     - Success: emergency-job volume.
 
-15. **Feature: Escrow protection (hold payment until job done)**
+16. **Feature: Escrow protection (hold payment until job done)**
     - Problem: paying upfront is scary for customers; paying after is scary for artisans.
     - Benefit: two-sided safety — category-defining trust.
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
 **Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, and better search filters — all DONE below.
-**Remaining (best next):** 6. Instant booking (P1); 13. Service guarantee, 14. Emergency/same-day jobs (P3). Harder backlog: 10. Customer rewards, 11. Referral program, 15. Escrow protection.
+**Remaining (best next):** 9. Help & Support centre + AI assistant (spec below). Then 14. Service guarantee, 15. Emergency/same-day jobs (P3). Harder backlog: 11. Customer rewards, 12. Referral program, 16. Escrow protection.
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
@@ -472,3 +479,71 @@ The frontend now uses:
 - ✅ `/search` fetch now guards against stale responses (a request-id ref ignores any out-of-order response older than the latest filter change) — fixes a race where an unfiltered response could briefly overwrite filtered results.
 - ✅ Tests: `artisan.service.spec.ts` — price-bounds where shape, lower-bound-only, keyword+price AND composition, distance ordering + radius filtering + coordinate-less exclusion, rating fallback, and `haversineKm` (zero/null/sanity). Backend **86 unit tests** green.
 - ✅ E2E (`search-filters.spec.ts`): price band hides a ₦25,000 artisan while showing a ₦3,000 one (service-rate pricing); with browser geolocation granted, a 0 km artisan shows "0 km away" while a ~55 km one is excluded by the 50 km radius. `createBookableArtisan` helper now accepts optional `{ latitude, longitude }` (set via `PATCH /api/users/me`). Verified: frontend lint + build clean; Playwright `search-filters` (2) green. (Full-suite runs occasionally flake on Supabase latency — login/upload/review POSTs stalling — each such test passes in isolation; not a code regression.)
+
+### Instant booking — one-tap request with saved details (Growth Roadmap P1.6) — DONE
+
+- ✅ Schema: optional `address` + `customerPhone` columns on `Booking` (migration `20260811163912_add_booking_contact`, applied to CI + prod). Captures a snapshot of where the job happens + how to reach the customer, independent of the profile row.
+- ✅ Backend: `POST /api/bookings` accepts optional `address` (max 300) + `customerPhone` (max 30) via `createSchema`; `BookingService.create` persists them (null when omitted). Zod `.parse` still strips unknown keys, so older clients are unaffected. Booking e2e suite green.
+- ✅ Frontend:
+  - `Booking` type + normalizer surface `address`/`customerPhone`.
+  - Public profile booking sidebar loads the customer's saved contact (`fetchMe` fallback to `getStoredUser`) and prefills editable **Phone** + **Job Address** fields; submitting either flow persists them back via `PATCH /users/me` so next time is prefilled ("saved details").
+  - New **"Send Instant Request"** amber one-tap button: creates the booking request with today's date, **ASAP** time (new time option), a sensible default description, and the saved contact — **no Paystack redirect** (requests are free; payment only happens at checkout). Requires a phone so the artisan can reach the customer; success shows a green "Instant request sent" banner. Unauthenticated users are sent to login.
+  - Existing "Proceed to Book & Pay" path unchanged.
+  - Artisan **Job Requests** now show the customer's phone (tap-to-call) + job address so they can actually reach out.
+- ✅ Verified: backend `tsc` + 87 unit tests + booking e2e (21) green; frontend lint + build clean.
+
+### WhatsApp repurposed: support chat, not a booking action — DONE
+
+- ✅ **UX decision:** WhatsApp can't confirm bookings or take payment, so the full-width "Book via WhatsApp" button (deep-linked with date/time/estimate) was removed. Booking now has two clear in-app paths only: **Send Instant Request** (free) and **Proceed to Book & Pay** (Paystack + confirmation) — no off-platform untracked requests.
+- ✅ WhatsApp stays as **support/chat**: the header "Message" button remains, and the booking sidebar now shows a subtle neutral card ("Questions before you book? Chat with {name} on WhatsApp") whose prefilled message asks a question about the service — no date/time/estimate prefill. Demo profiles still hide WhatsApp entirely.
+- ✅ E2E (`browse.spec.ts`): support link visible with `wa.me` href + question-style message (asserts **no** `Date:`/`Time:`/`Estimated total:` prefill), header Message link shares the href, `Book via WhatsApp` count is 0. All 6 browse e2e green; frontend lint + `tsc` + build clean.
+- ⏭️ **Future option:** platform-wide AI chat assistant / help & contact centre for customer questions (kept out of scope here).
+
+---
+
+### Help & Support centre + AI assistant (Growth Roadmap P1.7) — SPEC
+
+**Why now:** WhatsApp is now a per-artisan support channel, but the platform itself has no help surface. Users who get stuck mid-booking (or distrust the process) have nowhere to go and leave. This is a drop-off/trust problem first, a cost-saver second.
+
+**Outcome:** Any user can (a) find a curated answer to a common question in seconds, (b) reach a human when needed — without abandoning the app. The AI assistant answers confidently from our own help content and escalates honestly.
+
+**Phase 1 — Help Centre + human contact (Easy, no AI). Do this first.**
+- New `/help` page (public) with categorized FAQs, all written by us:
+  - Getting started (registration, saved artisans, shortlisting).
+  - Booking & payment (instant request vs book & pay, Paystack flow, refunds, cancelled bookings).
+  - Trust & safety (verified badge, ID verification, how reviews are moderated).
+  - Disputes & the service guarantee (existing dispute flow on bookings — link to `/bookings`).
+  - Artisan side (job requests, payout, verification).
+- Entry points: footer link + a "Need help?" link on the booking sidebar (near the "Instant requests are free" note) + a small help widget button in the header nav.
+- Contact form (fallback for anything not covered): subject + message → creates a `SupportMessage` row (auth'd users prefilled with name/email/phone) and emails `support@naijahandy.com`. Admin "Support" inbox in the existing dashboard to read/reply.
+- Success: % of help visitors who reach an answer without a ticket; ticket volume baseline (measure before Phase 2).
+
+**Phase 2 — AI assistant (Hard). Gate on Phase 1 being live with real FAQ data.**
+- **Build vs buy decision (decide during Phase 2 kickoff):**
+  - *Buy* (e.g. Intercom/Crisp/Tidio AI): fastest, but recurring cost, user data leaves the platform, weaker custom routing to our flows.
+  - *Build*: a `SupportChatController`/`SupportChatService` in the existing NestJS backend + a floating chat widget in the frontend.
+- **Build approach (if chosen):**
+  - LLM via API (OpenAI/Anthropic) with **RAG over the Phase-1 help articles** (store articles as markdown in a `HelpArticle` table; chunk + embed with `pgvector` in Postgres; retrieve top-k by cosine similarity).
+  - System prompt: answer **only** from retrieved articles; if no confident match, answer "I'm not sure — here's how to reach a human" and show the contact form / support email; never invent policies or prices.
+  - **Structured actions** surfaced as buttons in chat: "View my bookings", "Open dispute", "Contact support" (deep links to existing `/bookings` and the contact form) — the assistant routes to flows, it doesn't replace them.
+  - Rate limits (per-user per-hour), token caps, latency budget (~2 s), and a content-safety layer that rejects personal-data extraction, prompt-injection attempts, and abuse.
+  - **Privacy:** never send PII (email/phone/booking IDs) into the prompt unless the user volunteers it; logs store only the question + article IDs for quality review, never booking payloads.
+  - Human escalation: low-confidence answers + explicit "talk to a human" requests create a `SupportMessage` with the chat transcript.
+- **Success metrics:** ticket-deflection rate (Phase-1 baseline → after), AI answer-accuracy (sampled human review), completion of a booking within 1 day of a help session, escalation rate.
+
+**Explicitly out of scope (for now):** voice assistant, proactive/outbound support, personalizing answers with a user's live booking data, and AI for the *artisan* help surface (same infra later, but not now).
+
+**Risks:** LLM hallucinating policy (mitigated: retrieval-only answers + strict system prompt + human review sampling); cost (mitigated: rate limits + caching repeated questions); privacy (mitigated: no PII in prompts, minimal logging).
+
+**Ordering note:** Phase 1 ships alone and pays for itself; Phase 2 is a follow-up decision once real ticket data exists.
+
+### Help & Support Phase 1 — DONE
+
+- ✅ **Schema:** `SupportMessage` model (`name`, `email`, `phone?`, `subject`, `message`, `status` OPEN|REPLIED|CLOSED, optional `userId` → `User` with `SetNull`). Migration `20260811173505_add_support_messages` applied to **CI** (`naijahandy_ci`, via `prisma migrate dev`) and **prod** (`postgres`, via `prisma migrate deploy`).
+- ✅ **Backend:** new `SupportModule` with `POST /api/support/messages` — public (OptionalJwtAuthGuard: logged-in users' messages link to their `userId`; guests stay anonymous). Zod-validated (name ≥2, email, phone ≤30, subject 3–120, message 10–2000). Sends a support email (new `EmailService.sendSupportMessageEmail`, gated by `EMAIL_ENABLED`) to `SUPPORT_EMAIL || support@naijahandy.com`.
+- ✅ **Admin inbox:** `GET /api/admin/support-messages` (status filter + pagination, includes linked user) and `PATCH /api/admin/support-messages/:id/status` (OPEN/REPLIED/CLOSED). `AdminStats` gained `openSupportMessages` (count + red badge on the Support tab).
+- ✅ **Frontend `/help`:** public Help Centre with 5 categorized FAQ accordions (Getting started · Booking & payments · Trust & safety · Disputes & guarantee · For artisans), a contact form prefilled from the stored profile (name/email/phone) that POSTs to `/api/support/messages` and shows a success banner, plus a `mailto:support@naijahandy.com` fallback card. Sticky contact column on desktop.
+- ✅ **Entry points:** Navbar "Help" link (desktop + mobile), Footer "Help Centre" link, and a "Need help? Visit our Help Centre" link on the artisan booking sidebar.
+- ✅ **Admin console:** new **Support** tab (status filter pills, subject/message/contact rows, open-count badge in both sidebars + overview stat card, Mark replied / Close / Reopen / Reply-to-email actions).
+- ✅ **Verified:** backend `tsc` + 91 unit tests green (4 new support-service tests); booking + admin + payment backend e2e suites each green individually (full-run flake = shared-DB cross-suite interference, pre-existing); frontend lint + `tsc` + build clean; Playwright `help.spec.ts` (2) green (FAQ expand + contact form success banner).
+- ⏭️ **Phase 2 (AI assistant)** — still pending; gate on real ticket volume/FAQ data. See spec above.

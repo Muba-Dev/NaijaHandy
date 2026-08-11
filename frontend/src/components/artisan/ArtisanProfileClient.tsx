@@ -5,13 +5,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MapPin, CheckCircle, Clock, XCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap, RefreshCw } from 'lucide-react'
-import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
-import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink, isWhatsAppPhone, estimateBookingAmount, minServiceRate } from '@/lib/utils'
+import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan, fetchMe, updateProfile } from '@/lib/api'
+import { formatNGN, isAuthenticated, getApiErrorMessage, getStoredUser, buildWhatsAppLink, isWhatsAppPhone, estimateBookingAmount, minServiceRate } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import SkillBadges from '@/components/SkillBadges'
 import LocationMap from '@/components/map/LocationMap'
-import type { Artisan } from '@/types'
+import type { Artisan, AuthUser } from '@/types'
 
 export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | null }) {
   const router = useRouter()
@@ -26,6 +26,9 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [bookingError, setBookingError] = useState('')
+  const [instantSent, setInstantSent] = useState(false)
+  const [contactPhone, setContactPhone] = useState('')
+  const [jobAddress, setJobAddress] = useState('')
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -37,6 +40,19 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
         .catch(() => setSaved(false))
     }
   }, [artisan])
+
+  useEffect(() => {
+    if (!isAuthenticated()) return
+    const stored = getStoredUser<AuthUser>()
+    if (stored?.phone) setContactPhone((p) => p || stored.phone || '')
+    if (stored?.address) setJobAddress((a) => a || stored.address || '')
+    fetchMe()
+      .then((me) => {
+        setContactPhone((p) => p || me.phone || '')
+        setJobAddress((a) => a || me.address || '')
+      })
+      .catch(() => undefined)
+  }, [])
 
   useEffect(() => {
     if (artisan && artisan.services.length > 0) {
@@ -92,18 +108,35 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
 
   const estimate = estimateBookingAmount(artisan?.services ?? [], selectedService, hours, artisan?.hourlyRate ?? 0)
 
+  const todayISO = () => new Date().toLocaleDateString('en-CA')
+
+  const persistContact = () => {
+    if (!isAuthenticated()) return
+    if (contactPhone || jobAddress) {
+      updateProfile({
+        phone: contactPhone || undefined,
+        address: jobAddress || undefined,
+      }).catch(() => undefined)
+    }
+  }
+
+  const buildBookingPayload = () => ({
+    artisanId: artisan!.id,
+    date: bookingDate || todayISO(),
+    time: bookingTime || 'ASAP',
+    description: jobDesc.trim() || `Booking request for ${selectedService || artisan!.profession} service`,
+    amount: estimate.total,
+    address: jobAddress || undefined,
+    customerPhone: contactPhone || undefined,
+  })
+
   const handleBook = async () => {
     if (!artisan) return
     setBookingSubmitting(true)
     setBookingError('')
     try {
-      const booking = await createBooking({
-        artisanId: artisan.id,
-        date: bookingDate,
-        time: bookingTime,
-        description: jobDesc,
-        amount: estimate.total,
-      })
+      const booking = await createBooking(buildBookingPayload())
+      persistContact()
       try {
         const { authorization_url } = await initializePayment(booking.id)
         window.location.href = authorization_url
@@ -118,21 +151,36 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
     }
   }
 
+  const handleInstantRequest = async () => {
+    if (!artisan) return
+    if (!isAuthenticated()) {
+      router.push(`/login?redirect=${encodeURIComponent(`/artisans/${artisan.id}`)}`)
+      return
+    }
+    if (!contactPhone.trim()) {
+      setBookingError('Add your phone number below so the artisan can reach you.')
+      document.getElementById('booking-phone')?.focus()
+      return
+    }
+    setBookingSubmitting(true)
+    setBookingError('')
+    setInstantSent(false)
+    try {
+      await createBooking(buildBookingPayload())
+      persistContact()
+      setBookingDate(bookingDate || todayISO())
+      setBookingTime(bookingTime || 'ASAP')
+      setInstantSent(true)
+    } catch (err) {
+      setBookingError(getApiErrorMessage(err, 'Could not send your request. Please try again.'))
+    } finally {
+      setBookingSubmitting(false)
+    }
+  }
+
   const tabs = ['about', 'services', 'portfolio', 'reviews']
 
-  const whatsappMessage = (() => {
-    const lines = [
-      `Hello ${artisan?.name}!`,
-      `I found you on NaijaHandy and I'd like to book your ${artisan?.profession} service.`,
-    ]
-    if (selectedService) lines.push(`Service: ${selectedService}`)
-    if (bookingDate) lines.push(`Date: ${bookingDate}`)
-    if (bookingTime) lines.push(`Time: ${bookingTime}`)
-    if (jobDesc.trim()) lines.push(`Job details: ${jobDesc.trim()}`)
-    lines.push(`Duration: ${hours}hr${hours > 1 ? 's' : ''}`)
-    lines.push(`Estimated total: ${formatNGN(estimate.total)}`)
-    return lines.join('\n')
-  })()
+  const whatsappMessage = `Hello ${artisan?.name}! I found you on NaijaHandy and I have a question about your ${artisan?.profession} service before I book.`
   const whatsappLink = buildWhatsAppLink(artisan?.phone, whatsappMessage)
 
   if (!artisan) {
@@ -440,6 +488,23 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                   </div>
                 ) : (
                   <>
+                    <button
+                      onClick={handleInstantRequest}
+                      disabled={bookingSubmitting}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold text-sm bg-[#F59E0B] hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      <Zap size={15} aria-hidden="true" />{bookingSubmitting ? 'Sending…' : 'Send Instant Request'}
+                    </button>
+                    <p className="text-center text-xs text-gray-500 -mt-1">One tap — we&apos;ll use today, ASAP and your saved contact details</p>
+                    {instantSent && (
+                      <div role="status" className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                        <p className="text-sm font-semibold text-emerald-800">Instant request sent!</p>
+                        <p className="text-xs text-emerald-700 mt-1">{artisan.name} will confirm your date and time shortly.</p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 text-[11px] text-gray-400 font-medium uppercase tracking-wide">
+                      <span className="flex-1 h-px bg-gray-200" aria-hidden="true" />or customize below<span className="flex-1 h-px bg-gray-200" aria-hidden="true" />
+                    </div>
                     <div>
                       <label htmlFor="booking-date" className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
                       <input
@@ -459,6 +524,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                         className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
                       >
                         <option value="">Select time slot</option>
+                        <option value="ASAP">ASAP — any time</option>
                         {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((t) => (
                           <option key={t}>{t}</option>
                         ))}
@@ -493,6 +559,28 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                           <option key={h} value={h}>{h} {h > 1 ? 'hours' : 'hour'}</option>
                         ))}
                       </select>
+                    </div>
+                    <div>
+                      <label htmlFor="booking-phone" className="block text-sm font-medium text-gray-700 mb-1.5">Phone <span className="text-gray-400 font-normal">(for the artisan to reach you)</span></label>
+                      <input
+                        id="booking-phone"
+                        type="tel"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        placeholder="e.g. 08012345678"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="booking-address" className="block text-sm font-medium text-gray-700 mb-1.5">Job Address <span className="text-gray-400 font-normal">(where the work is)</span></label>
+                      <input
+                        id="booking-address"
+                        type="text"
+                        value={jobAddress}
+                        onChange={(e) => setJobAddress(e.target.value)}
+                        placeholder="e.g. 12 Admiralty Way, Lekki, Lagos"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
+                      />
                     </div>
                     <div>
                       <label htmlFor="job-desc" className="block text-sm font-medium text-gray-700 mb-1.5">Job Description</label>
@@ -537,20 +625,26 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                   >
                     {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
                   </button>
-                  {whatsappLink && (
-                    <a
-                      href={whatsappLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center gap-2 mt-3 py-3.5 rounded-xl font-semibold text-sm text-white text-center bg-[#075E54] hover:opacity-90 transition-opacity"
-                    >
-                      <MessageSquare size={15} aria-hidden="true" />Book via WhatsApp
-                    </a>
-                  )}
                 </>
               )}
               {bookingError && <p className="text-center text-xs text-red-600 mt-2" role="alert">{bookingError}</p>}
-              <p className="text-center text-xs text-gray-500 mt-2.5">You&apos;ll be redirected to secure Paystack checkout to complete payment</p>
+              <p className="text-center text-xs text-gray-500 mt-2.5">Instant requests are free — you&apos;ll only pay when completing checkout</p>
+              <Link href="/help" className="mt-2 block text-center text-xs font-medium text-[#047857] hover:underline">
+                Need help? Visit our Help Centre
+              </Link>
+              {whatsappLink && (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Questions before you book?</p>
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-[#075E54] hover:underline"
+                  >
+                    <MessageSquare size={14} aria-hidden="true" />Chat with {artisan.name} on WhatsApp
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import { NotificationsModule } from './notifications/notifications.module'
 import { EmailModule } from './email/email.module'
 import { PrismaModule } from './prisma/prisma.module'
 import { HealthModule } from './health/health.module'
+import { SupportModule } from './support/support.module'
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { HealthModule } from './health/health.module'
     PaymentModule,
     NotificationsModule,
     HealthModule,
+    SupportModule,
   ],
 })
 export class AppModule {}

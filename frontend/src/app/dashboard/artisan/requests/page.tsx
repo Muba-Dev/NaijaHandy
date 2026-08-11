@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Briefcase, Calendar, Clock, MapPin } from 'lucide-react'
+import { Briefcase, Calendar, Clock, MapPin, Phone } from 'lucide-react'
 import { fetchBookings, updateBookingStatus } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
@@ -95,9 +95,20 @@ export default function JobRequestsPage() {
                   <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-gray-500">
                     <span className="flex items-center gap-1"><Calendar size={13} />{b.date}</span>
                     <span className="flex items-center gap-1"><Clock size={13} />{b.time}</span>
-                    <span className="flex items-center gap-1"><MapPin size={13} />Job Request</span>
                     <span className="font-semibold text-gray-900">{formatNGN(b.amount)}</span>
                   </div>
+                  {(b.customerPhone || b.address) && (
+                    <div className="flex items-center gap-4 mt-1.5 flex-wrap text-sm text-gray-600">
+                      {b.customerPhone && (
+                        <a href={`tel:${b.customerPhone.replace(/\D/g, '')}`} className="flex items-center gap-1 text-[#047857] hover:underline">
+                          <Phone size={13} aria-hidden="true" />{b.customerPhone}
+                        </a>
+                      )}
+                      {b.address && (
+                        <span className="flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{b.address}</span>
+                      )}
+                    </div>
+                  )}
                   {b.status === 'Pending' && (
                     <div className="flex gap-2 mt-3">
                       <button onClick={() => respond(b.id, 'CANCELLED')} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification } from '@/types'
+import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification, SupportMessage } from '@/types'
 import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
 export const API_BASE_URL =
@@ -133,6 +133,8 @@ type RawBooking = {
   time: string
   description: string
   amount: number
+  address?: string | null
+  customerPhone?: string | null
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
   paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
   paymentReference?: string | null
@@ -153,6 +155,8 @@ function normalizeBooking(b: RawBooking): Booking {
     time: b.time,
     description: b.description,
     amount: b.amount,
+    address: b.address ?? null,
+    customerPhone: b.customerPhone ?? null,
     status: (b.status.charAt(0) + b.status.slice(1).toLowerCase()) as Booking['status'],
     avatar: b.artisan.user.avatar || '',
     customer: b.customer?.name,
@@ -286,6 +290,8 @@ export async function createBooking(payload: {
   time: string
   description: string
   amount: number
+  address?: string
+  customerPhone?: string
 }) {
   const { data } = await api.post('/bookings', payload)
   return data.data
@@ -409,6 +415,27 @@ export async function fetchAdminDisputes(params?: Record<string, string>): Promi
 
 export async function resolveDispute(id: string, status: string, resolution: string) {
   const { data } = await api.post(`/admin/disputes/${id}/resolve`, { status, resolution })
+  return data.data
+}
+
+export async function fetchAdminSupportMessages(params?: Record<string, string>): Promise<{ data: SupportMessage[]; total: number }> {
+  const { data } = await api.get('/admin/support-messages', { params })
+  return data.data
+}
+
+export async function setSupportMessageStatus(id: string, status: SupportMessage['status']) {
+  const { data } = await api.patch(`/admin/support-messages/${id}/status`, { status })
+  return data.data
+}
+
+export async function createSupportMessage(payload: {
+  name: string
+  email: string
+  phone?: string
+  subject: string
+  message: string
+}): Promise<SupportMessage> {
+  const { data } = await api.post('/support/messages', payload)
   return data.data
 }
 

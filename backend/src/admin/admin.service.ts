@@ -8,6 +8,7 @@ const VERIFICATION_STATUSES = ['UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED']
 const USER_STATUSES = ['ACTIVE', 'SUSPENDED']
 const REVIEW_STATUSES = ['APPROVED', 'HIDDEN']
 const DISPUTE_STATUSES = ['OPEN', 'RESOLVED', 'DISMISSED']
+const SUPPORT_STATUSES = ['OPEN', 'REPLIED', 'CLOSED']
 
 @Injectable()
 export class AdminService {
@@ -18,7 +19,7 @@ export class AdminService {
   ) {}
 
   async getStats() {
-    const [pendingArtisans, totalArtisans, totalUsers, totalBookings, hiddenReviews, openDisputes, revenueAgg] =
+    const [pendingArtisans, totalArtisans, totalUsers, totalBookings, hiddenReviews, openDisputes, openSupport, revenueAgg] =
       await Promise.all([
         this.prisma.artisanProfile.count({ where: { approvalStatus: 'PENDING' } }),
         this.prisma.artisanProfile.count(),
@@ -26,6 +27,7 @@ export class AdminService {
         this.prisma.booking.count(),
         this.prisma.review.count({ where: { status: 'HIDDEN' } }),
         this.prisma.dispute.count({ where: { status: 'OPEN' } }),
+        this.prisma.supportMessage.count({ where: { status: 'OPEN' } }),
         this.prisma.payment.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
       ])
     return {
@@ -35,6 +37,7 @@ export class AdminService {
       totalBookings,
       hiddenReviews,
       openDisputes,
+      openSupportMessages: openSupport,
       revenue: revenueAgg._sum.amount ?? 0,
     }
   }
@@ -252,5 +255,31 @@ export class AdminService {
     const dispute = await this.prisma.dispute.findUnique({ where: { id } })
     if (!dispute) throw new NotFoundException('Dispute not found')
     return this.prisma.dispute.update({ where: { id }, data: { status, resolution: resolution || null } })
+  }
+
+  // ─── Support inbox ──────────────────────────────────────────────────────────
+
+  async listSupportMessages(query: any) {
+    const { status, page = 1, limit = 50 } = query
+    const skip = (Number(page) - 1) * Number(limit)
+    const where: any = { ...(status ? { status: String(status) } : {}) }
+    const [data, total] = await Promise.all([
+      this.prisma.supportMessage.findMany({
+        where,
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: Number(limit),
+      }),
+      this.prisma.supportMessage.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  async setSupportMessageStatus(id: string, status: string) {
+    if (!SUPPORT_STATUSES.includes(status)) throw new BadRequestException('Invalid support message status')
+    const message = await this.prisma.supportMessage.findUnique({ where: { id } })
+    if (!message) throw new NotFoundException('Support message not found')
+    return this.prisma.supportMessage.update({ where: { id }, data: { status } })
   }
 }

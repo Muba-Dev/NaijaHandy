@@ -173,6 +173,29 @@ export class EmailService {
     )
   }
 
+  async sendSupportMessageEmail(opts: { name: string; email: string; phone: string | null; subject: string; message: string }) {
+    const to = process.env.SUPPORT_EMAIL || 'support@naijahandy.com'
+    const contact = `${opts.name} <${opts.email}>${opts.phone ? ` · ${opts.phone}` : ''}`
+    const detail = `A customer submitted a help request:\n\nFrom: ${contact}\nSubject: ${opts.subject}\n\n${opts.message}`
+    await this.send(
+      to,
+      `New support message — ${opts.subject}`,
+      `${detail}\n\nReply from the NaijaHandy admin console (Support tab).\nNaijaHandy Team`,
+      this.layout(
+        'New support message',
+        `
+        <p style="color:#374151;line-height:1.6">A customer submitted a help request:</p>
+        <div style="background:#f9fafb;border-radius:10px;padding:16px;margin:16px 0">
+          <p style="margin:0 0 4px"><strong>From:</strong> ${contact}</p>
+          <p style="margin:0 0 4px"><strong>Subject:</strong> ${opts.subject}</p>
+          <p style="margin:0"><strong>Message:</strong> ${opts.message}</p>
+        </div>
+        <p style="color:#6b7280;font-size:13px">Reply from the NaijaHandy admin console (Support tab).</p>
+        `,
+      ),
+    )
+  }
+
   async sendPasswordResetEmail(to: string, resetUrl: string) {
     const from = this.sender
     await this.transporter.sendMail({

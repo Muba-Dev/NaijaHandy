@@ -78,6 +78,8 @@ export interface Booking {
   time: string
   description: string
   amount: number
+  address?: string | null
+  customerPhone?: string | null
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
   avatar: string
   customer?: string
@@ -217,7 +219,22 @@ export interface AdminStats {
   totalBookings: number
   hiddenReviews: number
   openDisputes: number
+  openSupportMessages: number
   revenue: number
+}
+
+export type SupportMessageStatus = 'OPEN' | 'REPLIED' | 'CLOSED'
+
+export interface SupportMessage {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  subject: string
+  message: string
+  status: SupportMessageStatus
+  createdAt: string
+  user: { id: string; name: string; email: string } | null
 }
 
 export interface LoginCredentials {

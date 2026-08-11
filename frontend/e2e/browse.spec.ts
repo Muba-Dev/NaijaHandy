@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createBookableArtisan, fillBookingDate } from './support/helpers'
+import { createBookableArtisan } from './support/helpers'
 import { deleteE2EUsers } from './support/db'
 
 test.afterAll(async () => {
@@ -67,24 +67,26 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByLabel('Time')).toBeVisible()
   })
 
-  test('bookable artisan profile offers WhatsApp booking with prefilled details', async ({ page }) => {
+  test('bookable artisan profile keeps WhatsApp as a support chat (not a booking action)', async ({ page }) => {
     const artisan = await createBookableArtisan()
     await page.goto(`/artisans/${artisan.id}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
 
-    await fillBookingDate(page, '2030-01-15')
-    await page.getByLabel('Time').selectOption({ label: '10:00 AM' })
-    await page.getByPlaceholder('Describe the job in detail...').fill('Fix a leaking kitchen tap')
-
-    const whatsapp = page.getByRole('link', { name: 'Book via WhatsApp' })
+    const whatsapp = page.getByRole('link', { name: /Chat with .* on WhatsApp/ })
     await expect(whatsapp).toBeVisible()
     await expect(whatsapp).toHaveAttribute('href', /https:\/\/wa\.me\/2347012345678\?text=/)
-    await expect(whatsapp).toHaveAttribute('href', /Date%3A%202030-01-15/)
-    await expect(whatsapp).toHaveAttribute('href', /Time%3A%2010%3A00%20AM/)
-    await expect(whatsapp).toHaveAttribute('href', /Fix%20a%20leaking%20kitchen%20tap/)
-    const href = await whatsapp.getAttribute('href')
-    expect(decodeURIComponent(href || '')).toContain('Hello')
 
-    await expect(page.getByRole('link', { name: /Message/ }).first()).toHaveAttribute('href', href)
+    const href = await whatsapp.getAttribute('href')
+    const decoded = decodeURIComponent(href || '')
+    expect(decoded).toContain('Hello')
+    expect(decoded).toContain('question about')
+    expect(decoded).not.toContain('Date:')
+    expect(decoded).not.toContain('Time:')
+    expect(decoded).not.toContain('Estimated total:')
+
+    await expect(page.getByRole('link', { name: /Message/ }).first()).toHaveAttribute('href', href || '')
+
+    await expect(page.getByRole('link', { name: /Book via WhatsApp/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Proceed to Book & Pay' })).toBeVisible()
   })
 })

@@ -69,4 +69,14 @@ export class AdminController {
   async resolveDispute(@Param('id') id: string, @Body() body: any) {
     return { data: await this.adminService.resolveDispute(id, body.status, body.resolution) }
   }
+
+  @Get('support-messages')
+  async listSupportMessages(@Query() query: any) {
+    return { data: await this.adminService.listSupportMessages(query) }
+  }
+
+  @Patch('support-messages/:id/status')
+  async setSupportMessageStatus(@Param('id') id: string, @Body('status') status: string) {
+    return { data: await this.adminService.setSupportMessageStatus(id, status) }
+  }
 }

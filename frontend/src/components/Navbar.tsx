@@ -75,6 +75,9 @@ export default function Navbar() {
           <Link href="/dashboard/artisan" className="text-sm font-medium text-gray-600 hover:text-[#047857] transition-colors">
             Become an Artisan
           </Link>
+          <Link href="/help" className="text-sm font-medium text-gray-600 hover:text-[#047857] transition-colors">
+            Help
+          </Link>
         </div>
 
         {/* Right */}
@@ -177,6 +180,9 @@ export default function Navbar() {
           </Link>
           <Link href="/dashboard/artisan" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
             Become an Artisan
+          </Link>
+          <Link href="/help" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
+            Help
           </Link>
           {user ? (
             <>

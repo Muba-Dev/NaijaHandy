@@ -29,6 +29,8 @@ export class BookingService {
         time: data.time,
         description: data.description,
         amount: data.amount,
+        address: data.address ?? null,
+        customerPhone: data.customerPhone ?? null,
       },
     })
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
-  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText,
+  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText, LifeBuoy,
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import StatusBadge from '@/components/StatusBadge'
@@ -13,10 +13,11 @@ import {
   fetchAdminStats, fetchAdminArtisans, setArtisanApproval, setArtisanVerification,
   fetchAdminUsers, setUserStatus, fetchAdminReviews, setReviewStatus,
   fetchAdminBookings, fetchAdminPayments, fetchAdminDisputes, resolveDispute, logout,
+  fetchAdminSupportMessages, setSupportMessageStatus,
 } from '@/lib/api'
 import type {
   AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute,
-  AuthUser,
+  AuthUser, SupportMessage,
 } from '@/types'
 
 const TABS = [
@@ -27,6 +28,7 @@ const TABS = [
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'disputes', label: 'Disputes', icon: Scale },
+  { id: 'support', label: 'Support', icon: LifeBuoy },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -72,12 +74,14 @@ export default function AdminDashboardPage() {
   const [bookings, setBookings] = useState<AdminBooking[]>([])
   const [payments, setPayments] = useState<AdminPayment[]>([])
   const [disputes, setDisputes] = useState<AdminDispute[]>([])
+  const [support, setSupport] = useState<SupportMessage[]>([])
 
   const [artisanFilter, setArtisanFilter] = useState('ALL')
   const [userFilter, setUserFilter] = useState('ALL')
   const [reviewFilter, setReviewFilter] = useState('ALL')
   const [bookingFilter, setBookingFilter] = useState('ALL')
   const [disputeFilter] = useState('ALL')
+  const [supportFilter, setSupportFilter] = useState('ALL')
   const [userSearch, setUserSearch] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [resolving, setResolving] = useState<string | null>(null)
@@ -126,9 +130,14 @@ export default function AdminDashboardPage() {
         if (disputeFilter !== 'ALL') params.status = disputeFilter
         const r = await fetchAdminDisputes(params)
         setDisputes(r.data)
+      } else if (tab === 'support') {
+        const params: Record<string, string> = {}
+        if (supportFilter !== 'ALL') params.status = supportFilter
+        const r = await fetchAdminSupportMessages(params)
+        setSupport(r.data)
       }
     } catch { /* ignore */ }
-  }, [tab, artisanFilter, userFilter, reviewFilter, bookingFilter, disputeFilter, userSearch])
+  }, [tab, artisanFilter, userFilter, reviewFilter, bookingFilter, disputeFilter, supportFilter, userSearch])
 
   useEffect(() => {
     setUser(JSON.parse(localStorage.getItem('naijahandy_user') || 'null'))
@@ -194,6 +203,16 @@ export default function AdminDashboardPage() {
     setBusyId(null)
   }
 
+  const onSupportStatus = async (id: string, status: SupportMessage['status']) => {
+    setBusyId(id)
+    try {
+      await setSupportMessageStatus(id, status)
+      flash(`Message marked ${status === 'REPLIED' ? 'replied' : status === 'CLOSED' ? 'closed' : 'open'}`)
+      loadTab(); refreshAll()
+    } catch { flash('Action failed') }
+    setBusyId(null)
+  }
+
   return (
     <AuthGuard allowedRoles={['ADMIN']}>
     <div className="min-h-screen flex bg-gray-50">
@@ -233,6 +252,9 @@ export default function AdminDashboardPage() {
                 {t.id === 'disputes' && stats && stats.openDisputes > 0 && (
                   <span className="ml-auto w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
                 )}
+                {t.id === 'support' && stats && stats.openSupportMessages > 0 && (
+                  <span className="ml-auto w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{stats.openSupportMessages}</span>
+                )}
               </button>
             )
           })}
@@ -271,6 +293,9 @@ export default function AdminDashboardPage() {
                 {t.id === 'disputes' && stats && stats.openDisputes > 0 && (
                   <span className="ml-0.5 w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
                 )}
+                {t.id === 'support' && stats && stats.openSupportMessages > 0 && (
+                  <span className="ml-0.5 w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">{stats.openSupportMessages}</span>
+                )}
               </button>
             )
           })}
@@ -296,6 +321,7 @@ export default function AdminDashboardPage() {
                 { label: 'Registered Users', value: stats.totalUsers, sub: 'customers + artisans + admins', color: '#2563EB', icon: Users },
                 { label: 'Bookings', value: stats.totalBookings, sub: 'all time', color: '#8B5CF6', icon: Calendar },
                 { label: 'Open Disputes', value: stats.openDisputes, sub: 'need resolution', color: '#EF4444', icon: Scale },
+                { label: 'Open Support', value: stats.openSupportMessages, sub: 'messages awaiting reply', color: '#8B5CF6', icon: LifeBuoy },
                 { label: 'Hidden Reviews', value: stats.hiddenReviews, sub: 'moderated out', color: '#6B7280', icon: Star },
                 { label: 'Revenue', value: formatNGN(stats.revenue), sub: 'successful payments', color: '#047857', icon: CreditCard },
               ].map((s) => {
@@ -604,6 +630,61 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab === 'support' && (
+            <div>
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {['ALL', 'OPEN', 'REPLIED', 'CLOSED'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setSupportFilter(f)}
+                    aria-pressed={supportFilter === f}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${supportFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
+                  >
+                    {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
+                {support.length === 0 && <p className="p-6 text-sm text-gray-500">No support messages found.</p>}
+                {support.map((m) => (
+                  <div key={m.id} className="p-5">
+                    <div className="flex flex-col md:flex-row md:items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium text-gray-900 text-sm">{m.subject}</p>
+                          <Pill label={m.status} tone={m.status === 'OPEN' ? 'red' : m.status === 'REPLIED' ? 'amber' : 'gray'} />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {m.name} · {m.email}{m.phone ? ` · ${m.phone}` : ''}{m.user ? ` · account ${m.user.id.slice(0, 8)}` : ' · guest'} · {fmtDate(m.createdAt)}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1.5 whitespace-pre-wrap">“{m.message}”</p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          disabled={busyId === m.id}
+                          onClick={() => onSupportStatus(m.id, m.status === 'OPEN' ? 'REPLIED' : m.status === 'REPLIED' ? 'OPEN' : 'REPLIED')}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50"
+                        >
+                          {m.status === 'OPEN' ? 'Mark replied' : m.status === 'REPLIED' ? 'Reopen' : 'Reopen'}
+                        </button>
+                        <button
+                          disabled={busyId === m.id}
+                          onClick={() => onSupportStatus(m.id, m.status === 'CLOSED' ? 'OPEN' : 'CLOSED')}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                        >
+                          {m.status === 'CLOSED' ? 'Reopen' : 'Close'}
+                        </button>
+                        <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject}`)}`} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
+                          Reply
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

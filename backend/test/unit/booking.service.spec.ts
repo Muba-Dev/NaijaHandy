@@ -103,14 +103,53 @@ describe('BookingService', () => {
       artisanProfile.findUnique.mockResolvedValue({ userId: 'a1' })
       booking.create.mockResolvedValue({ id: 'b1', customerId: 'c1', artisanId: 'art-1' })
 
-      await service.create('c1', { artisanId: 'art-1', date: '2026-08-20', time: '9:00 AM', description: 'Fix a leak', amount: 17000 })
+      await service.create('c1', {
+        artisanId: 'art-1',
+        date: '2026-08-20',
+        time: '9:00 AM',
+        description: 'Fix a leak',
+        amount: 17000,
+        address: '12 Admiralty Way, Lekki',
+        customerPhone: '08012345678',
+      })
 
-      expect(booking.create).toHaveBeenCalled()
+      expect(booking.create).toHaveBeenCalledWith({
+        data: {
+          customerId: 'c1',
+          artisanId: 'art-1',
+          date: expect.any(Date),
+          time: '9:00 AM',
+          description: 'Fix a leak',
+          amount: 17000,
+          address: '12 Admiralty Way, Lekki',
+          customerPhone: '08012345678',
+        },
+      })
       expect(notificationsService.create).toHaveBeenCalledWith('a1', {
         type: 'BOOKING_REQUEST',
         title: 'New booking request',
         body: expect.any(String),
         link: '/dashboard/artisan/requests',
+      })
+    })
+
+    it('stores null contact fields when not provided', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ userId: 'a1' })
+      booking.create.mockResolvedValue({ id: 'b1', customerId: 'c1', artisanId: 'art-1' })
+
+      await service.create('c1', { artisanId: 'art-1', date: '2026-08-20', time: '9:00 AM', description: 'Fix a leak', amount: 17000 })
+
+      expect(booking.create).toHaveBeenCalledWith({
+        data: {
+          customerId: 'c1',
+          artisanId: 'art-1',
+          date: expect.any(Date),
+          time: '9:00 AM',
+          description: 'Fix a leak',
+          amount: 17000,
+          address: null,
+          customerPhone: null,
+        },
       })
     })
 
