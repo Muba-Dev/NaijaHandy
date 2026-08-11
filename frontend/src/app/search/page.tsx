@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { Search, MapPin, CheckCircle, Filter, SlidersHorizontal, AlertTriangle, Star, RefreshCw } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
 import { fetchArtisans } from '@/lib/api'
-import { formatNGN } from '@/lib/utils'
+import { formatNGN, minServiceRate } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import SkillBadges from '@/components/SkillBadges'
@@ -225,9 +225,15 @@ function SearchPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="font-bold text-gray-900">
-                        {formatNGN(a.hourlyRate)}<span className="text-xs font-normal text-gray-600">/hr</span>
-                      </p>
+                      {minServiceRate(a.services) != null ? (
+                        <p className="font-bold text-gray-900">
+                          From <span className="text-xs font-semibold text-gray-500">{formatNGN(minServiceRate(a.services)!)}</span>
+                        </p>
+                      ) : (
+                        <p className="font-bold text-gray-900">
+                          {formatNGN(a.hourlyRate)}<span className="text-xs font-normal text-gray-600">/hr</span>
+                        </p>
+                      )}
                       <div className={`text-xs mt-1 font-medium ${a.available ? 'text-emerald-700' : 'text-gray-600'}`}>
                         {a.available ? '● Available now' : '○ Busy'}
                       </div>

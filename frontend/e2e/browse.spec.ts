@@ -64,7 +64,7 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
     await expect(page.getByText('Proceed to Book & Pay')).toBeVisible()
     await expect(page.getByPlaceholder('Describe the job in detail...')).toBeVisible()
-    await expect(page.getByRole('combobox')).toBeVisible()
+    await expect(page.getByLabel('Time')).toBeVisible()
   })
 
   test('bookable artisan profile offers WhatsApp booking with prefilled details', async ({ page }) => {
@@ -73,7 +73,7 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
 
     await fillBookingDate(page, '2030-01-15')
-    await page.getByRole('combobox').selectOption({ label: '10:00 AM' })
+    await page.getByLabel('Time').selectOption({ label: '10:00 AM' })
     await page.getByPlaceholder('Describe the job in detail...').fill('Fix a leaking kitchen tap')
 
     const whatsapp = page.getByRole('link', { name: 'Book via WhatsApp' })

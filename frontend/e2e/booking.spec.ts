@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { deleteE2EBookings, deleteE2EUsers } from './support/db'
+import { deleteE2EBookings, deleteE2EUsers, addE2EService } from './support/db'
 import { login, createBookableArtisan, fillBookingDate } from './support/helpers'
 
 const MARKER = `E2E booking ${Date.now()}`
@@ -41,7 +41,7 @@ test.describe('Booking & payment', () => {
     await page.goto(`/artisans/${artisan.id}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
     await fillBookingDate(page, futureDate())
-    await page.getByRole('combobox').selectOption({ label: '10:00 AM' })
+    await page.getByLabel('Time').selectOption({ label: '10:00 AM' })
     await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — install a kitchen tap`)
     await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
 
@@ -189,7 +189,7 @@ test.describe('Booking & payment', () => {
     await page.goto(`/artisans/${artisan.id}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
     await fillBookingDate(page, futureDate())
-    await page.getByRole('combobox').selectOption({ label: '10:00 AM' })
+    await page.getByLabel('Time').selectOption({ label: '10:00 AM' })
     await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — rebook me`)
     await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
     await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
@@ -218,12 +218,43 @@ test.describe('Booking & payment', () => {
     await expect(page).toHaveURL(/bookagain=1/, { timeout: 15_000 })
 
     await expect(page.getByText(/Rebooking/)).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole('combobox')).toHaveValue('10:00 AM')
+    await expect(page.getByLabel('Time')).toHaveValue('10:00 AM')
     await expect(page.getByPlaceholder('Describe the job in detail...')).toHaveValue(`${MARKER} — rebook me`)
     await expect(page.locator('input[type="date"]')).not.toHaveValue('')
 
     // One tap re-books the same artisan.
     await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
     await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
+  })
+
+  test('shows an upfront price estimate from service rates and charges it', async ({ page }) => {
+    const artisan = await createBookableArtisan()
+    await addE2EService(artisan.id, 'Full Home Painting', 15000)
+    await addE2EService(artisan.id, 'Touch-up Painting', 8000)
+
+    await login(page)
+    await page.goto(`/artisans/${artisan.id}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
+
+    // Defaults to the first service at 2hrs → 15000×2 + 500 = 30500.
+    await expect(page.getByLabel('Service')).toHaveValue('Full Home Painting')
+    await expect(page.getByText('Full Home Painting (2hrs)')).toBeVisible()
+    await expect(page.getByText('₦30,500')).toBeVisible()
+
+    // Switching service re-prices the estimate → 8000×2 + 500 = 16500.
+    await page.getByLabel('Service').selectOption({ value: 'Touch-up Painting' })
+    await expect(page.getByText('₦16,500')).toBeVisible()
+
+    // Shortening the duration re-prices again → 8000×1 + 500 = 8500.
+    await page.getByLabel('Duration').selectOption({ value: '1' })
+    await expect(page.getByText('₦8,500')).toBeVisible()
+
+    // The customer is charged exactly the shown estimate.
+    await fillBookingDate(page, futureDate())
+    await page.getByLabel('Time').selectOption({ label: '11:00 AM' })
+    await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — painting job`)
+    await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
+    await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText('₦8,500').first()).toBeVisible()
   })
 })

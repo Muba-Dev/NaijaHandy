@@ -313,7 +313,7 @@ The frontend now uses:
    - Effort: Medium (prefill from profile/saved address; reduce required fields).
    - Success: checkout completion rate.
 
-7. **Feature: Upfront price estimates**
+7. **Feature: Upfront price estimates** — ✅ DONE (see below)
    - Problem: users fear hidden costs.
    - Benefit: trust + clearer decision.
    - Effort: Medium (per-service rate → estimate summary before booking; optional quote-request flow).
@@ -372,8 +372,8 @@ The frontend now uses:
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, and repeat booking — all DONE below.
-**Remaining (best next):** 6. Instant booking, 7. Upfront price estimates, 8. Better search filters (P1); 13. Service guarantee, 14. Emergency/same-day jobs (P3). Harder backlog: 10. Customer rewards, 11. Referral program, 15. Escrow protection.
+**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, and upfront price estimates — all DONE below.
+**Remaining (best next):** 6. Instant booking, 8. Better search filters (P1); 13. Service guarantee, 14. Emergency/same-day jobs (P3). Harder backlog: 10. Customer rewards, 11. Referral program, 15. Escrow protection.
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
@@ -449,3 +449,11 @@ The frontend now uses:
 - ✅ Public profile booking sidebar: when arriving via `bookagain=1`, it pre-fills the time and job description from the last job, defaults the date to today, shows a green **Rebooking** banner, and smooth-scrolls the booking form into view — so rehiring a trusted artisan is one tap.
 - ✅ Frontend-only change (no backend/schema work needed — rebook reuses the existing create-booking flow).
 - ✅ E2E (`booking.spec.ts`): book + pay → artisan completes → **Book Again** → profile pre-filled (time, description, date) + banner → one-tap re-books and pays through mock Paystack. Verified: frontend lint + build clean; full Playwright suite **27/27** green.
+
+### Upfront price estimates (Growth Roadmap P1.7) — DONE
+
+- ✅ New helpers in `frontend/src/lib/utils.ts`: `minServiceRate(services)` and `estimateBookingAmount(services, service, hours, hourlyRate)` → `{ unitRate, serviceFee, platformFee, total }` (per-service rate × duration + ₦500 platform fee).
+- ✅ **Per-service estimate before booking**: the profile booking sidebar now has a **Service** select (each service with its rate — the `Service.rate` column already existed) and a **Duration** select (1/2/4/8 hrs); the **Estimated Total** breakdown updates live, and the charged `amount` sent to booking + Paystack is exactly that estimate (falls back to `hourlyRate × hours + 500` for artisans without services). Booking form controls now have proper label/input association (`booking-date`, `booking-time`, `booking-service`, `booking-duration`, `job-desc`) — also an a11y win.
+- ✅ **"From ₦X" pricing surfaced on cards**: home `ArtisanCard` and `/search` result cards now show **From ₦X** (lowest service rate) instead of a plain hourly rate when the artisan has priced services.
+- ✅ WhatsApp booking message now includes the chosen service, duration, and estimated total.
+- ✅ E2E (`booking.spec.ts`): a bookable artisan with two seeded services (₦15,000 / ₦8,000) → estimate defaults to ₦30,500 (2hrs), re-prices to ₦16,500 on service change and ₦8,500 on 1hr, and the customer is charged exactly ₦8,500 through mock Paystack. All e2e specs switched from ambiguous `getByRole('combobox')` to `getByLabel('Time')`. Verified: frontend lint + build clean; full Playwright suite **28/28** green.

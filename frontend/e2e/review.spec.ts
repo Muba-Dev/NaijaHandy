@@ -38,7 +38,7 @@ test.describe('Review with photo', () => {
     await page.goto(`/artisans/${artisan.id}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
     await fillBookingDate(page, futureDate())
-    await page.getByRole('combobox').selectOption({ label: '10:00 AM' })
+    await page.getByLabel('Time').selectOption({ label: '10:00 AM' })
     await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — paint a hallway`)
     await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
     await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })

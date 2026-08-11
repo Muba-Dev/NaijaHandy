@@ -4,6 +4,23 @@ import * as path from 'path'
 
 dotenv.config({ path: path.join(__dirname, '..', '..', '..', 'backend', '.env') })
 
+export async function addE2EService(artisanId: string, name: string, rate: number): Promise<void> {
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not set; cannot seed an e2e service')
+  }
+  const client = new Client({ connectionString })
+  try {
+    await client.connect()
+    await client.query(
+      'INSERT INTO services (id, "artisanId", name, rate, "createdAt") VALUES ($1, $2, $3, $4, now())',
+      [`e2e-svc-${Date.now()}-${Math.floor(Math.random() * 1000)}`, artisanId, name, rate],
+    )
+  } finally {
+    await client.end()
+  }
+}
+
 export async function deleteE2EBookings(marker: string): Promise<void> {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) {

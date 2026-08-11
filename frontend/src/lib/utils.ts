@@ -8,6 +8,24 @@ export function formatNGN(amount: number): string {
   return `₦${amount.toLocaleString('en-NG')}`
 }
 
+export function minServiceRate(services: Array<{ rate: number }>): number | null {
+  if (!services || services.length === 0) return null
+  return Math.min(...services.map((s) => s.rate))
+}
+
+export function estimateBookingAmount(
+  services: Array<{ name: string; rate: number }>,
+  serviceName: string,
+  hours: number,
+  hourlyRate: number,
+): { unitRate: number; serviceFee: number; platformFee: number; total: number } {
+  const match = services.find((s) => s.name === serviceName)
+  const unitRate = match ? match.rate : hourlyRate
+  const serviceFee = unitRate * hours
+  const platformFee = 500
+  return { unitRate, serviceFee, platformFee, total: serviceFee + platformFee }
+}
+
 export function parsePhoneDigits(phone: string | null | undefined): string | null {
   if (!phone) return null
   let digits = phone.replace(/\D/g, '')

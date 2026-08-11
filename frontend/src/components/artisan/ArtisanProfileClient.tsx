@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MapPin, CheckCircle, Clock, XCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap, RefreshCw } from 'lucide-react'
 import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan } from '@/lib/api'
-import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink, isWhatsAppPhone } from '@/lib/utils'
+import { formatNGN, isAuthenticated, getApiErrorMessage, buildWhatsAppLink, isWhatsAppPhone, estimateBookingAmount, minServiceRate } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from '@/components/StarRating'
 import SkillBadges from '@/components/SkillBadges'
@@ -20,6 +20,8 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('')
   const [jobDesc, setJobDesc] = useState('')
+  const [selectedService, setSelectedService] = useState(() => artisan?.services[0]?.name ?? '')
+  const [hours, setHours] = useState(2)
   const [rebookActive, setRebookActive] = useState(false)
   const [bookingSubmitting, setBookingSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
@@ -33,6 +35,12 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
       fetchSavedArtisans()
         .then((list) => setSaved(list.some((a) => a.id === artisan.id)))
         .catch(() => setSaved(false))
+    }
+  }, [artisan])
+
+  useEffect(() => {
+    if (artisan && artisan.services.length > 0) {
+      setSelectedService((current) => current || artisan.services[0].name)
     }
   }, [artisan])
 
@@ -82,6 +90,8 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
     return total ? counts.map((c) => Math.round((c / total) * 100)) : counts
   })()
 
+  const estimate = estimateBookingAmount(artisan?.services ?? [], selectedService, hours, artisan?.hourlyRate ?? 0)
+
   const handleBook = async () => {
     if (!artisan) return
     setBookingSubmitting(true)
@@ -92,7 +102,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
         date: bookingDate,
         time: bookingTime,
         description: jobDesc,
-        amount: artisan.hourlyRate * 2 + 500,
+        amount: estimate.total,
       })
       try {
         const { authorization_url } = await initializePayment(booking.id)
@@ -115,10 +125,12 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
       `Hello ${artisan?.name}!`,
       `I found you on NaijaHandy and I'd like to book your ${artisan?.profession} service.`,
     ]
+    if (selectedService) lines.push(`Service: ${selectedService}`)
     if (bookingDate) lines.push(`Date: ${bookingDate}`)
     if (bookingTime) lines.push(`Time: ${bookingTime}`)
     if (jobDesc.trim()) lines.push(`Job details: ${jobDesc.trim()}`)
-    lines.push(`Rate: ${formatNGN(artisan?.hourlyRate ?? 0)}/hr`)
+    lines.push(`Duration: ${hours}hr${hours > 1 ? 's' : ''}`)
+    lines.push(`Estimated total: ${formatNGN(estimate.total)}`)
     return lines.join('\n')
   })()
   const whatsappLink = buildWhatsAppLink(artisan?.phone, whatsappMessage)
@@ -406,8 +418,16 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
               )}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="font-display text-2xl font-bold text-gray-900">{formatNGN(artisan.hourlyRate)}</span>
-                  <span className="text-gray-600 text-sm">/hr</span>
+                  {minServiceRate(artisan.services) != null ? (
+                    <span className="font-display text-2xl font-bold text-gray-900">
+                      From <span className="text-sm text-gray-600">{formatNGN(minServiceRate(artisan.services)!)}</span>
+                    </span>
+                  ) : (
+                    <>
+                      <span className="font-display text-2xl font-bold text-gray-900">{formatNGN(artisan.hourlyRate)}</span>
+                      <span className="text-gray-600 text-sm">/hr</span>
+                    </>
+                  )}
                 </div>
                 <StarRating value={artisan.rating} count={artisan.reviews} />
               </div>
@@ -421,8 +441,9 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
+                      <label htmlFor="booking-date" className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
                       <input
+                        id="booking-date"
                         type="date"
                         value={bookingDate}
                         onChange={(e) => setBookingDate(e.target.value)}
@@ -430,8 +451,9 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
+                      <label htmlFor="booking-time" className="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
                       <select
+                        id="booking-time"
                         value={bookingTime}
                         onChange={(e) => setBookingTime(e.target.value)}
                         className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
@@ -442,9 +464,40 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                         ))}
                       </select>
                     </div>
+                    {artisan.services.length > 0 && (
+                      <div>
+                        <label htmlFor="booking-service" className="block text-sm font-medium text-gray-700 mb-1.5">Service</label>
+                        <select
+                          id="booking-service"
+                          value={selectedService}
+                          onChange={(e) => setSelectedService(e.target.value)}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
+                        >
+                          {artisan.services.map((s) => (
+                            <option key={s.name} value={s.name}>
+                              {s.name} — {formatNGN(s.rate)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Job Description</label>
+                      <label htmlFor="booking-duration" className="block text-sm font-medium text-gray-700 mb-1.5">Duration</label>
+                      <select
+                        id="booking-duration"
+                        value={hours}
+                        onChange={(e) => setHours(Number(e.target.value))}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors"
+                      >
+                        {[1, 2, 4, 8].map((h) => (
+                          <option key={h} value={h}>{h} {h > 1 ? 'hours' : 'hour'}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="job-desc" className="block text-sm font-medium text-gray-700 mb-1.5">Job Description</label>
                       <textarea
+                        id="job-desc"
                         value={jobDesc}
                         onChange={(e) => setJobDesc(e.target.value)}
                         placeholder="Describe the job in detail..."
@@ -458,16 +511,16 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
 
               <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Service fee (est. 2hrs)</span>
-                  <span className="text-gray-700">{formatNGN(artisan.hourlyRate * 2)}</span>
+                  <span className="text-gray-500">{selectedService ? `${selectedService} (${hours}hr${hours > 1 ? 's' : ''})` : `Service fee (est. ${hours}hrs)`}</span>
+                  <span className="text-gray-700">{formatNGN(estimate.serviceFee)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Platform fee</span>
-                  <span className="text-gray-700">{formatNGN(500)}</span>
+                  <span className="text-gray-700">{formatNGN(estimate.platformFee)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between font-semibold">
                   <span className="text-gray-900">Estimated Total</span>
-                  <span className="text-[#047857]">{formatNGN(artisan.hourlyRate * 2 + 500)}</span>
+                  <span className="text-[#047857]">{formatNGN(estimate.total)}</span>
                 </div>
               </div>
 

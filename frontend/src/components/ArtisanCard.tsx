@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, CheckCircle } from 'lucide-react'
 import type { Artisan } from '@/types'
-import { formatNGN } from '@/lib/utils'
+import { formatNGN, minServiceRate } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StarRating from './StarRating'
 import SkillBadges from './SkillBadges'
@@ -52,7 +52,13 @@ export default function ArtisanCard({ artisan }: Props) {
         <SkillBadges services={artisan.services} limit={3} className="mb-4" />
         <div className="flex items-center justify-between">
           <StarRating value={artisan.rating} count={artisan.reviews} />
-          <span className="text-xs text-gray-500 font-medium">{formatNGN(artisan.hourlyRate)}/hr</span>
+          {minServiceRate(artisan.services) != null ? (
+            <span className="text-xs text-gray-500 font-medium">
+              From <span className="font-semibold text-gray-900">{formatNGN(minServiceRate(artisan.services)!)}</span>
+            </span>
+          ) : (
+            <span className="text-xs text-gray-500 font-medium">{formatNGN(artisan.hourlyRate)}/hr</span>
+          )}
         </div>
       </div>
       <div className="px-5 pb-5 pt-0 flex gap-2">
