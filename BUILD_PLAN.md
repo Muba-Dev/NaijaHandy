@@ -361,7 +361,7 @@ The frontend now uses:
     - Effort: Medium (measure time from booking request → first response; badge in search/profile).
     - Success: higher booking on fast responders.
 
-14. **Feature: Service guarantee (NaijaHandy Guarantee)**
+14. **Feature: Service guarantee (NaijaHandy Guarantee)** — ✅ DONE (see below)
     - Problem: fear of poor/overpriced work.
     - Benefit: risk-reversal.
     - Effort: Medium (policy page + tie into existing dispute flow).
@@ -380,7 +380,7 @@ The frontend now uses:
     - Success: completed-booking trust; fewer disputes.
 
 **Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, and better search filters — all DONE below.
-**Remaining (best next):** 9. Help & Support centre + AI assistant (spec below). Then 14. Service guarantee, 15. Emergency/same-day jobs (P3). Harder backlog: 11. Customer rewards, 12. Referral program, 16. Escrow protection.
+**Remaining (best next):** 15. Emergency/same-day jobs (P3). Harder backlog: 11. Customer rewards, 12. Referral program, 16. Escrow protection.
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
@@ -547,3 +547,15 @@ The frontend now uses:
 - ✅ **Admin console:** new **Support** tab (status filter pills, subject/message/contact rows, open-count badge in both sidebars + overview stat card, Mark replied / Close / Reopen / Reply-to-email actions).
 - ✅ **Verified:** backend `tsc` + 91 unit tests green (4 new support-service tests); booking + admin + payment backend e2e suites each green individually (full-run flake = shared-DB cross-suite interference, pre-existing); frontend lint + `tsc` + build clean; Playwright `help.spec.ts` (2) green (FAQ expand + contact form success banner).
 - ⏭️ **Phase 2 (AI assistant)** — still pending; gate on real ticket volume/FAQ data. See spec above.
+
+### Service guarantee (Growth Roadmap P3.14) — DONE
+
+- ✅ **Public `/guarantee` page** (server-rendered, risk-reversal):
+  - Hero ("Book with confidence.") + CTAs to `/bookings` and `/help`.
+  - **What's covered:** paid bookings via NaijaHandy checkout; job not done as agreed; clear overcharging vs the approved estimate; artisan no-show after payment (full refund); poor workmanship judged against the agreement.
+  - **What's not covered:** off-platform payments; claims after 14 days from the job date; changes agreed after booking; customer-caused damage.
+  - **How to claim** (3 steps): talk to the artisan → raise a dispute from the booking within 14 days → NaijaHandy reviews the evidence and refunds/arranges a rework. Plus "Good to know" notes (keep messages/photos, per-claim review).
+- ✅ **Tied into the existing dispute flow:** the Raise-a-dispute modal on `/bookings` now shows a guarantee banner ("Paid bookings are covered… claims must be raised within 14 days") with a link to the policy — no backend change needed, the existing dispute pipeline is the claim mechanism.
+- ✅ **Trust entry points:** booking sidebar on the artisan profile shows a "NaijaHandy Guarantee" badge (ShieldCheck, emerald) under the estimate with a "Read the guarantee" link (risk-reversal at the point of checkout); Footer gains a "Service Guarantee" link; Help Centre "Disputes & guarantee" FAQ adds "What is the NaijaHandy Guarantee?".
+- ✅ **Verified:** frontend lint + `tsc` + build clean; Playwright `guarantee.spec.ts` (2) green (policy content + footer navigation). Backend untouched (dispute pipeline already exists).
+- ⏭️ **Future upgrade path:** mark guarantee claims on the `Dispute` record (schema flag) + a dedicated admin view to track uphold/refund outcomes — only when real claim volume justifies it.

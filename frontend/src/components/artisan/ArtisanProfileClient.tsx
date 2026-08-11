@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MapPin, CheckCircle, Clock, XCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap, RefreshCw } from 'lucide-react'
+import { MapPin, CheckCircle, Clock, XCircle, Star, Phone, MessageSquare, Heart, Wrench, Zap, RefreshCw, ShieldCheck } from 'lucide-react'
 import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan, fetchMe, updateProfile } from '@/lib/api'
 import { formatNGN, isAuthenticated, getApiErrorMessage, getStoredUser, buildWhatsAppLink, isWhatsAppPhone, estimateBookingAmount, minServiceRate } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -610,6 +610,18 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                   <span className="text-gray-900">Estimated Total</span>
                   <span className="text-[#047857]">{formatNGN(estimate.total)}</span>
                 </div>
+              </div>
+
+              <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[#047857]">
+                  <ShieldCheck size={14} aria-hidden="true" /> NaijaHandy Guarantee
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Paid bookings are protected — if the job isn&apos;t done right, we&apos;ll make it right.
+                </p>
+                <Link href="/guarantee" className="mt-1.5 inline-block text-xs font-medium text-[#047857] hover:underline">
+                  Read the guarantee
+                </Link>
               </div>
 
               {artisan.isDemo ? (

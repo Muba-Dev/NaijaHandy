@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw } from 'lucide-react'
+import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw, ShieldCheck } from 'lucide-react'
 import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -364,6 +364,14 @@ export default function BookingHistoryPage() {
               Tell us what went wrong with your booking with{' '}
               <span className="font-semibold text-gray-900">{disputeFor.artisan}</span>. Our team will review it.
             </p>
+            <div className="flex items-start gap-2 bg-emerald-50 rounded-xl px-3 py-2.5 mb-4">
+              <ShieldCheck size={15} className="text-[#047857] shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Paid bookings are covered by the <span className="font-semibold text-[#047857]">NaijaHandy Guarantee</span> —
+                claims must be raised within 14 days of the job date.{' '}
+                <Link href="/guarantee" className="font-medium text-[#047857] hover:underline">Read the guarantee</Link>
+              </p>
+            </div>
             <label htmlFor="dispute-reason" className="sr-only">Describe the issue</label>
             <textarea
               id="dispute-reason"

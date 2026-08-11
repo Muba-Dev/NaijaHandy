@@ -65,6 +65,10 @@ const FAQ_SECTIONS: FaqSection[] = [
     title: 'Disputes & guarantee',
     items: [
       {
+        q: 'What is the NaijaHandy Guarantee?',
+        a: 'Paid bookings are protected by the NaijaHandy Guarantee: if the job isn\u2019t done right, we work to make it right with a refund or a rework. Claims must be raised within 14 days of the job date. Read the full policy on the Service Guarantee page.',
+      },
+      {
         q: 'What if something goes wrong with a job?',
         a: 'From your booking you can raise a dispute and our team will review it. A formal NaijaHandy service guarantee is on the way.',
       },

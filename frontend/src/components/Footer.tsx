@@ -30,6 +30,7 @@ const PLATFORM_LINKS = [
   { label: 'Find Artisans', href: '/search' },
   { label: 'Become an Artisan', href: '/register' },
   { label: 'How It Works', href: '/#how-it-works' },
+  { label: 'Service Guarantee', href: '/guarantee' },
   { label: 'Help Centre', href: '/help' },
 ]
 
