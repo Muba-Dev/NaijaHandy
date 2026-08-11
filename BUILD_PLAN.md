@@ -275,25 +275,25 @@ The frontend now uses:
 
 ### P0 — Trust
 
-1. **Feature: Real ID verification (document upload + admin review)**
+1. **Feature: Real ID verification (document upload + admin review)** — ✅ DONE (see below)
    - Problem: "Verified" is just an admin flag; users can't tell real artisans from demo/impersonators.
    - Benefit: buyers trust booking = more first bookings.
    - Effort: Medium (reuse `UploadService`; new document endpoint + admin review UI + badge states).
    - Success: % of real artisans verified; higher conversion on verified profiles.
 
-2. **Feature: Reviews with photos + verified-buyer tag**
+2. **Feature: Reviews with photos + verified-buyer tag** — ✅ DONE (see below)
    - Problem: buyers can't judge work quality from text alone.
    - Benefit: richer social proof; repeat-booking confidence.
    - Effort: Medium (`Review.photos` schema + upload + moderation + display).
    - Success: % of reviews with photos; review completion rate up.
 
-3. **Feature: Skill badges**
+3. **Feature: Skill badges** — ✅ DONE (see below)
    - Problem: a profession like "Plumber" is vague; users can't see specialty.
    - Benefit: clearer matching.
    - Effort: Easy (derive from the existing services list; badge UI).
    - Success: more shortlist/profile engagement.
 
-4. **Feature: Completed-job history**
+4. **Feature: Completed-job history** — ✅ DONE (see below)
    - Problem: users can't see proof of work.
    - Benefit: confidence; separates real pros.
    - Effort: Easy (completed bookings already stored — surface count + timeline on the profile).
@@ -301,7 +301,7 @@ The frontend now uses:
 
 ### P1 — Conversion
 
-5. **Feature: WhatsApp booking**
+5. **Feature: WhatsApp booking** — ✅ DONE (see below)
    - Problem: Nigerians book via WhatsApp; the current flow forces form + payment.
    - Benefit: instant conversations; big conversion lift.
    - Effort: Easy (frontend `wa.me` deep link with prefilled message on the profile page).
@@ -327,7 +327,7 @@ The frontend now uses:
 
 ### P2 — Retention
 
-9. **Feature: Repeat booking ("Book again" prefilled)**
+9. **Feature: Repeat booking ("Book again" prefilled)** — ✅ DONE (see below)
    - Problem: rehiring a good artisan is manual.
    - Benefit: habit loop.
    - Effort: Easy (rebook exists in history — prefill and shorten to one tap).
@@ -348,7 +348,7 @@ The frontend now uses:
 
 ### P3 — Differentiation
 
-12. **Feature: Response-time badges**
+12. **Feature: Response-time badges** — ✅ DONE (low-effort proxy shipped; measured first-response time is the upgrade path)
     - Problem: users don't know if an artisan is responsive.
     - Benefit: quality signal.
     - Effort: Medium (measure time from booking request → first response; badge in search/profile).
@@ -372,7 +372,8 @@ The frontend now uses:
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Suggested first sprint (high impact, low effort):** WhatsApp booking (✅ done — see below), skill badges, completed-job history, response-time badges — then P0 trust.
+**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, and repeat booking — all DONE below.
+**Remaining (best next):** 6. Instant booking, 7. Upfront price estimates, 8. Better search filters (P1); 13. Service guarantee, 14. Emergency/same-day jobs (P3). Harder backlog: 10. Customer rewards, 11. Referral program, 15. Escrow protection.
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
