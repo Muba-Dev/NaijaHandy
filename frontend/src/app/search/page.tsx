@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -41,6 +41,7 @@ function SearchPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedKeyword(keyword), 300)
@@ -48,6 +49,7 @@ function SearchPage() {
   }, [keyword])
 
   useEffect(() => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError('')
     const params: Record<string, string> = {}
@@ -70,9 +72,18 @@ function SearchPage() {
       params.sortBy = sortBy === 'Rating' ? 'rating' : 'hourlyRate'
     }
     fetchArtisans(params)
-      .then(setArtisans)
-      .catch(() => setError('Could not load artisans. Check your connection and try again.'))
-      .finally(() => setLoading(false))
+      .then((data) => {
+        if (requestId === requestIdRef.current) {
+          setArtisans(data)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (requestId === requestIdRef.current) {
+          setError('Could not load artisans. Check your connection and try again.')
+          setLoading(false)
+        }
+      })
   }, [category, minRating, sortBy, debouncedKeyword, city, availableOnly, priceBand, location, reload])
 
   const handleUseMyLocation = () => {
