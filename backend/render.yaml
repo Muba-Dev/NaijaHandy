@@ -3,7 +3,6 @@ services:
     name: naijahandy-api
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    preDeployCommand: npm run db:deploy
+    buildCommand: npm install && npm run db:deploy && npm run build
     startCommand: npm run start
     healthCheckPath: /api/health
