@@ -73,3 +73,20 @@ export async function deleteE2EUsers(emailLike: string): Promise<void> {
     await client.end()
   }
 }
+
+// Guest support/escalation messages carry no userId, so they must be removed
+// directly by their e2e marker email.
+export async function deleteE2ESupportMessages(emailLike: string): Promise<void> {
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not set; cannot clean up e2e support messages')
+  }
+  const client = new Client({ connectionString })
+  try {
+    await client.connect()
+    await client.query('DELETE FROM "support_messages" WHERE email LIKE $1', [`%${emailLike}%`])
+    await client.query('DELETE FROM "support_chat_logs" WHERE "userId" IS NULL')
+  } finally {
+    await client.end()
+  }
+}

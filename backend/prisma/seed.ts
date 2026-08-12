@@ -130,6 +130,31 @@ async function upsertArtisan(a: ArtisanSeed) {
   })
 }
 
+type HelpArticleSeed = { slug: string; category: string; title: string; content: string; order: number }
+
+const HELP_ARTICLES: HelpArticleSeed[] = [
+  { slug: 'how-to-book-an-artisan', category: 'Getting started', title: 'How do I book an artisan?', order: 1, content: 'Search or browse for an artisan, open their profile, choose a date and time, and describe the job. Use "Send Instant Request" to ask them to get in touch for free, or "Proceed to Book & Pay" to see a price estimate and pay securely through Paystack.' },
+  { slug: 'do-i-need-an-account', category: 'Getting started', title: 'Do I need an account to book?', order: 2, content: 'Yes. Registering lets you send booking requests, pay, save artisans, and rebook later. Your phone number and job address are saved so booking again is one tap.' },
+  { slug: 'instant-request-vs-book-and-pay', category: 'Getting started', title: 'What is the difference between "Send Instant Request" and "Proceed to Book & Pay"?', order: 3, content: 'An instant request is free. It notifies the artisan with your contact details so they can reach you directly. "Proceed to Book & Pay" shows a price estimate and takes you through checkout; your booking is confirmed once payment succeeds.' },
+  { slug: 'how-do-i-find-an-artisan', category: 'Getting started', title: 'How do I find the right artisan?', order: 4, content: 'Use the search page to filter by profession, city, price range, minimum rating, and distance from you. Verified artisans carry a badge, and every profile shows reviews, completed-job history, and skill badges. You can message an artisan on WhatsApp before you book.' },
+  { slug: 'how-do-payments-work', category: 'Booking & payments', title: 'How do payments work?', order: 1, content: 'Checkout is handled by Paystack. You can pay with card, bank transfer, or USSD. Your booking is confirmed once the payment succeeds, and both you and the artisan get a notification.' },
+  { slug: 'why-is-there-a-platform-fee', category: 'Booking & payments', title: 'Why is there a platform fee?', order: 2, content: 'The price estimate shows the artisan rate plus a small platform fee. The fee keeps NaijaHandy running: matching, verification, and support. You always see the full estimate before you pay.' },
+  { slug: 'can-i-cancel-a-booking', category: 'Booking & payments', title: 'Can I cancel a booking?', order: 3, content: 'Yes. Open your booking from the Bookings page and cancel it. If you already paid, contact us from the Help Centre and we will help you sort out a refund.' },
+  { slug: 'is-an-instant-request-charged', category: 'Booking & payments', title: 'Will I be charged for an instant request?', order: 4, content: 'No. Instant requests are free. You only pay when you complete checkout for a booking.' },
+  { slug: 'how-are-refunds-handled', category: 'Booking & payments', title: 'How are refunds handled?', order: 5, content: 'If a paid booking is cancelled or the job is not done as agreed, raise the issue with the artisan first, then open a dispute from the booking within 14 days of the job date. NaijaHandy reviews the evidence and, where the guarantee applies, arranges a refund or a rework.' },
+  { slug: 'how-does-book-again-work', category: 'Booking & payments', title: 'How do I book the same artisan again?', order: 6, content: 'Completed bookings on your Bookings page have a "Book Again" button. It opens the artisan profile with the previous time and job description prefilled, so rehiring a trusted artisan takes one tap.' },
+  { slug: 'how-do-i-know-an-artisan-is-verified', category: 'Trust & safety', title: 'How do I know an artisan is verified?', order: 1, content: 'Artisans who pass ID verification carry a verified badge on their profile. You can also read reviews and check each profile completed-job history before booking.' },
+  { slug: 'are-reviews-moderated', category: 'Trust & safety', title: 'Are reviews moderated?', order: 2, content: 'Yes. Reviews are checked and hidden if they break our guidelines, so what you see reflects real completed work. Reviews only come from completed bookings and carry a "Verified buyer" tag.' },
+  { slug: 'what-is-id-verification', category: 'Trust & safety', title: 'What is ID verification?', order: 3, content: 'Artisans can submit an ID document from their profile. Our team reviews it, and once approved the artisan carries a verified badge. Submitted documents are never shown publicly.' },
+  { slug: 'what-is-the-naijahandy-guarantee', category: 'Disputes & guarantee', title: 'What is the NaijaHandy Guarantee?', order: 1, content: 'Paid bookings are protected by the NaijaHandy Guarantee: if the job is not done right, we work to make it right with a refund or a rework. Claims must be raised within 14 days of the job date. Read the full policy on the Service Guarantee page.' },
+  { slug: 'what-if-something-goes-wrong', category: 'Disputes & guarantee', title: 'What if something goes wrong with a job?', order: 2, content: 'From your booking you can raise a dispute and our team will review it. Paid bookings are covered by the NaijaHandy Guarantee, and claims raised within 14 days of the job date are eligible for a refund or rework.' },
+  { slug: 'how-do-i-raise-a-dispute', category: 'Disputes & guarantee', title: 'How do I raise a dispute?', order: 3, content: 'Open the booking from your Bookings page and choose "Raise a dispute", then explain the problem. Keep messages and photos as evidence. Claims must be raised within 14 days of the job date for the guarantee to apply.' },
+  { slug: 'how-do-i-receive-booking-requests', category: 'For artisans', title: 'How do I receive booking requests?', order: 1, content: 'New requests appear in your artisan dashboard where you can accept or decline them. You will also be notified by email and in-app. Urgent requests appear at the top and are marked with an Urgent badge.' },
+  { slug: 'how-do-i-get-the-verified-badge', category: 'For artisans', title: 'How do I get the verified badge?', order: 2, content: 'Submit an ID document from your artisan profile. Our team reviews it, and once approved you will carry the verified badge on your profile.' },
+  { slug: 'how-do-artisans-get-paid', category: 'For artisans', title: 'How do artisans get paid?', order: 3, content: 'Customers pay securely through Paystack when they check out. When a booking is paid you get a PAYMENT_RECEIVED notification, and completing the job moves it into your completed history, which builds trust and attracts more bookings.' },
+  { slug: 'what-is-an-urgent-request', category: 'For artisans', title: 'What is an urgent request?', order: 4, content: 'Urgent requests are same-day jobs customers flagged as time-sensitive. They are sorted to the top of your job requests and marked with an Urgent badge so you can spot them quickly. Accepting them is just like any other request.' },
+]
+
 async function main() {
   ensureDatabaseMigrated()
 
@@ -195,6 +220,15 @@ async function main() {
         data: { bookingId: b.id, reference: `seed-pay-${b.id.slice(-6)}`, amount: b.amount, status: 'SUCCESS', provider: 'PAYSTACK', paidAt: new Date() },
       })
     }
+  }
+
+  // ── Help Centre articles (source of truth for /help + AI assistant corpus) ──
+  for (const [i, a] of HELP_ARTICLES.entries()) {
+    await prisma.helpArticle.upsert({
+      where: { slug: a.slug },
+      update: { category: a.category, title: a.title, content: a.content, order: a.order },
+      create: { slug: a.slug, category: a.category, title: a.title, content: a.content, order: a.order },
+    })
   }
 
   console.log('Database seeded successfully!')

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification, SupportMessage } from '@/types'
+import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification, SupportMessage, HelpArticleGroup, ChatResponse, ChatTranscriptItem } from '@/types'
 import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
 export const API_BASE_URL =
@@ -438,6 +438,28 @@ export async function createSupportMessage(payload: {
   message: string
 }): Promise<SupportMessage> {
   const { data } = await api.post('/support/messages', payload)
+  return data.data
+}
+
+export async function fetchHelpArticles(): Promise<HelpArticleGroup[]> {
+  const { data } = await api.get('/help/articles')
+  return data.data
+}
+
+export async function sendChatMessage(message: string): Promise<ChatResponse> {
+  const { data } = await api.post('/support/chat', { message })
+  return data.data
+}
+
+export async function escalateChat(payload: {
+  name?: string
+  email?: string
+  phone?: string
+  subject?: string
+  message?: string
+  transcript: ChatTranscriptItem[]
+}): Promise<SupportMessage> {
+  const { data } = await api.post('/support/chat/escalate', payload)
   return data.data
 }
 

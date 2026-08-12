@@ -49,6 +49,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   notifications      Notification[]
   supportMessages    SupportMessage[]
+  supportChatLogs    SupportChatLog[]
 
   @@map("users")
 }
@@ -70,6 +71,45 @@ model SupportMessage {
   @@index([status])
   @@index([createdAt])
   @@map("support_messages")
+}
+
+// Help Centre articles — the single source of truth for the /help page and the
+// RAG corpus backing the AI support assistant. `embedding` is a pgvector
+// column (text-embedding-3-small, 1536 dims) managed via raw SQL — Prisma
+// only knows it exists (Unsupported), never reads/writes it directly.
+model HelpArticle {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  category  String   // Getting started | Booking & payments | Trust & safety | Disputes & guarantee | For artisans
+  title     String
+  content   String
+  order     Int      @default(0)
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  @@index([category])
+  @@map("help_articles")
+}
+
+// Quality + rate-limit log for the AI assistant. Stores only the sanitized
+// question, matched article IDs, and confidence — never booking payloads.
+model SupportChatLog {
+  id         String    @id @default(cuid())
+  userId     String?
+  ipHash     String? // sha256 of the request IP (guest rate limiting; never raw IPs)
+  question   String
+  answer     String?
+  articleIds String? // JSON array of matched HelpArticle ids
+  confidence Float?
+  model      String?
+  escalated  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("support_chat_logs")
 }
 
 model Notification {

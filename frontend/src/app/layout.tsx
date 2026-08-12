@@ -3,6 +3,7 @@ import { Fraunces, Outfit } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import SupportChatWidget from '@/components/support/SupportChatWidget'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://naija-handy.vercel.app'
 
@@ -72,6 +73,7 @@ export default function RootLayout({
         <Navbar />
         <main id="main" className="flex-1">{children}</main>
         <Footer />
+        <SupportChatWidget />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -14,6 +14,7 @@
     "db:seed": "ts-node-dev prisma/seed.ts",
     "db:reset-token": "node scripts/last-reset-token.mjs",
     "db:recompute-ratings": "node scripts/recompute-ratings.mjs",
+    "db:embed-help": "node scripts/embed-help.mjs",
     "db:backup": "bash scripts/backup-db.sh",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -62,6 +63,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "nodemailer": "^9.0.4",
+    "openai": "^7.4.0",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
     "zod": "^3.23.8"

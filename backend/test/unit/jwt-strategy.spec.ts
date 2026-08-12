@@ -7,12 +7,18 @@ describe('JwtStrategy.validate', () => {
 
   afterEach(() => findUnique.mockReset())
 
-  it('returns { id, role, isDemo } for an active user', async () => {
-    findUnique.mockResolvedValue({ id: 'u1', role: 'CUSTOMER', status: 'ACTIVE', isDemo: false })
-    await expect(strategy.validate({ id: 'u1' })).resolves.toEqual({ id: 'u1', role: 'CUSTOMER', isDemo: false })
+  it('returns { id, role, isDemo, name, email } for an active user', async () => {
+    findUnique.mockResolvedValue({ id: 'u1', role: 'CUSTOMER', status: 'ACTIVE', isDemo: false, name: 'Chisom', email: 'chisom@example.com' })
+    await expect(strategy.validate({ id: 'u1' })).resolves.toEqual({
+      id: 'u1',
+      role: 'CUSTOMER',
+      isDemo: false,
+      name: 'Chisom',
+      email: 'chisom@example.com',
+    })
     expect(findUnique).toHaveBeenCalledWith({
       where: { id: 'u1' },
-      select: { id: true, role: true, status: true, isDemo: true },
+      select: { id: true, role: true, status: true, isDemo: true, name: true, email: true },
     })
   })
 

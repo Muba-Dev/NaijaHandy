@@ -21,13 +21,20 @@ export default defineConfig({
       cwd: '../backend',
       url: 'http://localhost:4000/api/health',
       timeout: 180_000,
-      env: { ...process.env, PAYSTACK_MOCK: 'true', NODE_ENV: 'test' },
+      env: {
+        ...process.env,
+        PAYSTACK_MOCK: 'true',
+        SUPPORT_CHAT_ENABLED: 'true',
+        SUPPORT_CHAT_MOCK: 'true',
+        NODE_ENV: 'test',
+      },
     },
     {
       command: isCI ? 'npm run build && npm run start' : 'npm run dev',
       cwd: '.',
       url: 'http://localhost:3000',
       timeout: 180_000,
+      env: { ...process.env, NEXT_PUBLIC_SUPPORT_CHAT_ENABLED: 'true' },
     },
   ],
 })

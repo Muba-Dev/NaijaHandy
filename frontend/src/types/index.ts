@@ -243,6 +243,43 @@ export interface LoginCredentials {
   password: string
 }
 
+// ─── Help Centre + AI assistant ─────────────────────────────────────────────
+
+export interface HelpArticle {
+  slug: string
+  title: string
+  content: string
+}
+
+export interface HelpArticleGroup {
+  category: string
+  items: HelpArticle[]
+}
+
+export type ChatActionKind = 'bookings' | 'dispute' | 'contact'
+
+export interface ChatAction {
+  label: string
+  action: ChatActionKind
+}
+
+export interface ChatSource {
+  slug: string
+  title: string
+}
+
+export interface ChatResponse {
+  answer: string
+  confident: boolean
+  sources: ChatSource[]
+  actions: ChatAction[]
+}
+
+export interface ChatTranscriptItem {
+  question: string
+  answer: string
+}
+
 export interface RegisterPayload {
   name: string
   email: string
