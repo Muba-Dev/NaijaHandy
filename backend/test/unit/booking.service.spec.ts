@@ -123,6 +123,7 @@ describe('BookingService', () => {
           amount: 17000,
           address: '12 Admiralty Way, Lekki',
           customerPhone: '08012345678',
+          isUrgent: false,
         },
       })
       expect(notificationsService.create).toHaveBeenCalledWith('a1', {
@@ -149,6 +150,7 @@ describe('BookingService', () => {
           amount: 17000,
           address: null,
           customerPhone: null,
+          isUrgent: false,
         },
       })
     })
@@ -157,6 +159,35 @@ describe('BookingService', () => {
       artisanProfile.findUnique.mockResolvedValue(null)
       await expect(service.create('c1', { artisanId: 'art-1', date: '2026-08-20', time: '9:00 AM', description: 'Fix a leak', amount: 17000 })).rejects.toThrow(NotFoundException)
       expect(booking.create).not.toHaveBeenCalled()
+    })
+
+    it('creates an urgent booking with an urgent request notification', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ userId: 'a1' })
+      booking.create.mockResolvedValue({ id: 'b2', customerId: 'c1', artisanId: 'art-1' })
+      await service.create('c1', {
+        artisanId: 'art-1',
+        date: '2026-08-20',
+        time: '9:00 AM',
+        description: 'Fix a leaking kitchen pipe',
+        amount: 17000,
+        isUrgent: true,
+      })
+      expect(booking.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ isUrgent: true }) }),
+      )
+      expect(notificationsService.create).toHaveBeenCalledWith('a1', {
+        type: 'URGENT_REQUEST',
+        title: 'Urgent booking request',
+        body: expect.any(String),
+        link: '/dashboard/artisan/requests',
+      })
+    })
+
+    it('does not notify when the artisan books themselves', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ userId: 'c1' })
+      booking.create.mockResolvedValue({ id: 'b3', customerId: 'c1', artisanId: 'art-1' })
+      await service.create('c1', { artisanId: 'art-1', date: '2026-08-20', time: '9:00 AM', description: 'Fix a leak', amount: 17000, isUrgent: true })
+      expect(notificationsService.create).not.toHaveBeenCalled()
     })
   })
 

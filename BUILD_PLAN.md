@@ -367,7 +367,7 @@ The frontend now uses:
     - Effort: Medium (policy page + tie into existing dispute flow).
     - Success: fewer cancellations; better conversion.
 
-15. **Feature: Emergency / same-day jobs**
+15. **Feature: Emergency / same-day jobs** — ✅ DONE (see below)
     - Problem: urgent jobs (leak, lockout) have no fast path.
     - Benefit: differentiated high-intent segment.
     - Effort: Medium (urgent flag + filter + notify nearby artisans).
@@ -379,8 +379,8 @@ The frontend now uses:
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, and better search filters — all DONE below.
-**Remaining (best next):** 15. Emergency/same-day jobs (P3). Harder backlog: 11. Customer rewards, 12. Referral program, 16. Escrow protection.
+**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, better search filters, service guarantee, and emergency/same-day urgent jobs — all DONE below.
+**Remaining (best next):** 11. Customer rewards, 12. Referral program. Harder backlog: 16. Escrow protection.
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
@@ -559,3 +559,14 @@ The frontend now uses:
 - ✅ **Trust entry points:** booking sidebar on the artisan profile shows a "NaijaHandy Guarantee" badge (ShieldCheck, emerald) under the estimate with a "Read the guarantee" link (risk-reversal at the point of checkout); Footer gains a "Service Guarantee" link; Help Centre "Disputes & guarantee" FAQ adds "What is the NaijaHandy Guarantee?".
 - ✅ **Verified:** frontend lint + `tsc` + build clean; Playwright `guarantee.spec.ts` (2) green (policy content + footer navigation). Backend untouched (dispute pipeline already exists).
 - ⏭️ **Future upgrade path:** mark guarantee claims on the `Dispute` record (schema flag) + a dedicated admin view to track uphold/refund outcomes — only when real claim volume justifies it.
+
+### Emergency / same-day urgent jobs (Growth Roadmap P3.15) — DONE
+
+- ✅ **Schema:** `Booking.isUrgent Boolean @default(false)`. Migration `20260812161030_add_booking_is_urgent` applied to **CI** (`naijahandy_ci`) and **prod** (`postgres`).
+- ✅ **Backend:** `POST /api/bookings` accepts optional `isUrgent`. `BookingService.create` persists it and, when urgent, sends the artisan a distinct **`URGENT_REQUEST`** notification ("Urgent booking request — the customer needs this job done today…", link to `/dashboard/artisan/requests`) instead of the standard `BOOKING_REQUEST`. `URGENT_REQUEST` added to `NOTIFICATION_TYPES`.
+- ✅ **Booking form:** "Urgent — I need this today" checkbox on the artisan booking sidebar (red, with a "available-now artisans appear first in search" hint) flows into `buildBookingPayload`. No surcharge — amount stays as estimated.
+- ✅ **Customer `/bookings`:** red "Urgent" badge next to the status + a dedicated **Urgent** filter tab (count included).
+- ✅ **Artisan job requests:** red "Urgent" badge on the request card + urgent-first sort (pending urgent jobs surface at the top).
+- ✅ **Fast path:** home hero gains a red "Urgent? Find same-day help" CTA → `/search?available=1`; the search page preselects the existing "Available now only" filter from the `?available=1` param (reuses the existing availability toggle as the same-day signal — no new artisan setting).
+- ✅ **Verified:** backend `tsc` + 93 unit tests green (3 new booking-create tests: non-urgent persistence + `BOOKING_REQUEST`, urgent persistence + `URGENT_REQUEST`, self-booking no-notify; existing create assertions updated for `isUrgent`). Backend `booking.e2e-spec` green (12, incl. urgent create + artisan `URGENT_REQUEST` row). Frontend lint + `tsc` + build clean. Playwright: `urgent.spec.ts` (1, home CTA + search preset) and the urgent-flow test in `booking.spec.ts` (checkbox → paid → Urgent badge + filter on customer side, Urgent badge on artisan requests page; runs in its own 150s budget because it uses two browser contexts).
+- ⏭️ **Future upgrade path:** broadcast model (`UrgentRequest` job board with accept-by-first-artisan + notify nearby artisans) when emergency volume justifies it.

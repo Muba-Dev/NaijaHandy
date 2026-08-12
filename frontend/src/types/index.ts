@@ -80,6 +80,7 @@ export interface Booking {
   amount: number
   address?: string | null
   customerPhone?: string | null
+  isUrgent: boolean
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
   avatar: string
   customer?: string

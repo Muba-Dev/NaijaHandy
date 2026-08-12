@@ -31,14 +31,17 @@ export class BookingService {
         amount: data.amount,
         address: data.address ?? null,
         customerPhone: data.customerPhone ?? null,
+        isUrgent: data.isUrgent ?? false,
       },
     })
 
     if (artisanProfile.userId !== userId) {
       await this.notificationsService.create(artisanProfile.userId, {
-        type: 'BOOKING_REQUEST',
-        title: 'New booking request',
-        body: 'You have a new booking request. Review and confirm it to get started.',
+        type: data.isUrgent ? 'URGENT_REQUEST' : 'BOOKING_REQUEST',
+        title: data.isUrgent ? 'Urgent booking request' : 'New booking request',
+        body: data.isUrgent
+          ? 'Urgent booking request — the customer needs this job done today. Review and confirm it quickly.'
+          : 'You have a new booking request. Review and confirm it to get started.',
         link: '/dashboard/artisan/requests',
       })
     }

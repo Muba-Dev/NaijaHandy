@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   Search, Briefcase, MapPin, ArrowRight, Calendar, Shield,
-  Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers,
+  Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers, Flame,
 } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
 import { fetchArtisans, fetchCategoryCounts } from '@/lib/api'
@@ -110,6 +110,12 @@ export default function HomePage() {
               <Link href="/search?q=electrician" className="underline">Electrician</Link>,{' '}
               <Link href="/search?q=carpenter" className="underline">Carpenter</Link>
             </p>
+            <Link
+              href="/search?available=1"
+              className="mt-4 inline-flex items-center gap-2 bg-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-red-700 transition-colors"
+            >
+              <Flame size={16} aria-hidden="true" />Urgent? Find same-day help
+            </Link>
           </div>
 
           {/* Stats grid */}

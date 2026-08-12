@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw, ShieldCheck, Flame } from 'lucide-react'
 import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -12,9 +12,9 @@ import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
 import type { Booking, BookingStatus } from '@/types'
 
-type FilterTab = 'All' | 'Active' | 'Completed' | 'Cancelled'
+type FilterTab = 'All' | 'Active' | 'Urgent' | 'Completed' | 'Cancelled'
 
-const TABS: FilterTab[] = ['All', 'Active', 'Completed', 'Cancelled']
+const TABS: FilterTab[] = ['All', 'Active', 'Urgent', 'Completed', 'Cancelled']
 
 export default function BookingHistoryPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('All')
@@ -137,6 +137,7 @@ export default function BookingHistoryPage() {
   const tabCounts = {
     All: bookings.length,
     Active: bookings.filter((b) => b.status === 'Confirmed' || b.status === 'Pending').length,
+    Urgent: bookings.filter((b) => b.isUrgent).length,
     Completed: bookings.filter((b) => b.status === 'Completed').length,
     Cancelled: bookings.filter((b) => b.status === 'Cancelled').length,
   }
@@ -144,6 +145,7 @@ export default function BookingHistoryPage() {
   const filtered = bookings.filter((b) => {
     if (activeTab === 'All') return true
     if (activeTab === 'Active') return b.status === 'Confirmed' || b.status === 'Pending'
+    if (activeTab === 'Urgent') return b.isUrgent
     return b.status === activeTab
   })
 
@@ -234,6 +236,11 @@ export default function BookingHistoryPage() {
                         <p className="text-sm text-gray-500">{b.profession}</p>
                       </div>
                       <div className="flex items-center gap-2">
+                        {b.isUrgent && (
+                          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                            <Flame size={12} aria-hidden="true" />Urgent
+                          </span>
+                        )}
                         <StatusBadge status={b.status as BookingStatus} />
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${b.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                           {b.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}

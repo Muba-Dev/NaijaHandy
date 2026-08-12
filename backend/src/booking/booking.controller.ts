@@ -13,6 +13,7 @@ const createSchema = z.object({
   amount: z.number().int().positive(),
   address: z.string().max(300).optional(),
   customerPhone: z.string().max(30).optional(),
+  isUrgent: z.boolean().optional(),
 })
 
 const updateSchema = z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']) })

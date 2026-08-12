@@ -227,6 +227,47 @@ test.describe('Booking & payment', () => {
     await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
   })
 
+  test('flags an urgent booking that shows a badge on both dashboards', async ({ browser }) => {
+    test.setTimeout(150_000)
+    const artisan = await createBookableArtisan()
+
+    const customerCtx = await browser.newContext()
+    const customerPage = await customerCtx.newPage()
+    await login(customerPage)
+
+    await customerPage.goto(`/artisans/${artisan.id}`)
+    await expect(customerPage.getByRole('heading', { level: 1 })).toHaveText(artisan.user.name, { timeout: 20_000 })
+    await fillBookingDate(customerPage, futureDate())
+    await customerPage.getByLabel('Time').selectOption({ label: '9:00 AM' })
+    await customerPage.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — urgent pipe job`)
+    await customerPage.getByRole('checkbox', { name: /Urgent/ }).check()
+    await customerPage.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
+
+    await expect(customerPage.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
+
+    // Customer sees the Urgent badge and can filter to it.
+    await customerPage.goto('/bookings')
+    const card = customerPage
+      .locator('div.bg-white.rounded-2xl', { hasText: `${MARKER} — urgent pipe job` })
+    await expect(card.getByText('Urgent', { exact: true })).toBeVisible({ timeout: 20_000 })
+    await customerPage.getByRole('group', { name: 'Filter bookings' }).getByRole('button', { name: /Urgent/ }).click()
+    await expect(card).toBeVisible()
+    await customerCtx.close()
+
+    // Artisan dashboard surfaces the urgent request too.
+    const artisanCtx = await browser.newContext()
+    const artisanPage = await artisanCtx.newPage()
+    await artisanPage.goto('/login')
+    await artisanPage.locator('main form input[type="email"]').fill(artisan.email)
+    await artisanPage.locator('main form input[type="password"]').fill('password123')
+    await artisanPage.getByRole('button', { name: 'Log In' }).click()
+    await expect(artisanPage).toHaveURL(/\/dashboard\/artisan/, { timeout: 15_000 })
+    await artisanPage.goto('/dashboard/artisan/requests')
+    const request = artisanPage.locator('div.bg-white.rounded-2xl', { hasText: `${MARKER} — urgent pipe job` })
+    await expect(request.getByText('Urgent', { exact: true })).toBeVisible({ timeout: 20_000 })
+    await artisanCtx.close()
+  })
+
   test('shows an upfront price estimate from service rates and charges it', async ({ page }) => {
     const artisan = await createBookableArtisan()
     await addE2EService(artisan.id, 'Full Home Painting', 15000)

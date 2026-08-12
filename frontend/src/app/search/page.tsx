@@ -31,7 +31,7 @@ function SearchPage() {
   const [keyword, setKeyword] = useState(initialQ)
   const [debouncedKeyword, setDebouncedKeyword] = useState(initialQ)
   const [city, setCity] = useState(initialCity)
-  const [availableOnly, setAvailableOnly] = useState(false)
+  const [availableOnly, setAvailableOnly] = useState(() => searchParams.get('available') === '1')
   const [priceBand, setPriceBand] = useState('any')
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)

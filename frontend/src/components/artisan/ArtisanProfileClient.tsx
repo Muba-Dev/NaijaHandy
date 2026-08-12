@@ -20,6 +20,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('')
   const [jobDesc, setJobDesc] = useState('')
+  const [isUrgent, setIsUrgent] = useState(false)
   const [selectedService, setSelectedService] = useState(() => artisan?.services[0]?.name ?? '')
   const [hours, setHours] = useState(2)
   const [rebookActive, setRebookActive] = useState(false)
@@ -128,6 +129,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
     amount: estimate.total,
     address: jobAddress || undefined,
     customerPhone: contactPhone || undefined,
+    isUrgent,
   })
 
   const handleBook = async () => {
@@ -530,6 +532,18 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                         ))}
                       </select>
                     </div>
+                    <label className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isUrgent}
+                        onChange={(e) => setIsUrgent(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded accent-red-600"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-red-800">Urgent — I need this today</span>
+                        <span className="block text-xs text-red-700 mt-0.5">The artisan gets an urgent-priority request. Available-now artisans show up first in search.</span>
+                      </span>
+                    </label>
                     {artisan.services.length > 0 && (
                       <div>
                         <label htmlFor="booking-service" className="block text-sm font-medium text-gray-700 mb-1.5">Service</label>

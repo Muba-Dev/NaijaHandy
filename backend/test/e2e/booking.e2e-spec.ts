@@ -10,6 +10,7 @@ describe('Booking (e2e)', () => {
   let customerToken: string
   let artisanToken: string
   let artisanProfileId: string
+  let artisanUserId: string
 
   beforeAll(async () => {
     ;({ app, prisma, server } = await setupApp())
@@ -17,6 +18,7 @@ describe('Booking (e2e)', () => {
     customerToken = customer.body.accessToken
     const artisan = await loginReq(server, 'emeka@example.com', 'password123')
     artisanToken = artisan.body.accessToken
+    artisanUserId = artisan.body.user.id
     const profile = await prisma.artisanProfile.findUnique({ where: { userId: artisan.body.user.id } })
     artisanProfileId = profile.id
   })
@@ -29,7 +31,7 @@ describe('Booking (e2e)', () => {
     await app.close()
   })
 
-  function createBooking(description = 'Fix a leaking kitchen sink and pipes') {
+  function createBooking(description = 'Fix a leaking kitchen sink and pipes', isUrgent = false) {
     return request(server)
       .post('/api/bookings')
       .set('Authorization', `Bearer ${customerToken}`)
@@ -39,6 +41,7 @@ describe('Booking (e2e)', () => {
         time: '10:00',
         description,
         amount: 25000,
+        ...(isUrgent ? { isUrgent: true } : {}),
       })
   }
 
@@ -62,7 +65,22 @@ describe('Booking (e2e)', () => {
     const res = await createBooking()
     expect(res.status).toBe(201)
     expect(res.body.data.customerId).toBeTruthy()
+    expect(res.body.data.isUrgent).toBe(false)
     createdBookings.push(res.body.data.id)
+  })
+
+  it('creates an urgent booking flagged for the artisan', async () => {
+    const res = await createBooking('Burst pipe flooding the kitchen — need help today', true)
+    expect(res.status).toBe(201)
+    expect(res.body.data.isUrgent).toBe(true)
+    createdBookings.push(res.body.data.id)
+
+    const notif = await prisma.notification.findFirst({
+      where: { userId: artisanUserId, type: 'URGENT_REQUEST' },
+      orderBy: { createdAt: 'desc' },
+    })
+    expect(notif).toBeTruthy()
+    expect(notif.title).toBe('Urgent booking request')
   })
 
   it('blocks the artisan from confirming an UNPAID booking', async () => {

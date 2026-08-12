@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service'
 
 export const NOTIFICATION_TYPES = [
   'BOOKING_REQUEST',
+  'URGENT_REQUEST',
   'BOOKING_ACCEPTED',
   'BOOKING_DECLINED',
   'BOOKING_CANCELLED',

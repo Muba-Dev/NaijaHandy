@@ -135,6 +135,7 @@ type RawBooking = {
   amount: number
   address?: string | null
   customerPhone?: string | null
+  isUrgent: boolean
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
   paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
   paymentReference?: string | null
@@ -157,6 +158,7 @@ function normalizeBooking(b: RawBooking): Booking {
     amount: b.amount,
     address: b.address ?? null,
     customerPhone: b.customerPhone ?? null,
+    isUrgent: b.isUrgent ?? false,
     status: (b.status.charAt(0) + b.status.slice(1).toLowerCase()) as Booking['status'],
     avatar: b.artisan.user.avatar || '',
     customer: b.customer?.name,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Briefcase, Calendar, Clock, MapPin, Phone } from 'lucide-react'
+import { Briefcase, Calendar, Clock, MapPin, Phone, Flame } from 'lucide-react'
 import { fetchBookings, updateBookingStatus } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
@@ -35,7 +35,9 @@ export default function JobRequestsPage() {
     Cancelled: bookings.filter((b) => b.status === 'Cancelled').length,
   }
 
-  const filtered = bookings.filter((b) => activeTab === 'All' || b.status === activeTab)
+  const filtered = bookings
+    .filter((b) => activeTab === 'All' || b.status === activeTab)
+    .sort((a, b) => Number(b.isUrgent) - Number(a.isUrgent))
 
   return (
     <>
@@ -90,7 +92,14 @@ export default function JobRequestsPage() {
                       <p className="font-semibold text-gray-900">{b.customer || 'Customer'}</p>
                       <p className="text-sm text-gray-500">{b.description || b.profession}</p>
                     </div>
-                    <StatusBadge status={b.status as BookingStatus} />
+                    <div className="flex items-center gap-2">
+                      {b.isUrgent && (
+                        <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                          <Flame size={12} aria-hidden="true" />Urgent
+                        </span>
+                      )}
+                      <StatusBadge status={b.status as BookingStatus} />
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-gray-500">
                     <span className="flex items-center gap-1"><Calendar size={13} />{b.date}</span>
