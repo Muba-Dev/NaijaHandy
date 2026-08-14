@@ -197,7 +197,7 @@ export default function BookingHistoryPage() {
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === t ? 'text-white bg-[#047857]' : 'bg-white text-gray-600 border border-gray-100 hover:border-gray-200'}`}
             >
               {t}
-              <span className={`text-xs rounded-full px-1.5 ${activeTab === t ? 'bg-white/20' : 'bg-gray-100 text-gray-500'}`}>{tabCounts[t]}</span>
+              <span className={`text-xs rounded-full px-1.5 ${activeTab === t ? 'bg-white text-[#065f46]' : 'bg-gray-100 text-gray-700'}`}>{tabCounts[t]}</span>
             </button>
           ))}
         </div>
@@ -243,7 +243,7 @@ export default function BookingHistoryPage() {
                           </span>
                         )}
                         <StatusBadge status={b.status as BookingStatus} />
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${b.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${b.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                           {b.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
                         </span>
                       </div>
@@ -272,7 +272,7 @@ export default function BookingHistoryPage() {
                         </button>
                       )}
                       {b.status === 'Completed' && b.reviewed && (
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-800">
                           <CheckCircle2 size={13} />Reviewed
                         </span>
                       )}

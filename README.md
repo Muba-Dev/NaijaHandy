@@ -1,347 +1,198 @@
-# NaijaHandy — Developer Handoff Package
+# NaijaHandy
 
-Nigeria's premier artisan-finder marketplace. This package contains the complete source code your developer needs to build and deploy the full application.
+Nigeria's marketplace for finding, vetting, and hiring verified home-service artisans — plumbers, electricians, carpenters, painters, cleaners, and more.
 
----
+## Problem
 
-## Project Structure
+Finding a reliable artisan in Nigeria is a trust gamble. There is no dependable way to verify skills, compare prices, read genuine reviews, or guarantee the work. Customers end up with overpriced or unfinished jobs; good artisans struggle to reach new customers.
 
-```
-handoff/
-├── frontend/          ← Next.js 15 + TypeScript + Tailwind CSS
-└── backend/           ← NestJS + Prisma + PostgreSQL
-```
+## Solution
 
----
+NaijaHandy connects customers with vetted artisans and protects both sides:
+
+- **Honest trust signals** — every rating, review, and "jobs completed" figure on a profile is backed by a real completed booking in the database, never cosmetic numbers.
+- **Secure payments** — customers pay through Paystack when they book; the booking is only confirmed after payment succeeds.
+- **Disputes & guarantee** — paid bookings are covered by the NaijaHandy Guarantee, with a dispute flow to raise issues within 14 days of the job date.
+- **AI support** — a RAG assistant answers questions from the Help Centre articles and can escalate to a human with the full chat transcript.
+
+## Target Users
+
+| Role | Capabilities |
+|---|---|
+| Customer | Browse/search artisans, save favourites, send instant requests, book & pay, review completed jobs, rebook with one tap, raise disputes |
+| Artisan | Accept/decline requests (incl. urgent same-day jobs), manage availability, update profile, upload portfolio photos, submit ID verification, track earnings |
+| Admin | Approve/suspend users, approve artisan profiles & verification documents, review disputes, monitor bookings |
+
+## Features
+
+- Live homepage platform stats (verified artisans, cities, completed jobs, reviews) from the API
+- Search with category, city, price-range, rating, and distance filters
+- Per-category deep links from the homepage into pre-filtered search
+- Booking status lifecycle: `PENDING → CONFIRMED → COMPLETED`, `PENDING → REJECTED`, `CONFIRMED → CANCELLED`; payment statuses `UNPAID / PAID / REFUNDED`
+- Urgent same-day bookings flagged and surfaced to artisans
+- JWT auth (15 min access + 30-day rotated, revocable refresh tokens) with Google OAuth
+- Password reset by email, Paystack payments (with offline mock mode), notifications, disputes
+- `GET /api/artisans/stats` platform-statistics endpoint
+- AI support chat with source links and human escalation
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS v3 |
-| Backend | Node.js, NestJS, TypeScript |
-| Database | PostgreSQL (Neon/Supabase) + Prisma ORM |
-| Authentication | JWT access + refresh tokens (rotated, revocable) + bcrypt |
-| Frontend Deploy | Vercel |
-| Backend Deploy | Render or Railway |
-| Database Host | Neon PostgreSQL |
+| Frontend | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS |
+| Backend | NestJS, TypeScript |
+| Database | PostgreSQL (Supabase/Neon) + Prisma ORM |
+| Auth | JWT access + refresh tokens (rotated, revocable), bcrypt, Google OAuth |
+| Payments | Paystack (with `PAYSTACK_MOCK` offline mode) |
+| Support chat | RAG over Help Centre articles (pgvector embeddings + LLM, offline keyword mock) |
+| Tests | Jest (backend unit), Playwright (frontend e2e, axe accessibility) |
 
----
+## Architecture
 
-## Design Tokens
-
-| Token | Value | Usage |
-|---|---|---|
-| Primary | `#047857` | Buttons, links, active states |
-| Accent | `#F59E0B` | Highlights, badges, CTAs |
-| Background | `#F9FAFB` | Page background |
-| Radius | `16px` / `12px` | Cards and inputs |
-| Font — Display | Fraunces (serif) | All h1–h4 headings |
-| Font — Body | Outfit (sans-serif) | All body text |
-
----
-
-## Pages
-
-| Route | Page | Notes |
-|---|---|---|
-| `/` | Home / Landing | Hero, categories, featured artisans, How It Works |
-| `/login` | Login | Email + password, Google OAuth button |
-| `/register` | Register | Customer vs Artisan toggle |
-| `/search` | Search & Results | Filters sidebar + artisan list |
-| `/artisans/[id]` | Artisan Profile | Tabs: About, Services, Portfolio, Reviews + booking sidebar |
-| `/dashboard/customer` | Customer Dashboard | Stats, upcoming bookings |
-| `/dashboard/artisan` | Artisan Dashboard | Toggle availability, job requests, calendar |
-| `/bookings` | Booking History | Filter tabs: All / Active / Completed / Cancelled |
-| `/settings` | Profile Settings | Tabs: Personal, Security, Payment, Notifications |
-| `404` | Not Found | Friendly error page |
-
----
-
-## Quick Start — Frontend
-
-```bash
-cd frontend
-npm install          # or: pnpm install
-cp .env.local.example .env.local
-npm run dev          # starts on http://localhost:3000
+```
+Frontend (Next.js, port 3000)
+      │  HTTP + JWT (never talks to the DB directly)
+NestJS API (backend, port 4000)
+      │  Prisma
+PostgreSQL (Supabase)
 ```
 
-### Environment Variables (frontend/.env.local)
+- RLS is enabled on all public tables as a defense-in-depth boundary; ownership and role authorization are enforced by the NestJS API, which connects as the `postgres` role (`BYPASSRLS`).
+- Swagger docs (`/api/docs`) are served only when `NODE_ENV !== 'production'`.
+- The app fails fast at startup if `JWT_SECRET` is missing in production instead of falling back to a hardcoded secret.
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:4000/api
+## Project Structure
+
+```
+NaijaHandy/
+├── frontend/                 ← Next.js 15 app
+│   ├── src/app/              ← Routes (pages, dashboards, admin, help, guarantee…)
+│   ├── src/components/       ← UI components (navbar, StatusBadge, artisan cards…)
+│   ├── src/lib/              ← API client (axios), utilities, demo data
+│   ├── src/types/            ← TypeScript interfaces
+│   └── e2e/                  ← Playwright end-to-end tests
+└── backend/                  ← NestJS API
+    ├── prisma/
+    │   ├── schema.prisma     ← Database schema
+    │   └── seed.ts           ← Realistic demo seed (15 artisans, 50 reviews)
+    ├── src/
+    │   ├── main.ts           ← Bootstrap (helmet, CORS, rate limit, Swagger)
+    │   ├── auth/             ← JWT, roles guard, OAuth, password reset
+    │   ├── artisan/          ← Profiles, search, platform stats
+    │   ├── booking/          ← Bookings, status transitions, disputes
+    │   ├── payment/          ← Paystack integration (mock-capable)
+    │   ├── admin/            ← Approvals, user management
+    │   ├── support-chat/     ← AI assistant + human escalation
+    │   ├── help/             ← Help Centre articles + embeddings
+    │   └── …
+    └── test/                 ← Jest unit + e2e tests
 ```
 
----
+## Getting Started
 
-## Quick Start — Backend
+### Backend
 
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Fill in DATABASE_URL and JWT_SECRET in .env
-
-npx prisma migrate dev --name init   # runs migrations
-npx prisma generate                  # generates Prisma client
-npm run dev                          # starts on http://localhost:4000
+cp .env.example .env       # fill in DATABASE_URL + JWT_SECRET at minimum
+npx prisma migrate dev
+npm run db:seed            # realistic demo data (see below)
+npm run dev                # http://localhost:4000
 ```
 
-### Environment Variables (backend/.env)
-
-```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST/naijahandy?sslmode=require"
-JWT_SECRET="your-super-secret-key"
-FRONTEND_URL="http://localhost:3000"
-PORT=4000
-```
-
----
-
-## Database (Neon PostgreSQL)
-
-1. Go to [neon.tech](https://neon.tech) and create a free project
-2. Copy the **Connection string** → paste as `DATABASE_URL` in `backend/.env`
-3. Run: `npx prisma migrate dev --name init`
-
-### Schema Summary
-
-| Model | Description |
-|---|---|
-| `User` | All users (customers + artisans) with `role` field |
-| `ArtisanProfile` | Artisan-specific data linked to `User` |
-| `Service` | Services offered by an artisan (name + rate) |
-| `PortfolioItem` | Photos uploaded by artisan |
-| `Booking` | Customer → Artisan booking with status |
-| `Review` | Customer review after completed booking |
-| `SavedArtisan` | Customer's saved/favourited artisans |
-
----
-
-## API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/register` | Register new user (customer or artisan) |
-| POST | `/api/auth/login` | Login → returns access + refresh tokens |
-| POST | `/api/auth/refresh` | Rotate refresh token → new token pair |
-| POST | `/api/auth/logout` | Revoke refresh token (logout) |
-
-**Login response:**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
-  "user": { "id": "...", "name": "Chisom Eze", "role": "CUSTOMER" }
-}
-```
-
-Store token in `localStorage` (already handled in `src/lib/utils.ts`).
-
-### Artisans
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/artisans` | List artisans (filters: category, city, minRating, available) |
-| GET | `/api/artisans/:id` | Single artisan profile |
-| PATCH | `/api/artisans/me` | Update own profile (artisan only, requires JWT) |
-
-**Query params example:**
-```
-GET /api/artisans?category=Plumbing&city=Lagos&minRating=4.5&available=true&sortBy=rating
-```
-
-### Bookings
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/bookings` | Create booking (customer, requires JWT) |
-| GET | `/api/bookings` | List own bookings (filtered by role, requires JWT) |
-| PATCH | `/api/bookings/:id/status` | Update booking status (requires JWT) |
-
-### Users
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/users/me` | Get own profile (requires JWT) |
-| PATCH | `/api/users/me` | Update own profile (requires JWT) |
-
-### Saved Artisans
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/saved-artisans` | List my saved artisans (requires JWT) |
-| POST | `/api/saved-artisans/:artisanId` | Save an artisan (requires JWT) |
-| DELETE | `/api/saved-artisans/:artisanId` | Un-save an artisan (requires JWT) |
-
-**All protected routes:** Include header `Authorization: Bearer <token>`
-
----
-
-## Connecting Frontend to Backend
-
-In `src/lib/data.ts`, replace the mock arrays with API calls. Example pattern:
-
-```typescript
-// Before (mock):
-export const ARTISANS = [{ id: 1, name: 'Emeka Okafor', ... }]
-
-// After (real API):
-import axios from 'axios'
-const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL })
-
-export async function fetchArtisans(params?: Record<string, string>) {
-  const res = await api.get('/artisans', { params })
-  return res.data.data
-}
-```
-
-For server components (Next.js App Router), use `fetch` directly:
-```typescript
-// app/search/page.tsx (server component)
-const artisans = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/artisans`).then(r => r.json())
-```
-
----
-
-## Security — Supabase Row Level Security (RLS)
-
-### Architecture (confirmed)
-
-NaijaHandy uses **Architecture B**:
-
-```
-Frontend (Next.js)
-   ↓  HTTP + JWT (never talks to Supabase directly)
-NestJS API (backend/)
-   ↓  Prisma
-Supabase PostgreSQL
-```
-
-- The frontend never uses a Supabase client or anon/service key.
-- The backend connects via `DATABASE_URL` as the `postgres` superuser role, which has `BYPASSRLS` — so **RLS policies never block the application**.
-- RLS is a **defense-in-depth** boundary that locks tables against direct access through the `anon` / `authenticated` roles (e.g. a leaked anon key, PostgREST, or accidental client queries).
-- User IDs are Prisma CUIDs, not Supabase Auth UUIDs, and the app does **not** use Supabase Auth. `auth.uid()` ownership policies can therefore never match and are intentionally not used. Ownership + role authorization is enforced by the NestJS API.
-
-### Remediation files (`backend/supabase/`)
-
-| File | Purpose |
-|---|---|
-| `rls-migration.sql` | Enables RLS on every public table, deny-alls sensitive tables, grants read-only catalog policies, adds auto-RLS for new tables |
-| `rls-rollback.sql` | Reverts to the pre-remediation state |
-| `backup-db.sh` | Logical backup — auto-uses `pg_dump` or falls back to the Supabase CLI (`supabase db dump`). Run **before** applying |
-| `verify-rls.sql` | Confirms RLS state, policies, privileges, event trigger |
-
-### Applying the fix
+### Frontend
 
 ```bash
-# 1. Snapshot (rollback point) — auto-selects pg_dump or Supabase CLI
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/naijahandy?sslmode=require" \
-  bash backend/supabase/backup-db.sh
-
-#    Force a specific method if needed:
-#    bash backend/supabase/backup-db.sh --method pgdump     # needs Postgres client tools
-#    bash backend/supabase/backup-db.sh --method supabase   # needs: npm i -g supabase && supabase login
-
-# 2. Apply RLS remediation
-psql "$DATABASE_URL" -f backend/supabase/rls-migration.sql
-
-# 3. Verify
-psql "$DATABASE_URL" -f backend/supabase/verify-rls.sql
-
-# 4. Confirm in Supabase dashboard: Security Advisor findings cleared.
+cd frontend
+npm install
+cp .env.local.example .env.local
+npm run dev                # http://localhost:3000
 ```
 
-Alternatively, run the `.sql` files in the Supabase **SQL Editor** (Database → SQL Editor).
+### Environment variables
 
-### RLS model
+Key backend variables (`backend/.env`):
 
-- **Sensitive — deny-all for anon/authenticated**: `users`, `refresh_tokens`, `bookings`, `payments`, `saved_artisans`, `disputes`, `_prisma_migrations`. No policies exist for these, and privileges were revoked from `anon`/`authenticated`. Only the trusted backend (`postgres` / `service_role`) can access them.
-- **Public catalog — read-only**: `artisan_profiles`, `services`, `portfolio_items`, `reviews` get a `SELECT`-only policy for `anon`/`authenticated`. This data is already served publicly by the unauthenticated API.
-- **Future tables**: an event trigger enables RLS automatically on any new `public` table.
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Supabase/PostgreSQL connection string (session pooler) |
+| `JWT_SECRET` | Signs access + refresh tokens. Generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+| `FRONTEND_URL` | CORS origin (default `http://localhost:3000`) |
+| `PORT` | API port (default `4000`) |
+| `SMTP_*`, `EMAIL_ENABLED` | Email for password reset + notifications |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth (optional) |
+| `PAYSTACK_SECRET_KEY` / `PAYSTACK_MOCK` | Paystack payments; `PAYSTACK_MOCK=true` runs offline |
+| `SUPPORT_CHAT_ENABLED` / `SUPPORT_CHAT_MOCK` / `LLM_API_KEY` | AI support chat; mock mode needs no API key |
+| `SEED_DEMO` | `true` marks seeded users as demo accounts (set `0` for production) |
 
-### Password & token handling
+Key frontend variables (`frontend/.env.local`):
 
-- Passwords are hashed with **bcrypt (cost 12)** in `backend/src/auth/auth.service.ts` — never stored or returned in plaintext.
-- Refresh tokens live only in `public.refresh_tokens`, managed exclusively by the backend, and are revoked on rotation/logout. With RLS enabled and no policy, the `Sensitive Columns Exposed — public.refresh_tokens` finding is resolved.
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:4000/api`) |
+| `NEXT_PUBLIC_APP_URL` | Public site URL for canonical/OpenGraph/sitemap |
+| `NEXT_PUBLIC_SUPPORT_CHAT_ENABLED` | Show the chat widget (must match backend) |
 
-### Regression testing (after applying)
+### Demo data
 
-1. Start backend: `npm run dev:backend` (needs `backend/.env` with `DATABASE_URL` + `JWT_SECRET`).
-2. Register customer + artisan, login, logout (refresh-token revocation).
-3. List/search artisans, open an artisan profile (services, portfolio, reviews).
-4. Create a booking as customer; accept/complete as artisan; cancel path.
-5. Update profile settings.
-6. Confirm direct `anon`-key queries against `users` / `refresh_tokens` return no rows.
+`npm run db:seed` is idempotent and seeds honest, internally consistent data: 15 artisans (incl. AC servicing, welding, and electronics repair), 6 demo customers, 50 reviews — each backed by a real `COMPLETED`+`PAID` booking with a payment record — plus active demo bookings (confirmed, pending, urgent, and rejected).
 
----
+All seeded accounts use password `password123`. Key emails:
+
+- Admin: `admin@naijahandy.com`
+- Customers: `chisom@example.com`, `bayo@example.com`, `nneka@example.com`, `ada@example.com`, `kelechi@example.com`, `zainab@example.com`
+- Artisans: `emeka@example.com` (plumber), `fatima@example.com` (electrician), `chidi@example.com` (carpenter), `amaka@example.com` (painter), `yusuf@example.com` (auto mechanic), `ngozi@example.com` (interior designer), and more
+
+Ratings and completed-job counts shown on profiles are recomputed from the actual review/booking rows — the seed never writes fake aggregates.
+
+## Testing
+
+```bash
+# Backend unit tests
+cd backend && npm test
+
+# Frontend build + type check + lint
+cd frontend && npm run build
+
+# Frontend e2e (Playwright + axe a11y). Runs best with CI=true so the
+# frontend is served from a production build instead of the dev server.
+cd frontend && CI=true npx playwright test
+```
+
+## API Overview
+
+| Module | Endpoints |
+|---|---|
+| Auth | `POST /api/auth/register`, `/login`, `/refresh`, `/logout`, `GET /api/auth/google`, password reset |
+| Artisans | `GET /api/artisans`, `GET /api/artisans/:id`, `GET /api/artisans/stats`, `PATCH /api/artisans/me` |
+| Bookings | `POST /api/bookings`, `GET /api/bookings`, `PATCH /api/bookings/:id/status`, dispute endpoints |
+| Payments | Paystack initialize/verify with mock support |
+| Admin | Approvals, user status, disputes |
+| Help / Support chat | Help Centre articles, `/api/support/chat`, escalation to a ticket |
+| Users | `GET/PATCH /api/users/me`, saved artisans, notifications, verification documents |
+
+Interactive Swagger docs: `http://localhost:4000/api/docs` (non-production only).
+
+Protected routes require `Authorization: Bearer <accessToken>`.
+
+## Security Notes
+
+- `JWT_SECRET` is mandatory in production (startup fails fast if missing — see `backend/src/config.ts`).
+- Passwords hashed with bcrypt (cost 12); refresh tokens are stored server-side, rotated on use, and revoked on logout.
+- Helmet, CORS allow-listing, and per-IP rate limiting (`express-rate-limit`) are enabled.
+- Swagger is disabled in production.
+- Supabase RLS is enabled as a second boundary; see `backend/supabase/` for the migration, rollback, backup, and verification scripts.
 
 ## Deployment
 
-### Frontend → Vercel
+- **Frontend → Vercel**: import the repo, set root directory to `frontend`, add `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_APP_URL`, deploy.
+- **Backend → Render/Railway**: root directory `backend`, build `npm install && npx prisma generate && npm run build`, start `npm start`, set `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`.
+- **Database**: Supabase PostgreSQL. Apply migrations with `npx prisma migrate deploy`.
 
-1. Push `frontend/` to a GitHub repo
-2. Go to [vercel.com](https://vercel.com) → New Project → Import repo
-3. Set **Root Directory** to `frontend`
-4. Add environment variable: `NEXT_PUBLIC_API_URL=https://your-backend.onrender.com/api`
-5. Deploy
+## Future Work
 
-### Backend → Render
-
-1. Push `backend/` to a GitHub repo (can be same repo, different dir)
-2. Go to [render.com](https://render.com) → New Web Service
-3. Set **Root Directory** to `backend`
-4. Build command: `npm install && npx prisma generate && npm run build`
-5. Start command: `npm start`
-6. Add environment variables: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`
-7. Deploy
-
-### Backend → Railway (alternative)
-
-1. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
-2. Add a PostgreSQL plugin (or use Neon)
-3. Set the same environment variables
-4. Deploy
-
----
-
-## Replacing Mock Data
-
-The current `src/lib/data.ts` uses hardcoded Nigerian artisan data for UI display. Replace in this order:
-
-1. **Auth** — wire `/login` and `/register` forms to `POST /api/auth/*`
-2. **Search page** — replace `ARTISANS` array with `GET /api/artisans?...`
-3. **Artisan profile** — replace `ARTISANS.find()` with `GET /api/artisans/:id`
-4. **Bookings** — replace `BOOKINGS` array with `GET /api/bookings`
-5. **Dashboards** — use real user data from `/api/users/me`
-
----
-
-## Key Files to Know
-
-```
-frontend/
-├── src/app/layout.tsx          ← Fonts, Navbar, Footer wired here
-├── src/lib/data.ts             ← REPLACE THIS with real API calls
-├── src/lib/utils.ts            ← formatNGN(), auth token helpers
-├── src/types/index.ts          ← All TypeScript interfaces
-└── tailwind.config.ts          ← Theme colours (primary #047857, accent #F59E0B)
-
-backend/
-├── prisma/schema.prisma        ← Full database schema
-├── src/main.ts                 ← NestJS bootstrap (helmet, CORS, rate limit, validation)
-├── src/app.module.ts           ← Root module wiring
-├── src/auth/                   ← Auth module (JWT access/refresh, guards, roles)
-├── src/artisan/                ← Artisan module (list, profile, availability)
-├── src/booking/                ← Booking module (create, list, status transitions)
-├── src/user/                   ← User module (profile read/update)
-└── src/saved-artisan/          ← Saved-artisan module (save/un-save/list)
-```
-
----
-
-## Notes for Developer
-
-- All price values are in **Nigerian Naira (₦)**. Store as integers in the database (no decimals).
-- The `formatNGN()` utility in `src/lib/utils.ts` handles display formatting.
-- JWT tokens expire in **7 days**. Store in `localStorage` and clear on logout.
-- Image uploads are not yet implemented — use Cloudinary or AWS S3 for production.
-- The Google OAuth button on the login page is UI-only — wire it to NextAuth.js or Passport.js.
-- Verification (`verified: true` badge) should be set manually by admins in the database initially.
+- ID document verification pipeline with manual review UI
+- Push/mobile notifications for booking status changes
+- Escrow-style milestone payments for large jobs
+- Native mobile app

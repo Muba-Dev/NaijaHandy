@@ -215,7 +215,7 @@ export default function SupportChatWidget() {
 
           {/* Escalate / footer */}
           <div className="px-3 py-2 border-t border-gray-100 bg-white">
-            {escalating && !escalated && !user && (!guest?.name || !guest?.email) ? (
+            {escalating && !escalated && !user ? (
               <form
                 className="space-y-2"
                 onSubmit={(e) => {

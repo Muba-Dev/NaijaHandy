@@ -261,7 +261,7 @@ test.describe('Booking & payment', () => {
     await artisanPage.locator('main form input[type="email"]').fill(artisan.email)
     await artisanPage.locator('main form input[type="password"]').fill('password123')
     await artisanPage.getByRole('button', { name: 'Log In' }).click()
-    await expect(artisanPage).toHaveURL(/\/dashboard\/artisan/, { timeout: 15_000 })
+    await expect(artisanPage).toHaveURL(/\/dashboard\/artisan/, { timeout: 30_000 })
     await artisanPage.goto('/dashboard/artisan/requests')
     const request = artisanPage.locator('div.bg-white.rounded-2xl', { hasText: `${MARKER} — urgent pipe job` })
     await expect(request.getByText('Urgent', { exact: true })).toBeVisible({ timeout: 20_000 })

@@ -178,10 +178,7 @@ const REVIEWS: Record<string, ReviewSeed[]> = {
     { customerKey: 'ada', rating: 4, comment: 'Fixed a persistent power fluctuation issue. Professional service.', job: 'Electrical fault tracing', amount: 15000, monthsAgo: 9 },
   ],
   chidi: [
-    { customerKey: 'kelechi', rating: 5, comment: 'Built a custom bookshelf exactly as I described. Beautiful joinery work.', job: 'Custom bookshelf build', amount: 26000, monthsAgo: 3 },
-    { customerKey: 'nneka', rating: 4, comment: 'Solid dining table, delivered a few days late but the quality is excellent.', job: 'Custom dining table', amount: 85000, monthsAgo: 7 },
-    { customerKey: 'chisom', rating: 5, comment: 'Made bespoke wardrobes for our bedroom. Fantastic craftsmanship.', job: 'Bespoke wardrobe set', amount: 120000, monthsAgo: 1 },
-    { customerKey: 'bayo', rating: 4, comment: 'Repaired our office chairs and desks. Quick turnaround.', job: 'Office furniture repair', amount: 15000, monthsAgo: 5 },
+    { customerKey: 'kelechi', rating: 5, comment: 'Built a custom bookshelf exactly as I described. Beautiful joinery work.', job: 'Build custom bookshelf', amount: 26000, monthsAgo: 3 },
   ],
   amaka: [
     { customerKey: 'chisom', rating: 5, comment: 'Painted our 3-bedroom apartment. Beautiful finishes and she left everything spotless.', job: '3-bedroom apartment painting', amount: 60000, monthsAgo: 2 },
@@ -198,6 +195,8 @@ const REVIEWS: Record<string, ReviewSeed[]> = {
     { customerKey: 'chisom', rating: 5, comment: 'Ngozi transformed our living room into something from a magazine. Worth every naira.', job: 'Full living room redesign', amount: 250000, monthsAgo: 3 },
     { customerKey: 'ada', rating: 5, comment: 'Managed our office interior project from start to finish. Incredible attention to detail.', job: 'Office interior project', amount: 350000, monthsAgo: 1 },
     { customerKey: 'nneka', rating: 5, comment: 'Furniture sourcing and space planning — she nailed our aesthetic perfectly.', job: 'Furniture sourcing', amount: 120000, monthsAgo: 7 },
+    { customerKey: 'nneka', rating: 4, comment: 'Solid dining table, delivered a few days late but the quality is excellent.', job: 'Custom dining table', amount: 85000, monthsAgo: 7 },
+    { customerKey: 'chisom', rating: 5, comment: 'Made bespoke wardrobes for our bedroom. Fantastic craftsmanship.', job: 'Bespoke wardrobe set', amount: 120000, monthsAgo: 1 },
   ],
   musa: [
     { customerKey: 'nneka', rating: 5, comment: 'Move-out clean was thorough. Our landlord returned the full deposit!', job: 'Move-out deep clean', amount: 25000, monthsAgo: 2 },
@@ -228,6 +227,7 @@ const REVIEWS: Record<string, ReviewSeed[]> = {
     { customerKey: 'kelechi', rating: 5, comment: 'Fabricated our security gate and burglar-proof windows. Sturdy and neat welds.', job: 'Security gate fabrication', amount: 150000, monthsAgo: 3 },
     { customerKey: 'chisom', rating: 4, comment: 'Repaired a broken fence section. Solid work.', job: 'Fence repair', amount: 18000, monthsAgo: 6 },
     { customerKey: 'nneka', rating: 5, comment: 'Custom metal bed frame — exactly what I wanted.', job: 'Custom metal bed frame', amount: 65000, monthsAgo: 1 },
+    { customerKey: 'bayo', rating: 4, comment: 'Repaired our office chairs and desks. Quick turnaround.', job: 'Office furniture repair', amount: 15000, monthsAgo: 5 },
   ],
   blessing: [
     { customerKey: 'ada', rating: 5, comment: 'Fixed my phone screen the same day. Amazing service.', job: 'Phone screen replacement', amount: 38000, monthsAgo: 2 },

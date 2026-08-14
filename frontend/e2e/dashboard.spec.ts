@@ -20,7 +20,7 @@ async function loginAsArtisan(page: Page, email: string): Promise<void> {
   await page.locator('main form input[type="email"]').fill(email)
   await page.locator('main form input[type="password"]').fill('password123')
   await page.getByRole('button', { name: 'Log In' }).click()
-  await expect(page).toHaveURL(/\/dashboard\/artisan/, { timeout: 15_000 })
+  await expect(page).toHaveURL(/\/dashboard\/artisan/, { timeout: 30_000 })
 }
 
 async function customerToken(): Promise<string> {

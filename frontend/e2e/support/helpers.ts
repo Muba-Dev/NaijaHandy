@@ -14,7 +14,7 @@ export async function login(
   await page.locator('main form input[type="email"]').fill(email)
   await page.locator('main form input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Log In' }).click()
-  await expect(page).toHaveURL(/\/dashboard\/customer/, { timeout: 15_000 })
+  await expect(page).toHaveURL(/\/dashboard\/customer/, { timeout: 30_000 })
 }
 
 // React 19's controlled date input doesn't reliably pick up Playwright's

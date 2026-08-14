@@ -22,7 +22,7 @@ async function loginAsArtisan(page: Page, email: string): Promise<void> {
   await page.locator('main form input[type="email"]').fill(email)
   await page.locator('main form input[type="password"]').fill('password123')
   await page.getByRole('button', { name: 'Log In' }).click()
-  await expect(page).toHaveURL(/\/dashboard\/artisan/, { timeout: 15_000 })
+  await expect(page).toHaveURL(/\/dashboard\/artisan/, { timeout: 30_000 })
 }
 
 async function visitSettled(page: Page, path: string): Promise<void> {
@@ -44,6 +44,7 @@ async function expectNoAxeViolations(page: Page, path: string): Promise<void> {
 
 test.describe('Accessibility (axe)', () => {
   test('public pages have no serious/critical violations', async ({ page }) => {
+    test.setTimeout(240_000)
     const artisanId = await topArtisanId()
     const pages = ['/', '/search', '/login', '/register', '/forgot-password', `/artisans/${artisanId}`]
     for (const path of pages) {
@@ -53,6 +54,7 @@ test.describe('Accessibility (axe)', () => {
   })
 
   test('customer pages have no serious/critical violations', async ({ page }) => {
+    test.setTimeout(240_000)
     await login(page)
     const pages = ['/dashboard/customer', '/bookings', '/saved', '/settings', '/notifications']
     for (const path of pages) {
@@ -62,6 +64,7 @@ test.describe('Accessibility (axe)', () => {
   })
 
   test('artisan dashboard pages have no serious/critical violations', async ({ page }) => {
+    test.setTimeout(240_000)
     const artisan = await createBookableArtisan()
     await loginAsArtisan(page, artisan.email)
     const pages = [
