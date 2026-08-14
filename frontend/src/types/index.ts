@@ -68,6 +68,13 @@ export interface Category {
   count: number
 }
 
+export interface PlatformStats {
+  artisans: number
+  cities: number
+  jobsCompleted: number
+  reviews: number
+}
+
 export interface Booking {
   id: string
   artisanId: string
@@ -81,7 +88,7 @@ export interface Booking {
   address?: string | null
   customerPhone?: string | null
   isUrgent: boolean
-  status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
+  status: 'Pending' | 'Confirmed' | 'Rejected' | 'Completed' | 'Cancelled'
   avatar: string
   customer?: string
   customerAvatar?: string
@@ -90,7 +97,7 @@ export interface Booking {
   reviewed?: boolean
 }
 
-export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
+export type BookingStatus = 'Pending' | 'Confirmed' | 'Rejected' | 'Completed' | 'Cancelled'
 
 // API response types — replace mock data with these when backend is ready
 export interface ApiResponse<T> {
@@ -173,7 +180,7 @@ export interface AdminBooking {
   time: string
   description: string | null
   amount: number
-  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+  status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED'
   createdAt: string
   customer: { id: string; name: string; email: string }
   artisan: { profession: string; user: { id: string; name: string } }

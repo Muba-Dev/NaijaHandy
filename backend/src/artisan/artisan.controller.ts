@@ -29,6 +29,12 @@ export class ArtisanController {
   }
 
   @UseGuards(OptionalJwtAuthGuard)
+  @Get('stats')
+  async stats(@Req() req: any) {
+    return { data: await this.artisanService.platformStats(req.user) }
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: any) {
     return { data: await this.artisanService.findOne(id, req.user) }

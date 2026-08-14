@@ -114,6 +114,28 @@ export class ArtisanService {
     return groups.map((g) => ({ name: g.category, count: g._count._all }))
   }
 
+  async platformStats(user?: RequestUser) {
+    const demoFilter = this.hideDemo(user) ? { isDemo: false } : {}
+    const profiles = await this.prisma.artisanProfile.findMany({
+      where: { approvalStatus: 'APPROVED', ...demoFilter, user: { city: { not: null } } },
+      select: { user: { select: { city: true } } },
+    })
+    const [jobsCompleted, reviews] = await Promise.all([
+      this.prisma.booking.count({
+        where: { status: 'COMPLETED', artisan: { approvalStatus: 'APPROVED', ...demoFilter } },
+      }),
+      this.prisma.review.count({
+        where: { status: 'APPROVED', artisan: { approvalStatus: 'APPROVED', ...demoFilter } },
+      }),
+    ])
+    return {
+      artisans: profiles.length,
+      cities: new Set(profiles.map((p) => p.user.city)).size,
+      jobsCompleted,
+      reviews,
+    }
+  }
+
   async findOne(id: string, user?: RequestUser) {
     const artisan = await this.prisma.artisanProfile.findFirst({
       where: {

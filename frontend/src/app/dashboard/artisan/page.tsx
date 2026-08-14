@@ -126,7 +126,7 @@ export default function ArtisanOverviewPage() {
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
-                <button onClick={() => respond(r.id, 'CANCELLED')} className="px-4 py-2 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+                <button onClick={() => respond(r.id, 'REJECTED')} className="px-4 py-2 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
                   Decline
                 </button>
                 <button onClick={() => respond(r.id, 'CONFIRMED')} className="px-4 py-2 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity">

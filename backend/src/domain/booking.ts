@@ -1,4 +1,4 @@
-export const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const
+export const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED'] as const
 export type BookingStatus = (typeof BOOKING_STATUSES)[number]
 
 export const PAYMENT_STATUSES = ['PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'] as const
@@ -8,8 +8,9 @@ export const BOOKING_PAYMENT_STATUSES = ['UNPAID', 'PAID', 'REFUNDED'] as const
 export type BookingPaymentStatus = (typeof BOOKING_PAYMENT_STATUSES)[number]
 
 const allowedTransitions: Record<BookingStatus, BookingStatus[]> = {
-  PENDING: ['CONFIRMED', 'CANCELLED'],
+  PENDING: ['CONFIRMED', 'REJECTED', 'CANCELLED'],
   CONFIRMED: ['COMPLETED', 'CANCELLED'],
+  REJECTED: [],
   COMPLETED: [],
   CANCELLED: [],
 }

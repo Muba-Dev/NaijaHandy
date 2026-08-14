@@ -12,9 +12,9 @@ import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
 import type { Booking, BookingStatus } from '@/types'
 
-type FilterTab = 'All' | 'Active' | 'Urgent' | 'Completed' | 'Cancelled'
+type FilterTab = 'All' | 'Active' | 'Urgent' | 'Rejected' | 'Completed' | 'Cancelled'
 
-const TABS: FilterTab[] = ['All', 'Active', 'Urgent', 'Completed', 'Cancelled']
+const TABS: FilterTab[] = ['All', 'Active', 'Urgent', 'Rejected', 'Completed', 'Cancelled']
 
 export default function BookingHistoryPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('All')
@@ -138,6 +138,7 @@ export default function BookingHistoryPage() {
     All: bookings.length,
     Active: bookings.filter((b) => b.status === 'Confirmed' || b.status === 'Pending').length,
     Urgent: bookings.filter((b) => b.isUrgent).length,
+    Rejected: bookings.filter((b) => b.status === 'Rejected').length,
     Completed: bookings.filter((b) => b.status === 'Completed').length,
     Cancelled: bookings.filter((b) => b.status === 'Cancelled').length,
   }

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification, SupportMessage, HelpArticleGroup, ChatResponse, ChatTranscriptItem } from '@/types'
+import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification, SupportMessage, HelpArticleGroup, ChatResponse, ChatTranscriptItem, PlatformStats } from '@/types'
 import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
 export const API_BASE_URL =
@@ -136,7 +136,7 @@ type RawBooking = {
   address?: string | null
   customerPhone?: string | null
   isUrgent: boolean
-  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+  status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED'
   paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
   paymentReference?: string | null
   artisan: { id: string; profession: string; user: { name: string; avatar: string | null } }
@@ -252,6 +252,11 @@ export async function fetchCategoryCounts(): Promise<Record<string, number>> {
   const counts: Record<string, number> = {}
   for (const item of data.data) counts[item.name] = item.count
   return counts
+}
+
+export async function fetchPlatformStats(): Promise<PlatformStats> {
+  const { data } = await api.get('/artisans/stats')
+  return data.data
 }
 
 export async function updateArtisanProfile(payload: Record<string, unknown>) {

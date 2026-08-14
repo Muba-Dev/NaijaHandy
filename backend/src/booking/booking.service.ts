@@ -84,7 +84,7 @@ export class BookingService {
     const isCustomer = current.customerId === userId
     const isArtisan = current.artisan.userId === userId
     const customerCanCancel = isCustomer && status === 'CANCELLED'
-    const artisanCanUpdate = isArtisan && ['CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status)
+    const artisanCanUpdate = isArtisan && ['CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED'].includes(status)
     if (!customerCanCancel && !artisanCanUpdate) {
       throw new ForbiddenException('You cannot update this booking')
     }
@@ -116,6 +116,12 @@ export class BookingService {
         type: 'BOOKING_ACCEPTED',
         title: 'Booking confirmed',
         body: `Your booking with ${current.artisan.user.name} has been confirmed.`,
+        link: '/bookings',
+      },
+      REJECTED: {
+        type: 'BOOKING_DECLINED',
+        title: 'Booking declined',
+        body: `${current.artisan.user.name} declined your booking request.`,
         link: '/bookings',
       },
       COMPLETED: {

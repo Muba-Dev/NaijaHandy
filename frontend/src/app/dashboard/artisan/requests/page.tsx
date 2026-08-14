@@ -8,7 +8,7 @@ import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
 import type { Booking, BookingStatus } from '@/types'
 
-type FilterTab = 'All' | 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
+type FilterTab = 'All' | 'Pending' | 'Confirmed' | 'Rejected' | 'Completed' | 'Cancelled'
 
 export default function JobRequestsPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('All')
@@ -31,6 +31,7 @@ export default function JobRequestsPage() {
     All: bookings.length,
     Pending: bookings.filter((b) => b.status === 'Pending').length,
     Confirmed: bookings.filter((b) => b.status === 'Confirmed').length,
+    Rejected: bookings.filter((b) => b.status === 'Rejected').length,
     Completed: bookings.filter((b) => b.status === 'Completed').length,
     Cancelled: bookings.filter((b) => b.status === 'Cancelled').length,
   }
@@ -48,7 +49,7 @@ export default function JobRequestsPage() {
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {(['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'] as FilterTab[]).map((t) => (
+        {(['All', 'Pending', 'Confirmed', 'Rejected', 'Completed', 'Cancelled'] as FilterTab[]).map((t) => (
           <button
             key={t}
             onClick={() => setActiveTab(t)}
@@ -120,7 +121,7 @@ export default function JobRequestsPage() {
                   )}
                   {b.status === 'Pending' && (
                     <div className="flex gap-2 mt-3">
-                      <button onClick={() => respond(b.id, 'CANCELLED')} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+                      <button onClick={() => respond(b.id, 'REJECTED')} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
                         Decline
                       </button>
                       <button onClick={() => respond(b.id, 'CONFIRMED')} className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity">

@@ -533,7 +533,7 @@ export default function AdminDashboardPage() {
           {tab === 'bookings' && (
             <div>
               <div className="flex gap-2 mb-4 flex-wrap">
-                {['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((f) => (
+                {['ALL', 'PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED'].map((f) => (
                   <button
                     key={f}
                     onClick={() => setBookingFilter(f)}
@@ -551,7 +551,7 @@ export default function AdminDashboardPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-gray-900 text-sm">{b.customer.name} → {b.artisan.user.name}</p>
-                        <StatusBadge status={(b.status.charAt(0) + b.status.slice(1).toLowerCase()) as 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'} />
+                        <StatusBadge status={(b.status.charAt(0) + b.status.slice(1).toLowerCase()) as 'Pending' | 'Confirmed' | 'Rejected' | 'Completed' | 'Cancelled'} />
                         <Pill label={b.payment ? `PAID · ${b.payment.status}` : 'UNPAID'} tone={b.payment ? 'green' : 'amber'} />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">

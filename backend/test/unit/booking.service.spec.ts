@@ -96,6 +96,26 @@ describe('BookingService', () => {
         link: '/dashboard/artisan/requests',
       })
     })
+
+    it('lets the artisan reject a pending booking and notifies the customer', async () => {
+      booking.findUnique.mockResolvedValue(baseBooking)
+      booking.update.mockResolvedValue({ id: 'b1', status: 'REJECTED' })
+      await expect(service.updateStatus('a1', 'ARTISAN', 'b1', 'REJECTED')).resolves.toEqual({
+        id: 'b1',
+        status: 'REJECTED',
+      })
+      expect(emailService.sendBookingStatusEmail).toHaveBeenCalledWith({
+        to: 'chisom@example.com',
+        status: 'REJECTED',
+        booking: expect.objectContaining({ artisanName: 'Emeka Okafor', customerName: 'Chisom Eze' }),
+      })
+      expect(notificationsService.create).toHaveBeenCalledWith('c1', {
+        type: 'BOOKING_DECLINED',
+        title: 'Booking declined',
+        body: expect.any(String),
+        link: '/bookings',
+      })
+    })
   })
 
   describe('create', () => {

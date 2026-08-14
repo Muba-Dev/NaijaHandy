@@ -7,6 +7,7 @@ import { PrismaModule } from '../prisma/prisma.module'
 import { EmailModule } from '../email/email.module'
 import { JwtStrategy } from './jwt.strategy'
 import { RolesGuard } from './roles.guard'
+import { JWT_SECRET } from '../config'
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { RolesGuard } from './roles.guard'
     EmailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'artisanng-dev-secret-key-change-in-production',
+      secret: JWT_SECRET,
       signOptions: { expiresIn: '15m' },
     }),
   ],

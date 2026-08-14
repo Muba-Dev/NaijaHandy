@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import * as bcrypt from 'bcrypt'
 import { randomBytes } from 'crypto'
+import { JWT_SECRET } from '../config'
 
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
@@ -235,7 +236,7 @@ export class AuthService {
     }
 
     const payload = this.jwtService.verify<{ id: string; role: string }>(refreshToken, {
-      secret: process.env.JWT_SECRET || 'artisanng-dev-secret-key-change-in-production',
+      secret: JWT_SECRET,
     })
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, status: true } })

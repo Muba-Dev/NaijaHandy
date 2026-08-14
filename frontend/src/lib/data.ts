@@ -162,14 +162,17 @@ export const ARTISANS: Artisan[] = [
 ]
 
 export const CATEGORIES: Category[] = [
-  { name: 'Plumbing', count: 142 },
-  { name: 'Electrical', count: 98 },
-  { name: 'Carpentry', count: 75 },
-  { name: 'Painting', count: 120 },
-  { name: 'Auto Repair', count: 63 },
-  { name: 'Home Cleaning', count: 210 },
-  { name: 'Tailoring', count: 84 },
-  { name: 'Tiling & Flooring', count: 57 },
+  { name: 'Plumbing', count: 0 },
+  { name: 'Electrical', count: 0 },
+  { name: 'Carpentry', count: 0 },
+  { name: 'Painting', count: 0 },
+  { name: 'Auto Repair', count: 0 },
+  { name: 'Home Cleaning', count: 0 },
+  { name: 'Tailoring', count: 0 },
+  { name: 'Tiling & Flooring', count: 0 },
+  { name: 'Air Conditioning', count: 0 },
+  { name: 'Welding & Metalwork', count: 0 },
+  { name: 'Electronics Repair', count: 0 },
 ]
 
 export const BOOKINGS: Booking[] = [

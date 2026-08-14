@@ -33,21 +33,25 @@ async function bootstrap() {
   app.use(express.json({ limit: '6mb', verify: rawBodyCapture }))
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('NaijaHandy API')
-    .setDescription('REST API for the NaijaHandy home services marketplace.')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build()
-  const document = SwaggerModule.createDocument(app, swaggerConfig)
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: { persistAuthorization: true },
-  })
+  if (process.env.NODE_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('NaijaHandy API')
+      .setDescription('REST API for the NaijaHandy home services marketplace.')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build()
+    const document = SwaggerModule.createDocument(app, swaggerConfig)
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    })
+  }
 
   const port = process.env.PORT || 4000
   await app.listen(port)
   console.log(`NaijaHandy API running on http://localhost:${port}`)
-  console.log(`API docs available at http://localhost:${port}/api/docs`)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`API docs available at http://localhost:${port}/api/docs`)
+  }
 }
 
 bootstrap()

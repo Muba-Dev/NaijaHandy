@@ -25,7 +25,8 @@ function SearchPage() {
   const searchParams = useSearchParams()
   const initialQ = searchParams.get('q') || ''
   const initialCity = searchParams.get('city') || ''
-  const [category, setCategory] = useState('All')
+  const initialCategory = searchParams.get('category') || 'All'
+  const [category, setCategory] = useState(initialCategory)
   const [minRating, setMinRating] = useState(0)
   const [sortBy, setSortBy] = useState('Rating')
   const [keyword, setKeyword] = useState(initialQ)
@@ -367,7 +368,7 @@ function SearchPage() {
                         View Profile
                       </Link>
                       <Link
-                        href={`/artisans/${a.id}`}
+                        href={`/artisans/${a.id}?book=1`}
                         className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity"
                       >
                         Book Now

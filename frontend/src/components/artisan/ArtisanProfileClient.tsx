@@ -62,12 +62,12 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
   }, [artisan])
 
   useEffect(() => {
-    if (searchParams.get('bookagain') !== '1') return
+    if (searchParams.get('bookagain') !== '1' && searchParams.get('book') !== '1') return
     const time = searchParams.get('time')
     const desc = searchParams.get('desc')
-    setBookingTime(time || '')
-    setJobDesc(desc || '')
-    setRebookActive(true)
+    if (time) setBookingTime(time)
+    if (desc) setJobDesc(desc)
+    if (searchParams.get('bookagain') === '1') setRebookActive(true)
     setBookingDate(new Date().toLocaleDateString('en-CA'))
     const t = window.setTimeout(() => {
       document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })

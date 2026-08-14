@@ -16,7 +16,7 @@ const createSchema = z.object({
   isUrgent: z.boolean().optional(),
 })
 
-const updateSchema = z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']) })
+const updateSchema = z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED']) })
 
 const disputeSchema = z.object({ reason: z.string().min(10) })
 

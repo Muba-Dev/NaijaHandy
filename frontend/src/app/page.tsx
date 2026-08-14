@@ -9,9 +9,9 @@ import {
   Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers, Flame,
 } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
-import { fetchArtisans, fetchCategoryCounts } from '@/lib/api'
+import { fetchArtisans, fetchCategoryCounts, fetchPlatformStats } from '@/lib/api'
 import ArtisanCard from '@/components/ArtisanCard'
-import type { Artisan } from '@/types'
+import type { Artisan, PlatformStats } from '@/types'
 
 export default function HomePage() {
   const router = useRouter()
@@ -19,10 +19,12 @@ export default function HomePage() {
   const [searchCity, setSearchCity] = useState('')
   const [artisans, setArtisans] = useState<Artisan[]>([])
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
+  const [stats, setStats] = useState<PlatformStats | null>(null)
 
   useEffect(() => {
     fetchArtisans({ sortBy: 'rating', limit: '10' }).then(setArtisans).catch(() => setArtisans([]))
     fetchCategoryCounts().then(setCategoryCounts).catch(() => setCategoryCounts({}))
+    fetchPlatformStats().then(setStats).catch(() => setStats(null))
   }, [])
 
   const CATEGORY_ICONS = [Wrench, Zap, Hammer, PaintBucket, Car, Home, Scissors, Layers]
@@ -58,7 +60,7 @@ export default function HomePage() {
           <div>
             <div className="inline-flex items-center gap-2 bg-white/10 text-white text-sm rounded-full px-4 py-1.5 mb-6 border border-white/20">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              Trusted by 50,000+ Nigerians
+              {stats ? `${stats.artisans} verified artisans across Nigeria` : 'Trusted local artisans across Nigeria'}
             </div>
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-5">
               Find Trusted<br />Local Artisans<br />
@@ -122,10 +124,10 @@ export default function HomePage() {
           <div className="hidden md:flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: 'Verified Artisans', value: '12,400+' },
-                { label: 'Cities Covered', value: '36 States' },
-                { label: 'Jobs Completed', value: '98,000+' },
-                { label: 'Avg. Response Time', value: '< 2 hours' },
+                { label: 'Verified Artisans', value: stats ? String(stats.artisans) : '—' },
+                { label: 'Cities Covered', value: stats ? String(stats.cities) : '—' },
+                { label: 'Jobs Completed', value: stats ? stats.jobsCompleted.toLocaleString() : '—' },
+                { label: 'Customer Reviews', value: stats ? stats.reviews.toLocaleString() : '—' },
               ].map((s) => (
                 <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5">
                   <p className="font-display text-2xl font-bold text-white">{s.value}</p>
@@ -142,8 +144,8 @@ export default function HomePage() {
                 className="rounded-full object-cover border-2 border-white"
               />
               <div>
-                <p className="text-white text-sm font-semibold">Emeka just completed a job in Lagos VI</p>
-                <p className="text-emerald-300 text-xs mt-0.5">⭐ 5.0 — &quot;Excellent work, very professional&quot;</p>
+                <p className="text-white text-sm font-semibold">Emeka Okafor · Master Plumber</p>
+                <p className="text-emerald-300 text-xs mt-0.5">⭐ 4.8 — &ldquo;Fixed our burst pipe in under an hour&rdquo;</p>
               </div>
             </div>
           </div>
@@ -168,7 +170,7 @@ export default function HomePage() {
             return (
               <Link
                 key={cat.name}
-                href="/search"
+                href={`/search?category=${encodeURIComponent(cat.name)}`}
                 className="group bg-white rounded-2xl p-5 text-left border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all"
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-[#ECFDF5]">
@@ -243,7 +245,7 @@ export default function HomePage() {
         <div className="relative px-8 md:px-14 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h2 className="font-display text-2xl md:text-3xl font-bold text-white mb-2">Are you a skilled artisan?</h2>
-            <p className="text-emerald-200 max-w-md">Join over 12,000 artisans earning more with NaijaHandy. Free to register. Get job requests from day one.</p>
+            <p className="text-emerald-200 max-w-md">Join Nigeria&apos;s growing network of verified artisans. Free to register. Get job requests from day one.</p>
           </div>
           <div className="flex gap-3 shrink-0">
             <Link href="/register" className="px-6 py-3 bg-amber-400 text-gray-900 font-semibold rounded-xl hover:bg-amber-300 transition-colors">
