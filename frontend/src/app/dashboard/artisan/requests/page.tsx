@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Briefcase, Calendar, Clock, MapPin, Phone, Flame } from 'lucide-react'
 import { fetchBookings, updateBookingStatus } from '@/lib/api'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
 import type { Booking, BookingStatus } from '@/types'
@@ -81,7 +82,7 @@ export default function JobRequestsPage() {
             <div key={b.id} className="bg-white rounded-2xl border border-gray-100 p-5">
               <div className="flex items-start gap-4">
                 <Image
-                  src={b.customerAvatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=48&h=48&fit=crop&auto=format'}
+                  src={b.customerAvatar || DEFAULT_AVATAR}
                   alt={b.customer || 'Customer'}
                   width={48}
                   height={48}

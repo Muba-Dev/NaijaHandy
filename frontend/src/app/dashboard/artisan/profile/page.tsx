@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { BadgeCheck, MapPin, Star, Save, Loader2, Camera, ImagePlus, Trash2, ShieldCheck, Upload } from 'lucide-react'
 import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, uploadPortfolioItem, deletePortfolioItem, updateProfile, submitVerificationDocument } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
-import { CATEGORIES } from '@/lib/data'
+import { CATEGORIES, DEFAULT_AVATAR } from '@/lib/data'
 import MapPicker from '@/components/map/MapPicker'
 import type { Artisan, PortfolioItem } from '@/types'
 
@@ -259,7 +259,7 @@ export default function MyProfilePage() {
       <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
         <div className="flex items-start gap-4 flex-wrap">
           <Image
-            src={artisan?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&auto=format'}
+            src={artisan?.avatar || DEFAULT_AVATAR}
             alt={artisan?.name || 'Artisan'}
             width={72}
             height={72}

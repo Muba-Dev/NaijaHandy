@@ -53,7 +53,7 @@ export default function CustomerDashboardPage() {
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <Image
-              src={user?.avatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=48&h=48&fit=crop&auto=format'}
+              src={user?.avatar || DEFAULT_AVATAR}
               alt={user?.name || 'User'}
               width={40}
               height={40}

@@ -6,6 +6,7 @@ import { Users, Shield, CreditCard, Bell, Plus, CheckCircle2, AlertCircle } from
 import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
 import { fetchMe, updateProfile, updateAvatar, changePassword } from '@/lib/api'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
 import type { AuthUser } from '@/types'
 
@@ -152,7 +153,7 @@ export default function ProfileSettingsPage() {
                 <h2 className="font-semibold text-gray-900 mb-5">Personal Information</h2>
                 <div className="flex items-center gap-4 mb-6">
                   <Image
-                    src={user?.avatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=80&h=80&fit=crop&auto=format'}
+                    src={user?.avatar || DEFAULT_AVATAR}
                     alt={user?.name || 'user'}
                     width={64}
                     height={64}

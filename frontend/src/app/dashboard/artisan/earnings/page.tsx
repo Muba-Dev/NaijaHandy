@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { CreditCard, TrendingUp, CheckCircle, Users, Calendar } from 'lucide-react'
 import { fetchMyArtisanProfile, fetchBookings } from '@/lib/api'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import { formatNGN } from '@/lib/utils'
 import type { Artisan, Booking } from '@/types'
 
@@ -75,7 +76,7 @@ export default function EarningsPage() {
           {completed.map((b) => (
             <div key={b.id} className="flex items-center gap-4 px-5 py-4">
               <Image
-                src={b.customerAvatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=48&h=48&fit=crop&auto=format'}
+                src={b.customerAvatar || DEFAULT_AVATAR}
                 alt={b.customer || 'Customer'}
                 width={40}
                 height={40}

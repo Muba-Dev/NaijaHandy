@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { TrendingUp, Briefcase, Calendar, CreditCard, Bell, Users, CheckCircle, MapPin, ToggleLeft, ToggleRight, ChevronRight } from 'lucide-react'
 import { fetchMyArtisanProfile, fetchBookings, updateArtisanProfile, updateBookingStatus } from '@/lib/api'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import { formatNGN } from '@/lib/utils'
 import type { Artisan, Booking } from '@/types'
 
@@ -113,7 +114,7 @@ export default function ArtisanOverviewPage() {
             ))
           ) : pendingRequests.map((r) => (
             <div key={r.id} className="flex items-start gap-4 px-5 py-4">
-              <Image src={r.customerAvatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=48&h=48&fit=crop&auto=format'} alt={r.customer || 'Customer'} width={40} height={40} className="rounded-xl object-cover shrink-0 mt-0.5" />
+              <Image src={r.customerAvatar || DEFAULT_AVATAR} alt={r.customer || 'Customer'} width={40} height={40} className="rounded-xl object-cover shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <p className="font-medium text-gray-900 text-sm">{r.customer || r.artisan}</p>

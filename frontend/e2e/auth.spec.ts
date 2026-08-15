@@ -22,7 +22,8 @@ test.describe('Authentication', () => {
 
   test('logs out and returns to home with protected pages locked', async ({ page }) => {
     await login(page)
-    await page.getByRole('button', { name: 'Log Out' }).first().click()
+    await page.getByRole('button', { name: /profile menu/i }).click()
+    await page.getByRole('menuitem', { name: 'Log Out' }).click()
     await expect(page).toHaveURL(/\/login(\?.*)?$|\/$/, { timeout: 30_000 })
     await page.goto('/dashboard/customer')
     await expect(page).toHaveURL(/\/login/, { timeout: 15_000 })

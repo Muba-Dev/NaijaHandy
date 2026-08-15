@@ -9,6 +9,7 @@ import { JWT_SECRET } from '../config'
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000 // 1 hour
+const DEFAULT_AVATAR = '/avatars/default.svg'
 
 @Injectable()
 export class AuthService {
@@ -51,6 +52,7 @@ export class AuthService {
         city: data.city,
         password: hashedPassword,
         role: data.role,
+        avatar: DEFAULT_AVATAR,
         ...(data.role === 'ARTISAN' && data.profession ? {
           artisanProfile: {
             create: {
@@ -77,7 +79,7 @@ export class AuthService {
       }
     }
 
-    return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role } }
+    return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR } }
   }
 
   async login(email: string, password: string) {
@@ -92,7 +94,7 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Invalid credentials')
 
     const tokens = await this.issueTokens({ id: user.id, role: user.role })
-    return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role } }
+    return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR } }
   }
 
   async forgotPassword(email: string) {
@@ -206,7 +208,7 @@ export class AuthService {
     if (user) {
       user = await this.prisma.user.update({
         where: { id: user.id },
-        data: { googleId: user.googleId || profile.sub, avatar: user.avatar || profile.picture || undefined },
+        data: { googleId: user.googleId || profile.sub, avatar: user.avatar || profile.picture || DEFAULT_AVATAR },
       })
     } else {
       user = await this.prisma.user.create({
@@ -214,7 +216,7 @@ export class AuthService {
           name,
           email: profile.email,
           googleId: profile.sub,
-          avatar: profile.picture,
+          avatar: profile.picture || DEFAULT_AVATAR,
           role: 'CUSTOMER',
         },
       })
@@ -223,7 +225,7 @@ export class AuthService {
     const tokens = await this.issueTokens({ id: user.id, role: user.role })
     return {
       ...tokens,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR },
     }
   }
 

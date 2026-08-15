@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { TrendingUp, Briefcase, Calendar, CreditCard, Settings, LogOut } from 'lucide-react'
 import { fetchMyArtisanProfile, logout } from '@/lib/api'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import AuthGuard from '@/components/AuthGuard'
 import type { Artisan } from '@/types'
 
@@ -34,7 +35,7 @@ export default function ArtisanDashboardLayout({ children }: { children: React.R
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <Image
-              src={artisan?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=48&h=48&fit=crop&auto=format'}
+              src={artisan?.avatar || DEFAULT_AVATAR}
               alt={artisan?.name || 'Artisan'}
               width={40}
               height={40}

@@ -1,19 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
-  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText, LifeBuoy,
+  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText, LifeBuoy, Camera,
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import StatusBadge from '@/components/StatusBadge'
-import { formatNGN } from '@/lib/utils'
+import { formatNGN, getApiErrorMessage, setStoredUser } from '@/lib/utils'
+import { DEFAULT_AVATAR } from '@/lib/data'
 import {
   fetchAdminStats, fetchAdminArtisans, setArtisanApproval, setArtisanVerification,
   fetchAdminUsers, setUserStatus, fetchAdminReviews, setReviewStatus,
   fetchAdminBookings, fetchAdminPayments, fetchAdminDisputes, resolveDispute, logout,
-  fetchAdminSupportMessages, setSupportMessageStatus,
+  fetchAdminSupportMessages, setSupportMessageStatus, fetchMe, updateAvatar,
 } from '@/lib/api'
 import type {
   AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute,
@@ -87,6 +88,9 @@ export default function AdminDashboardPage() {
   const [resolving, setResolving] = useState<string | null>(null)
   const [resolutionText, setResolutionText] = useState('')
   const [notice, setNotice] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const flash = (msg: string) => {
     setNotice(msg)
@@ -140,7 +144,12 @@ export default function AdminDashboardPage() {
   }, [tab, artisanFilter, userFilter, reviewFilter, bookingFilter, disputeFilter, supportFilter, userSearch])
 
   useEffect(() => {
-    setUser(JSON.parse(localStorage.getItem('naijahandy_user') || 'null'))
+    const stored = JSON.parse(localStorage.getItem('naijahandy_user') || 'null')
+    setUser(stored)
+    fetchMe().then((fresh) => {
+      setUser((u) => (u ? { ...u, ...fresh } : fresh))
+      setStoredUser(fresh)
+    }).catch(() => {})
     refreshAll()
   }, [refreshAll])
 
@@ -213,6 +222,38 @@ export default function AdminDashboardPage() {
     setBusyId(null)
   }
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarError('')
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file (JPG, PNG or WebP).')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError('Image is too large. Maximum size is 2MB.')
+      return
+    }
+    setUploadingAvatar(true)
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Could not read the file'))
+        reader.readAsDataURL(file)
+      })
+      const updated = await updateAvatar(dataUrl)
+      setUser((u) => (u ? { ...u, ...updated } : u))
+      setStoredUser(updated)
+      flash('Profile photo updated')
+    } catch (err) {
+      setAvatarError(getApiErrorMessage(err, 'Failed to upload your photo. Please try again.'))
+    } finally {
+      setUploadingAvatar(false)
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+    }
+  }
+
   return (
     <AuthGuard allowedRoles={['ADMIN']}>
     <div className="min-h-screen flex bg-gray-50">
@@ -220,17 +261,49 @@ export default function AdminDashboardPage() {
       <aside className="hidden md:flex flex-col w-56 bg-white border-r border-gray-100 shrink-0">
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <Image
-              src={user?.avatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=48&h=48&fit=crop&auto=format'}
-              alt={user?.name || 'Admin'}
-              width={40}
-              height={40}
-              className="rounded-full object-cover"
-            />
+            <div className="relative shrink-0">
+              <Image
+                src={user?.avatar || DEFAULT_AVATAR}
+                alt={user?.name || 'Admin'}
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                aria-label="Change profile photo"
+                title="Change profile photo"
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#047857] text-white flex items-center justify-center border-2 border-white hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                <Camera size={11} aria-hidden="true" />
+              </button>
+            </div>
             <div>
               <p className="font-semibold text-gray-900 text-sm">{user?.name?.split(' ')[0] || 'Admin'}</p>
               <p className="text-xs text-gray-500">Administrator</p>
             </div>
+          </div>
+          <input
+            ref={avatarInputRef}
+            id="admin-avatar-upload"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={handleAvatarChange}
+          />
+          <div className="mt-3">
+            {uploadingAvatar ? (
+              <p className="text-xs text-gray-500">Uploading…</p>
+            ) : (
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                className="text-xs font-medium text-[#047857] hover:text-[#065f46] transition-colors"
+              >
+                Change Photo
+              </button>
+            )}
+            {avatarError && <p className="text-xs text-red-600 mt-1" role="alert">{avatarError}</p>}
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1" aria-label="Admin console navigation">
@@ -361,7 +434,7 @@ export default function AdminDashboardPage() {
                 {artisans.map((a) => (
                   <div key={a.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
                     <Image
-                      src={a.user.avatar || 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=48&h=48&fit=crop&auto=format'}
+                      src={a.user.avatar || DEFAULT_AVATAR}
                       alt={a.user.name}
                       width={48}
                       height={48}
@@ -452,7 +525,7 @@ export default function AdminDashboardPage() {
                 {users.map((u) => (
                   <div key={u.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
                     <Image
-                      src={u.avatar || 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=48&h=48&fit=crop&auto=format'}
+                      src={u.avatar || DEFAULT_AVATAR}
                       alt={u.name}
                       width={48}
                       height={48}
