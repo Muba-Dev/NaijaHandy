@@ -20,12 +20,12 @@ export default function NewsletterForm() {
         type="email"
         placeholder="you@email.com"
         required
-        className="flex-1 bg-gray-800 text-sm text-white placeholder-gray-400 rounded-lg px-3 py-2 border border-gray-700 focus:border-[#047857]"
+        className="flex-1 rounded-xl bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-gray-500 ring-1 ring-white/10 transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none"
       />
       <button
         type="submit"
         aria-label="Subscribe to newsletter"
-        className="px-4 py-2 rounded-lg text-white font-semibold text-sm bg-[#047857] hover:opacity-90 flex items-center gap-1.5"
+        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/40 transition-all hover:from-emerald-500 hover:to-teal-400"
       >
         {subscribed ? <CheckCircle2 size={14} aria-hidden="true" /> : <Send size={14} aria-hidden="true" />} Subscribe
       </button>

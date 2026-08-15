@@ -106,4 +106,85 @@ describe('Admin (e2e)', () => {
       .send({ status: 'HACKED' })
     expect(res.status).toBe(400)
   })
+
+  it('deletes a customer, anonymizes their data, and locks them out', async () => {
+    const email = `test.del.${Date.now()}@example.com`
+    const reg = await request(server)
+      .post('/api/auth/register')
+      .send({ name: 'Delete Me', email, password: 'password123', role: 'CUSTOMER' })
+    expect(reg.status).toBe(201)
+    const userId = reg.body.user.id
+    createdIds.push(userId)
+
+    const del = await request(server)
+      .delete(`/api/admin/users/${userId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(del.status).toBe(200)
+    expect(del.body.data.status).toBe('DELETED')
+
+    const row = await prisma.user.findUnique({ where: { id: userId } })
+    expect(row.status).toBe('DELETED')
+    expect(row.name).toBe('Deleted User')
+    expect(row.phone).toBeNull()
+    expect(row.password).toBeNull()
+    expect(row.email).toMatch(/^deleted-.*@naijahandy\.local$/)
+
+    const me = await request(server).get('/api/users/me').set('Authorization', `Bearer ${reg.body.accessToken}`)
+    expect(me.status).toBe(401)
+
+    const login = await loginReq(server, email, 'password123')
+    expect(login.status).toBe(401)
+  })
+
+  it('cannot delete an admin account', async () => {
+    const adminUser = await prisma.user.findUnique({ where: { email: 'admin@naijahandy.com' } })
+    const res = await request(server)
+      .delete(`/api/admin/users/${adminUser.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(400)
+  })
+
+  it('cannot delete your own account', async () => {
+    const adminUser = await prisma.user.findUnique({ where: { email: 'admin@naijahandy.com' } })
+    const res = await request(server)
+      .delete(`/api/admin/users/${adminUser.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(res.status).toBe(400)
+  })
+
+  it('deleting an artisan takes them offline and hides them from the public listing', async () => {
+    const email = `test.art.del.${Date.now()}@example.com`
+    const reg = await request(server)
+      .post('/api/auth/register')
+      .send({ name: 'Doomed Artisan', email, password: 'password123', role: 'ARTISAN', profession: 'Kettle Repair', category: 'Home Repairs', city: 'Lagos' })
+    expect(reg.status).toBe(201)
+    const userId = reg.body.user.id
+    createdIds.push(userId)
+
+    const me = await request(server).get('/api/artisans/me').set('Authorization', `Bearer ${reg.body.accessToken}`)
+    expect(me.status).toBe(200)
+    const profileId = me.body.data.id
+
+    const approved = await request(server)
+      .patch(`/api/admin/artisans/${profileId}/approval`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ approvalStatus: 'APPROVED' })
+    expect(approved.status).toBe(200)
+
+    const before = await request(server).get('/api/artisans').query({ q: 'Kettle Repair' })
+    expect(before.status).toBe(200)
+    expect(before.body.data.some((a: any) => a.id === profileId)).toBe(true)
+
+    const del = await request(server)
+      .delete(`/api/admin/users/${userId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+    expect(del.status).toBe(200)
+
+    const profile = await prisma.artisanProfile.findUnique({ where: { userId } })
+    expect(profile.available).toBe(false)
+
+    const after = await request(server).get('/api/artisans').query({ q: 'Kettle Repair' })
+    expect(after.status).toBe(200)
+    expect(after.body.data.some((a: any) => a.id === profileId)).toBe(false)
+  })
 })

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Param, Body, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Patch, Post, Delete, Param, Body, Query, Req, UseGuards } from '@nestjs/common'
 import { AdminService } from './admin.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../auth/roles.guard'
@@ -38,6 +38,11 @@ export class AdminController {
   @Patch('users/:id/status')
   async setUserStatus(@Param('id') id: string, @Body('status') status: string) {
     return { data: await this.adminService.setUserStatus(id, status) }
+  }
+
+  @Delete('users/:id')
+  async deleteUser(@Param('id') id: string, @Req() req: any) {
+    return { data: await this.adminService.deleteUser(id, req.user.id) }
   }
 
   @Get('reviews')

@@ -5,7 +5,7 @@ import { NotificationsService } from '../notifications/notifications.service'
 
 const APPROVAL_STATUSES = ['PENDING', 'APPROVED', 'REJECTED']
 const VERIFICATION_STATUSES = ['UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED']
-const USER_STATUSES = ['ACTIVE', 'SUSPENDED']
+const USER_STATUSES = ['ACTIVE', 'SUSPENDED', 'DELETED']
 const REVIEW_STATUSES = ['APPROVED', 'HIDDEN']
 const DISPUTE_STATUSES = ['OPEN', 'RESOLVED', 'DISMISSED']
 const SUPPORT_STATUSES = ['OPEN', 'REPLIED', 'CLOSED']
@@ -23,7 +23,7 @@ export class AdminService {
       await Promise.all([
         this.prisma.artisanProfile.count({ where: { approvalStatus: 'PENDING' } }),
         this.prisma.artisanProfile.count(),
-        this.prisma.user.count(),
+        this.prisma.user.count({ where: { status: { not: 'DELETED' } } }),
         this.prisma.booking.count(),
         this.prisma.review.count({ where: { status: 'HIDDEN' } }),
         this.prisma.dispute.count({ where: { status: 'OPEN' } }),
@@ -163,6 +163,35 @@ export class AdminService {
     if (!user) throw new NotFoundException('User not found')
     if (user.role === 'ADMIN') throw new BadRequestException('Cannot suspend an admin account')
     return this.prisma.user.update({ where: { id }, data: { status } })
+  }
+
+  async deleteUser(id: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } })
+    if (!user) throw new NotFoundException('User not found')
+    if (user.role === 'ADMIN') throw new BadRequestException('Cannot delete an admin account')
+    if (user.id === adminId) throw new BadRequestException('You cannot delete your own account')
+    if (user.status === 'DELETED') throw new BadRequestException('User is already deleted')
+
+    const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
+      this.prisma.artisanProfile.updateMany({ where: { userId: id }, data: { available: false } }),
+      this.prisma.user.update({
+        where: { id },
+        data: {
+          status: 'DELETED',
+          name: 'Deleted User',
+          email: `deleted-${suffix}@naijahandy.local`,
+          phone: null,
+          city: null,
+          address: null,
+          avatar: null,
+          password: null,
+          googleId: null,
+        },
+      }),
+    ])
+    return { id: user.id, status: 'DELETED' }
   }
 
   // ─── Review moderation ──────────────────────────────────────────────────────

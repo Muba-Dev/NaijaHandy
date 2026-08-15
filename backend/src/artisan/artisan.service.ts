@@ -66,11 +66,14 @@ export class ArtisanService {
       })
     }
 
+    const userWhere: Prisma.UserWhereInput = { status: { not: 'DELETED' } }
+    if (city) userWhere.city = String(city)
+
     const where: Prisma.ArtisanProfileWhereInput = {
       approvalStatus: 'APPROVED',
       ...(this.hideDemo(user) ? { isDemo: false } : {}),
       ...(category ? { category: String(category) } : {}),
-      ...(city ? { user: { city: String(city) } } : {}),
+      user: userWhere,
       ...(minRating ? { avgRating: { gte: Number(minRating) } } : {}),
       ...(available === 'true' ? { available: true } : {}),
       ...(andClauses.length ? { AND: andClauses } : {}),
@@ -108,6 +111,7 @@ export class ArtisanService {
       where: {
         approvalStatus: 'APPROVED',
         ...(this.hideDemo(user) ? { isDemo: false } : {}),
+        user: { is: { status: { not: 'DELETED' } } },
       },
       _count: { _all: true },
     })
@@ -117,15 +121,15 @@ export class ArtisanService {
   async platformStats(user?: RequestUser) {
     const demoFilter = this.hideDemo(user) ? { isDemo: false } : {}
     const profiles = await this.prisma.artisanProfile.findMany({
-      where: { approvalStatus: 'APPROVED', ...demoFilter, user: { city: { not: null } } },
+      where: { approvalStatus: 'APPROVED', ...demoFilter, user: { city: { not: null }, status: { not: 'DELETED' } } },
       select: { user: { select: { city: true } } },
     })
     const [jobsCompleted, reviews] = await Promise.all([
       this.prisma.booking.count({
-        where: { status: 'COMPLETED', artisan: { approvalStatus: 'APPROVED', ...demoFilter } },
+        where: { status: 'COMPLETED', artisan: { approvalStatus: 'APPROVED', ...demoFilter, user: { is: { status: { not: 'DELETED' } } } } },
       }),
       this.prisma.review.count({
-        where: { status: 'APPROVED', artisan: { approvalStatus: 'APPROVED', ...demoFilter } },
+        where: { status: 'APPROVED', artisan: { approvalStatus: 'APPROVED', ...demoFilter, user: { is: { status: { not: 'DELETED' } } } } },
       }),
     ])
     return {
@@ -142,6 +146,7 @@ export class ArtisanService {
         id,
         approvalStatus: 'APPROVED',
         ...(this.hideDemo(user) ? { isDemo: false } : {}),
+        user: { status: { not: 'DELETED' } },
       },
       include: {
         user: { select: { id: true, name: true, city: true, avatar: true, phone: true, address: true, latitude: true, longitude: true } },

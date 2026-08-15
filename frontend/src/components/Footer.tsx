@@ -48,17 +48,21 @@ const SOCIAL_LINKS = [
   { label: 'NaijaHandy on X', icon: XIcon, href: 'https://x.com/naijahandy' },
 ]
 
+const TRUST_POINTS = ['Verified artisans', 'Escrow payments', 'Satisfaction guarantee']
+
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white mt-20">
-      <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
+    <footer className="bg-gray-950 text-white mt-20">
+      <div aria-hidden className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
+
+      <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-10">
         {/* Brand */}
         <div>
-          <div className="mb-4"><Brand compact dark /></div>
-          <p className="text-gray-300 text-sm leading-relaxed">
+          <div className="mb-5"><Brand compact dark /></div>
+          <p className="text-gray-400 text-sm leading-relaxed">
             Nigeria&apos;s premier platform for connecting skilled artisans with customers who need quality work done right.
           </p>
-          <div className="flex gap-3 mt-5">
+          <div className="flex gap-3 mt-6">
             {SOCIAL_LINKS.map(({ label, icon: Icon, href }) => (
               <a
                 key={label}
@@ -66,9 +70,9 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="w-11 h-11 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#047857] transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-gray-300 ring-1 ring-white/10 transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:text-white"
               >
-                <Icon size={16} className="text-gray-300" />
+                <Icon size={15} />
               </a>
             ))}
           </div>
@@ -76,11 +80,12 @@ export default function Footer() {
 
         {/* Platform */}
         <nav aria-label="Platform">
-          <h2 className="font-semibold text-sm uppercase tracking-wider text-gray-300 mb-4">Platform</h2>
-          <ul className="space-y-2">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/80 mb-5">Platform</h2>
+          <ul className="space-y-3">
             {PLATFORM_LINKS.map((l) => (
               <li key={l.label}>
-                <Link href={l.href} className="text-gray-300 hover:text-white text-sm transition-colors">
+                <Link href={l.href} className="group inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-white">
+                  <span className="h-1 w-1 rounded-full bg-emerald-500 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
                   {l.label}
                 </Link>
               </li>
@@ -90,11 +95,12 @@ export default function Footer() {
 
         {/* Categories */}
         <nav aria-label="Categories">
-          <h2 className="font-semibold text-sm uppercase tracking-wider text-gray-300 mb-4">Categories</h2>
-          <ul className="space-y-2">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/80 mb-5">Categories</h2>
+          <ul className="space-y-3">
             {CATEGORY_LINKS.map((l) => (
               <li key={l.label}>
-                <Link href={l.href} className="text-gray-300 hover:text-white text-sm transition-colors">
+                <Link href={l.href} className="group inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-white">
+                  <span className="h-1 w-1 rounded-full bg-emerald-500 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
                   {l.label}
                 </Link>
               </li>
@@ -104,21 +110,39 @@ export default function Footer() {
 
         {/* Newsletter */}
         <div>
-          <h2 className="font-semibold text-sm uppercase tracking-wider text-gray-300 mb-4">Newsletter</h2>
-          <p className="text-gray-300 text-sm mb-3">Get artisan tips and platform updates.</p>
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/80 mb-5">Newsletter</h2>
+          <p className="text-gray-400 text-sm mb-4">Get artisan tips and platform updates.</p>
           <NewsletterForm />
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-gray-800 px-6 py-5 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
-        <p className="text-gray-400 text-sm">© 2026 NaijaHandy. All rights reserved.</p>
-        <div className="flex gap-4">
-          {['Privacy Policy', 'Terms of Service', 'Contact'].map((l) => (
-            <span key={l} className="text-gray-400 text-sm">
-              {l}
+      {/* Trust strip */}
+      <div className="border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+          {TRUST_POINTS.map((point) => (
+            <span key={point} className="inline-flex items-center gap-2 text-xs font-medium text-gray-400">
+              <span aria-hidden className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </span>
+              {point}
             </span>
           ))}
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-center gap-3">
+          <p className="text-gray-500 text-sm">© 2026 NaijaHandy. All rights reserved.</p>
+          <div className="flex gap-6">
+            {['Privacy Policy', 'Terms of Service', 'Contact'].map((l) => (
+              <span key={l} className="text-gray-500 text-sm transition-colors hover:text-gray-300 cursor-pointer">
+                {l}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

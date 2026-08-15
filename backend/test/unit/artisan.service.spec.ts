@@ -23,7 +23,7 @@ describe('ArtisanService', () => {
       ])
       expect(artisanProfile.groupBy).toHaveBeenCalledWith({
         by: ['category'],
-        where: { approvalStatus: 'APPROVED' },
+        where: { approvalStatus: 'APPROVED', user: { is: { status: { not: 'DELETED' } } } },
         _count: { _all: true },
       })
     })
@@ -38,7 +38,7 @@ describe('ArtisanService', () => {
       await service.categoryCounts({ id: 'u1', role: 'CUSTOMER', isDemo: false })
       expect(artisanProfile.groupBy).toHaveBeenCalledWith({
         by: ['category'],
-        where: { approvalStatus: 'APPROVED', isDemo: false },
+        where: { approvalStatus: 'APPROVED', isDemo: false, user: { is: { status: { not: 'DELETED' } } } },
         _count: { _all: true },
       })
     })
@@ -47,6 +47,7 @@ describe('ArtisanService', () => {
   describe('findAll demo filtering', () => {
     const baseWhere = {
       approvalStatus: 'APPROVED',
+      user: { status: { not: 'DELETED' } },
     }
 
     it('shows demo artisans to anonymous visitors', async () => {
@@ -87,7 +88,7 @@ describe('ArtisanService', () => {
       artisanProfile.findFirst.mockResolvedValue(null)
       await service.findOne('art-1', { id: 'u1', role: 'CUSTOMER', isDemo: false }).catch(() => null)
       expect(artisanProfile.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'art-1', approvalStatus: 'APPROVED', isDemo: false } }),
+        expect.objectContaining({ where: { id: 'art-1', approvalStatus: 'APPROVED', isDemo: false, user: { status: { not: 'DELETED' } } } }),
       )
     })
 
@@ -95,7 +96,7 @@ describe('ArtisanService', () => {
       artisanProfile.findFirst.mockResolvedValue(null)
       await service.findOne('art-1').catch(() => null)
       expect(artisanProfile.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'art-1', approvalStatus: 'APPROVED' } }),
+        expect.objectContaining({ where: { id: 'art-1', approvalStatus: 'APPROVED', user: { status: { not: 'DELETED' } } } }),
       )
     })
 
@@ -140,6 +141,7 @@ describe('ArtisanService', () => {
         expect.objectContaining({
           where: {
             approvalStatus: 'APPROVED',
+            user: { status: { not: 'DELETED' } },
             AND: [
               {
                 OR: [

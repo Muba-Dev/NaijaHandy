@@ -86,6 +86,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } })
     if (!user) throw new UnauthorizedException('Invalid credentials')
     if (user.status === 'SUSPENDED') throw new UnauthorizedException('Account suspended')
+    if (user.status === 'DELETED') throw new UnauthorizedException('This account has been deleted')
 
     if (!user.password) {
       throw new UnauthorizedException('This account uses Google sign-in. Please log in with Google.')
@@ -242,7 +243,7 @@ export class AuthService {
     })
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, status: true } })
-    if (!user || user.status === 'SUSPENDED') {
+    if (!user || user.status === 'SUSPENDED' || user.status === 'DELETED') {
       await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } })
       throw new UnauthorizedException('Account suspended')
     }

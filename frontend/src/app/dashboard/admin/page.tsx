@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
-  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText, LifeBuoy, Camera,
+  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText, LifeBuoy, Camera, Trash2,
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import StatusBadge from '@/components/StatusBadge'
@@ -12,7 +12,7 @@ import { formatNGN, getApiErrorMessage, setStoredUser } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import {
   fetchAdminStats, fetchAdminArtisans, setArtisanApproval, setArtisanVerification,
-  fetchAdminUsers, setUserStatus, fetchAdminReviews, setReviewStatus,
+  fetchAdminUsers, setUserStatus, deleteUser, fetchAdminReviews, setReviewStatus,
   fetchAdminBookings, fetchAdminPayments, fetchAdminDisputes, resolveDispute, logout,
   fetchAdminSupportMessages, setSupportMessageStatus, fetchMe, updateAvatar,
 } from '@/lib/api'
@@ -79,6 +79,7 @@ export default function AdminDashboardPage() {
 
   const [artisanFilter, setArtisanFilter] = useState('ALL')
   const [userFilter, setUserFilter] = useState('ALL')
+  const [userStatusFilter, setUserStatusFilter] = useState('ALL')
   const [reviewFilter, setReviewFilter] = useState('ALL')
   const [bookingFilter, setBookingFilter] = useState('ALL')
   const [disputeFilter] = useState('ALL')
@@ -90,6 +91,7 @@ export default function AdminDashboardPage() {
   const [notice, setNotice] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const flash = (msg: string) => {
@@ -114,6 +116,7 @@ export default function AdminDashboardPage() {
       } else if (tab === 'users') {
         const params: Record<string, string> = {}
         if (userFilter !== 'ALL') params.role = userFilter
+        if (userStatusFilter !== 'ALL') params.status = userStatusFilter
         if (userSearch.trim()) params.search = userSearch.trim()
         const r = await fetchAdminUsers(params)
         setUsers(r.data)
@@ -141,7 +144,7 @@ export default function AdminDashboardPage() {
         setSupport(r.data)
       }
     } catch { /* ignore */ }
-  }, [tab, artisanFilter, userFilter, reviewFilter, bookingFilter, disputeFilter, supportFilter, userSearch])
+  }, [tab, artisanFilter, userFilter, userStatusFilter, reviewFilter, bookingFilter, disputeFilter, supportFilter, userSearch])
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('naijahandy_user') || 'null')
@@ -188,6 +191,17 @@ export default function AdminDashboardPage() {
       flash(`Account ${status === 'SUSPENDED' ? 'suspended' : 'activated'}`)
       loadTab(); refreshAll()
     } catch { flash('Action failed') }
+    setBusyId(null)
+  }
+
+  const onDeleteUser = async (u: AdminUser) => {
+    setBusyId(u.id)
+    try {
+      await deleteUser(u.id)
+      setConfirmDelete(null)
+      flash(`${u.name}'s account has been deleted`)
+      loadTab(); refreshAll()
+    } catch { flash('Failed to delete account') }
     setBusyId(null)
   }
 
@@ -499,7 +513,7 @@ export default function AdminDashboardPage() {
 
           {tab === 'users' && (
             <div>
-              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="flex flex-col sm:flex-row gap-3 mb-3">
                 <input
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
@@ -520,6 +534,18 @@ export default function AdminDashboardPage() {
                   ))}
                 </div>
               </div>
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {['ALL', 'ACTIVE', 'SUSPENDED', 'DELETED'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setUserStatusFilter(f)}
+                    aria-pressed={userStatusFilter === f}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${userStatusFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
+                  >
+                    {f === 'ALL' ? 'All statuses' : f.charAt(0) + f.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
                 {users.length === 0 && <p className="p-6 text-sm text-gray-500">No users found.</p>}
                 {users.map((u) => (
@@ -535,18 +561,27 @@ export default function AdminDashboardPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-gray-900 text-sm">{u.name}</p>
                         <Pill label={u.role} tone={u.role === 'ADMIN' ? 'blue' : u.role === 'ARTISAN' ? 'green' : 'gray'} />
-                        <Pill label={u.status} tone={u.status === 'SUSPENDED' ? 'red' : 'green'} />
+                        <Pill label={u.status} tone={u.status === 'SUSPENDED' ? 'red' : u.status === 'DELETED' ? 'gray' : 'green'} />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">{u.email} · {u.city || 'No city'} · joined {fmtDate(u.createdAt)}</p>
                     </div>
-                    {u.role !== 'ADMIN' && (
-                      <button
-                        disabled={busyId === u.id}
-                        onClick={() => onUserStatus(u.id, u.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${u.status === 'SUSPENDED' ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-red-600 bg-red-50 hover:bg-red-100'}`}
-                      >
-                        {u.status === 'SUSPENDED' ? 'Reactivate' : 'Suspend'}
-                      </button>
+                    {u.role !== 'ADMIN' && u.id !== user?.id && u.status !== 'DELETED' && (
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          disabled={busyId === u.id}
+                          onClick={() => onUserStatus(u.id, u.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${u.status === 'SUSPENDED' ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-red-600 bg-red-50 hover:bg-red-100'}`}
+                        >
+                          {u.status === 'SUSPENDED' ? 'Reactivate' : 'Suspend'}
+                        </button>
+                        <button
+                          disabled={busyId === u.id}
+                          onClick={() => setConfirmDelete(u)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -763,6 +798,41 @@ export default function AdminDashboardPage() {
         </div>
       </div>
     </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} aria-hidden />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" role="dialog" aria-modal="true" aria-labelledby="delete-user-title">
+            <div className="w-11 h-11 rounded-xl bg-red-100 flex items-center justify-center text-red-600 mb-4">
+              <Trash2 size={22} />
+            </div>
+            <h2 id="delete-user-title" className="text-lg font-bold text-gray-900">Delete {confirmDelete.name}?</h2>
+            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+              This permanently removes their account. Their sign-in is disabled, and their name, email, phone and photo are
+              wiped. Historical records such as bookings and reviews are kept for data integrity. This cannot be undone.
+            </p>
+            <p className="text-xs text-gray-500 mt-3">
+              {confirmDelete.role === 'ARTISAN' ? 'Their artisan profile will also be taken offline and hidden from the marketplace.' : 'Any active sessions are revoked immediately.'}
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                disabled={busyId === confirmDelete.id}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onDeleteUser(confirmDelete)}
+                disabled={busyId === confirmDelete.id}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {busyId === confirmDelete.id ? 'Deleting…' : 'Delete account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthGuard>
   )
 }

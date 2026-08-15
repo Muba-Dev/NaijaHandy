@@ -120,7 +120,7 @@ export interface AuthUser {
 }
 
 export type AdminUserRole = 'CUSTOMER' | 'ARTISAN' | 'ADMIN'
-export type UserStatus = 'ACTIVE' | 'SUSPENDED'
+export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'DELETED'
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'REJECTED'
 export type ReviewStatus = 'APPROVED' | 'HIDDEN'

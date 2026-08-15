@@ -5,13 +5,74 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
-  Search, Briefcase, MapPin, ArrowRight, Calendar, Shield,
-  Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers, Flame,
+  Search, Briefcase, MapPin, ArrowRight, ArrowUpRight, Calendar, Shield,
+  ShieldCheck, Star, Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers, Flame,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
 import { fetchArtisans, fetchCategoryCounts, fetchPlatformStats } from '@/lib/api'
 import ArtisanCard from '@/components/ArtisanCard'
 import type { Artisan, PlatformStats } from '@/types'
+
+function CountUp({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [display, setDisplay] = useState(0)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(value)
+      return
+    }
+    const duration = 900
+    const start = performance.now()
+    let raf: number
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration)
+      setDisplay(Math.round(value * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
+
+  return <>{display.toLocaleString()}{suffix}</>
+}
+
+const CATEGORY_META: Record<string, { icon: LucideIcon; grad: string }> = {
+  Plumbing: { icon: Wrench, grad: 'from-sky-500 to-blue-600' },
+  Electrical: { icon: Zap, grad: 'from-amber-400 to-orange-500' },
+  Carpentry: { icon: Hammer, grad: 'from-rose-500 to-pink-600' },
+  Painting: { icon: PaintBucket, grad: 'from-violet-500 to-purple-600' },
+  'Auto Repair': { icon: Car, grad: 'from-red-500 to-rose-600' },
+  'Home Cleaning': { icon: Home, grad: 'from-cyan-500 to-teal-500' },
+  Tailoring: { icon: Scissors, grad: 'from-fuchsia-500 to-pink-500' },
+  'Tiling & Flooring': { icon: Layers, grad: 'from-emerald-500 to-green-600' },
+}
+
+const FALLBACK_META = { icon: Wrench, grad: 'from-emerald-500 to-teal-500' }
+
+const HOW_IT_WORKS = [
+  {
+    step: '01',
+    icon: Search,
+    grad: 'from-sky-500 to-blue-600',
+    title: 'Search',
+    desc: 'Browse verified artisans by profession, location, or rating. Compare profiles, reviews and pricing side by side.',
+  },
+  {
+    step: '02',
+    icon: Calendar,
+    grad: 'from-amber-400 to-orange-500',
+    title: 'Book',
+    desc: 'Pick a date and time that works for you. Describe the job and lock in a clear, upfront estimate.',
+  },
+  {
+    step: '03',
+    icon: Shield,
+    grad: 'from-emerald-500 to-teal-600',
+    title: 'Pay Safely',
+    desc: 'Your payment is held securely and only released when the job is done to your satisfaction.',
+  },
+]
 
 export default function HomePage() {
   const router = useRouter()
@@ -27,8 +88,6 @@ export default function HomePage() {
     fetchPlatformStats().then(setStats).catch(() => setStats(null))
   }, [])
 
-  const CATEGORY_ICONS = [Wrench, Zap, Hammer, PaintBucket, Car, Home, Scissors, Layers]
-
   const searchHref = () => {
     const params = new URLSearchParams()
     if (searchProfession) params.set('q', searchProfession)
@@ -42,144 +101,209 @@ export default function HomePage() {
     router.push(searchHref())
   }
 
+  const statTiles = [
+    { label: 'Verified Artisans', value: stats?.artisans ?? 0, icon: ShieldCheck, grad: 'from-emerald-400 to-teal-500', suffix: '' },
+    { label: 'Cities Covered', value: stats?.cities ?? 0, icon: MapPin, grad: 'from-sky-400 to-blue-500', suffix: '' },
+    { label: 'Jobs Completed', value: stats?.jobsCompleted ?? 0, icon: Briefcase, grad: 'from-amber-400 to-orange-500', suffix: '+' },
+    { label: 'Customer Reviews', value: stats?.reviews ?? 0, icon: Star, grad: 'from-violet-400 to-purple-500', suffix: '+' },
+  ]
+
   return (
     <div>
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section
-        className="relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #022c22 0%, #047857 60%, #065f46 100%)' }}
-      >
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#022c22] via-[#03543f] to-[#064e3b]">
+        {/* Decorative glows */}
+        <div aria-hidden className="absolute -top-40 -right-28 h-[28rem] w-[28rem] rounded-full bg-emerald-400/20 blur-3xl" />
+        <div aria-hidden className="absolute -bottom-32 -left-28 h-96 w-96 rounded-full bg-amber-400/10 blur-3xl" />
+        <div aria-hidden className="absolute left-1/3 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-teal-400/10 blur-3xl" />
+
         <Image
           src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1400&h=600&fit=crop&auto=format"
           alt=""
           fill
-          className="object-cover opacity-15"
+          className="object-cover opacity-10"
           priority
         />
-        <div className="relative max-w-7xl mx-auto px-6 py-20 md:py-28 grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-white/10 text-white text-sm rounded-full px-4 py-1.5 mb-6 border border-white/20">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              {stats ? `${stats.artisans} verified artisans across Nigeria` : 'Trusted local artisans across Nigeria'}
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-5">
-              Find Trusted<br />Local Artisans<br />
-              <span className="text-amber-400">Near You</span>
-            </h1>
-            <p className="text-emerald-100 text-lg mb-8 leading-relaxed max-w-md">
-              Connect with verified, skilled artisans across Nigeria. Safe payments. Guaranteed quality.
-            </p>
 
-            {/* Search bar */}
-            <form onSubmit={handleSearch} className="bg-white rounded-2xl p-2 flex flex-col md:flex-row gap-2 shadow-2xl max-w-xl">
-              <div className="flex items-center gap-2 flex-1 px-3 py-2 border border-gray-100 rounded-xl">
-                <Briefcase size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
-                <label htmlFor="home-profession" className="sr-only">Profession</label>
-                <select
-                  id="home-profession"
-                  value={searchProfession}
-                  onChange={(e) => setSearchProfession(e.target.value)}
-                  className="flex-1 text-sm text-gray-700 outline-none bg-transparent"
+        <div className="relative max-w-7xl mx-auto px-6 pt-16 pb-14 md:pt-24 md:pb-16">
+          <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-14 items-center">
+            {/* Left: copy + search */}
+            <div>
+              <div className="inline-flex items-center gap-2.5 rounded-full bg-white/10 px-4 py-1.5 text-sm text-emerald-50 ring-1 ring-white/20 backdrop-blur-sm">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" />
+                </span>
+                {stats ? `Trusted by ${stats.artisans}+ verified artisans across Nigeria` : 'Trusted local artisans across Nigeria'}
+              </div>
+
+              <h1 className="font-display text-[2.6rem] leading-[1.05] font-bold text-white md:text-6xl lg:text-[4.1rem] mt-7">
+                Find Trusted
+                <br />Local Artisans
+                <br />
+                <span className="italic text-amber-400">Near You</span>
+              </h1>
+
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-emerald-100/90 md:text-lg">
+                NaijaHandy connects you with verified, skilled artisans across Nigeria. Compare profiles, book in seconds,
+                and pay only when you&apos;re happy with the work.
+              </p>
+
+              {/* Search bar */}
+              <form onSubmit={handleSearch} className="mt-9 flex max-w-2xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-2xl shadow-black/25 ring-1 ring-black/5 sm:flex-row sm:items-center">
+                <div className="flex flex-1 items-center gap-2.5 rounded-xl bg-gray-50/80 px-4 py-3">
+                  <Briefcase size={18} className="shrink-0 text-emerald-600" aria-hidden="true" />
+                  <label htmlFor="home-profession" className="sr-only">Profession</label>
+                  <select
+                    id="home-profession"
+                    value={searchProfession}
+                    onChange={(e) => setSearchProfession(e.target.value)}
+                    className="flex-1 cursor-pointer bg-transparent text-sm font-medium text-gray-800 outline-none"
+                  >
+                    <option value="">Select Profession</option>
+                    {CATEGORIES.map((c) => (
+                      <option key={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="hidden w-px self-stretch bg-gray-200 sm:block" aria-hidden="true" />
+                <div className="flex flex-1 items-center gap-2.5 rounded-xl bg-gray-50/80 px-4 py-3">
+                  <MapPin size={18} className="shrink-0 text-emerald-600" aria-hidden="true" />
+                  <label htmlFor="home-city" className="sr-only">City or area</label>
+                  <input
+                    id="home-city"
+                    value={searchCity}
+                    onChange={(e) => setSearchCity(e.target.value)}
+                    placeholder="Enter city or area"
+                    className="flex-1 bg-transparent text-sm font-medium text-gray-800 outline-none placeholder-gray-400"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/30 transition-all hover:from-emerald-700 hover:to-teal-600"
                 >
-                  <option value="">Select Profession</option>
-                  {CATEGORIES.map((c) => (
-                    <option key={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                  <Search size={16} aria-hidden="true" />
+                  Search
+                </button>
+              </form>
+
+              <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-emerald-200/80">Popular:</span>
+                {['Plumber', 'Electrician', 'Carpenter', 'Painter'].map((p) => (
+                  <Link
+                    key={p}
+                    href={`/search?q=${p.toLowerCase()}`}
+                    className="rounded-full bg-white/10 px-3.5 py-1.5 text-emerald-50 ring-1 ring-white/15 transition-colors hover:bg-white/20"
+                  >
+                    {p}
+                  </Link>
+                ))}
               </div>
-              <div className="flex items-center gap-2 flex-1 px-3 py-2 border border-gray-100 rounded-xl">
-                <MapPin size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
-                <label htmlFor="home-city" className="sr-only">City or area</label>
-                <input
-                  id="home-city"
-                  value={searchCity}
-                  onChange={(e) => setSearchCity(e.target.value)}
-                  placeholder="Enter city or area"
-                  className="flex-1 text-sm text-gray-700 outline-none placeholder-gray-400"
-                />
-              </div>
-              <button
-                type="submit"
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white text-sm bg-[#047857] hover:opacity-90 transition-opacity shrink-0"
+
+              <Link
+                href="/search?available=1"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-bold text-gray-900 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-orange-400"
               >
-                <Search size={16} aria-hidden="true" />
-                Search
-              </button>
-            </form>
-            <p className="text-emerald-200 text-sm mt-3">
-              Popular:{' '}
-              <Link href="/search?q=plumber" className="underline">Plumber</Link>,{' '}
-              <Link href="/search?q=electrician" className="underline">Electrician</Link>,{' '}
-              <Link href="/search?q=carpenter" className="underline">Carpenter</Link>
-            </p>
-            <Link
-              href="/search?available=1"
-              className="mt-4 inline-flex items-center gap-2 bg-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-red-700 transition-colors"
-            >
-              <Flame size={16} aria-hidden="true" />Urgent? Find same-day help
-            </Link>
+                <Flame size={16} aria-hidden="true" />Urgent? Find same-day help
+              </Link>
+            </div>
+
+            {/* Right: social proof */}
+            <div className="relative hidden lg:block">
+              <div className="rounded-3xl bg-white/10 p-7 shadow-2xl shadow-black/20 ring-1 ring-white/15 backdrop-blur-xl">
+                <div className="mb-4 flex items-center gap-1 text-amber-400" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star key={i} size={16} className="fill-current" />
+                  ))}
+                </div>
+                <p className="font-display text-xl leading-relaxed text-white">
+                  &ldquo;Emeka fixed our burst pipe within the hour. Fair price, spotless work — I&apos;ve found my forever plumber.&rdquo;
+                </p>
+                <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-5">
+                  <Image
+                    src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=96&h=96&fit=crop&auto=format"
+                    alt="Adaeze O., a satisfied customer"
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 rounded-full object-cover ring-2 ring-white/30"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-white">Adaeze O.</p>
+                    <p className="text-xs text-emerald-200">Lagos, Nigeria</p>
+                  </div>
+                  <div className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
+                    <ShieldCheck size={13} aria-hidden="true" /> Verified
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -bottom-6 -left-5 rounded-2xl bg-amber-400 px-5 py-3 shadow-xl shadow-amber-900/30">
+                <p className="font-display text-2xl font-bold leading-none text-gray-900">4.8/5</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-amber-900/80">Average rating</p>
+              </div>
+            </div>
           </div>
 
-          {/* Stats grid */}
-          <div className="hidden md:flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Verified Artisans', value: stats ? String(stats.artisans) : '—' },
-                { label: 'Cities Covered', value: stats ? String(stats.cities) : '—' },
-                { label: 'Jobs Completed', value: stats ? stats.jobsCompleted.toLocaleString() : '—' },
-                { label: 'Customer Reviews', value: stats ? stats.reviews.toLocaleString() : '—' },
-              ].map((s) => (
-                <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5">
-                  <p className="font-display text-2xl font-bold text-white">{s.value}</p>
-                  <p className="text-emerald-200 text-sm mt-1">{s.label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="bg-white/10 border border-white/20 rounded-2xl p-4 flex items-center gap-3">
-              <Image
-                src="https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=48&h=48&fit=crop&auto=format"
-                alt="artisan"
-                width={48}
-                height={48}
-                className="rounded-full object-cover border-2 border-white"
-              />
-              <div>
-                <p className="text-white text-sm font-semibold">Emeka Okafor · Master Plumber</p>
-                <p className="text-emerald-300 text-xs mt-0.5">⭐ 4.8 — &ldquo;Fixed our burst pipe in under an hour&rdquo;</p>
-              </div>
+          {/* ── Stats band ─────────────────────────────────────────────── */}
+          <div className="mt-14 border-t border-white/10 pt-8 md:mt-16">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {statTiles.map((s) => {
+                const Icon = s.icon
+                return (
+                  <div key={s.label} className="flex items-center gap-4 rounded-2xl bg-white/5 px-5 py-4 ring-1 ring-white/10 backdrop-blur-sm transition-colors hover:bg-white/10">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${s.grad} shadow-lg`}>
+                      <Icon size={22} className="text-white" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="font-display text-2xl font-bold leading-none text-white md:text-3xl">
+                        <CountUp value={s.value} suffix={s.suffix} />
+                      </p>
+                      <p className="mt-1.5 text-xs text-emerald-200 md:text-sm">{s.label}</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       </section>
 
       {/* ── Categories ───────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="flex items-end justify-between mb-8">
+      <section className="max-w-7xl mx-auto px-6 py-16 md:py-20">
+        <div className="mb-10 flex items-end justify-between">
           <div>
-            <h2 className="font-display text-3xl font-bold text-gray-900">Popular Categories</h2>
-            <p className="text-gray-500 mt-1">Browse by what you need done</p>
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" /> Browse
+            </span>
+            <h2 className="mt-3 font-display text-3xl font-bold text-gray-900 md:text-4xl">Popular Categories</h2>
+            <p className="mt-2 text-gray-500">Browse by what you need done — top trade experts at your service</p>
           </div>
-          <Link href="/search" className="hidden md:flex items-center gap-1 text-sm font-medium text-[#047857] hover:text-emerald-900">
-            View all <ArrowRight size={16} />
+          <Link href="/search" className="group hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#047857] hover:text-[#047857] md:inline-flex">
+            View all <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {CATEGORIES.map((cat, i) => {
-            const Icon = CATEGORY_ICONS[i % CATEGORY_ICONS.length]
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {CATEGORIES.slice(0, 8).map((cat) => {
+            const meta = CATEGORY_META[cat.name] ?? FALLBACK_META
+            const Icon = meta.icon
             const count = categoryCounts[cat.name] ?? 0
             return (
               <Link
                 key={cat.name}
                 href={`/search?category=${encodeURIComponent(cat.name)}`}
-                className="group bg-white rounded-2xl p-5 text-left border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all"
+                className="group relative overflow-hidden rounded-2xl bg-white p-5 ring-1 ring-gray-100 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/5 hover:ring-emerald-200"
               >
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-[#ECFDF5]">
-                  <Icon size={22} className="text-[#047857]" />
+                <div aria-hidden className={`absolute -right-8 -top-8 h-28 w-28 rounded-full bg-gradient-to-br ${meta.grad} opacity-[0.08] transition-opacity group-hover:opacity-20`} />
+                <div className="mb-5 flex items-start justify-between">
+                  <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${meta.grad} text-white shadow-lg transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110`}>
+                    <Icon size={22} aria-hidden="true" />
+                  </div>
+                  <ArrowUpRight size={18} className="text-gray-300 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#047857]" aria-hidden="true" />
                 </div>
-                <p className="font-semibold text-gray-900 group-hover:text-[#047857] transition-colors">{cat.name}</p>
-                <p className="text-gray-600 text-sm mt-0.5">
+                <p className="font-semibold text-gray-900 transition-colors group-hover:text-[#047857]">{cat.name}</p>
+                <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-500">
+                  <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-gradient-to-r ${meta.grad}`} />
                   {count.toLocaleString()} {count === 1 ? 'artisan' : 'artisans'}
-                </p>
+                </div>
               </Link>
             )
           })}
@@ -187,50 +311,54 @@ export default function HomePage() {
       </section>
 
       {/* ── Featured Artisans ─────────────────────────────────────────── */}
-      <section className="bg-[#F0FDF4] py-16">
+      <section className="bg-gradient-to-b from-emerald-50/80 to-white py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-end justify-between mb-8">
+          <div className="mb-10 flex items-end justify-between">
             <div>
-              <h2 className="font-display text-3xl font-bold text-gray-900">Featured Artisans</h2>
-              <p className="text-gray-500 mt-1">Top-rated professionals in your area</p>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-100">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" /> Top rated
+              </span>
+              <h2 className="mt-3 font-display text-3xl font-bold text-gray-900 md:text-4xl">Featured Artisans</h2>
+              <p className="mt-2 text-gray-500">Professionals customers love — rated and reviewed by real people</p>
             </div>
-            <Link href="/search" className="hidden md:flex items-center gap-1 text-sm font-medium text-[#047857] hover:text-emerald-900">
-              View all <ArrowRight size={16} />
+            <Link href="/search" className="group hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#047857] hover:text-[#047857] md:inline-flex">
+              View all <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {artisans.map((a) => (
               <ArtisanCard key={a.id} artisan={a} />
             ))}
           </div>
           {artisans.length === 0 && (
-            <p className="text-center text-gray-600 py-8" role="status">No artisans yet. They&apos;ll appear here once the backend is seeded.</p>
+            <p className="py-8 text-center text-gray-600" role="status">No artisans yet. They&apos;ll appear here once the backend is seeded.</p>
           )}
         </div>
       </section>
 
       {/* ── How It Works ─────────────────────────────────────────────── */}
-      <section id="how-it-works" className="max-w-7xl mx-auto px-6 py-20">
-        <div className="text-center mb-12">
-          <h2 className="font-display text-3xl font-bold text-gray-900">How It Works</h2>
-          <p className="text-gray-500 mt-2 text-lg">Three simple steps to get the job done</p>
+      <section id="how-it-works" className="max-w-7xl mx-auto px-6 py-16 md:py-24">
+        <div className="mx-auto mb-14 max-w-2xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" /> Simple &amp; secure
+          </span>
+          <h2 className="mt-3 font-display text-3xl font-bold text-gray-900 md:text-4xl">How It Works</h2>
+          <p className="mt-2 text-lg text-gray-500">Three simple steps to get the job done right</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8 relative">
-          <div className="hidden md:block absolute top-12 left-1/3 right-1/3 h-0.5 bg-emerald-100" />
-          {[
-            { step: '01', icon: Search, title: 'Search', desc: 'Browse verified artisans by profession, location, or rating. Compare profiles and reviews.' },
-            { step: '02', icon: Calendar, title: 'Book', desc: 'Select a date and time that works for you. Describe the job and get an instant estimate.' },
-            { step: '03', icon: Shield, title: 'Pay Safely', desc: 'Your payment is held in escrow and only released when the job is done to your satisfaction.' },
-          ].map((s) => {
+        <div className="relative grid gap-6 md:grid-cols-3 md:gap-8">
+          <div aria-hidden className="absolute inset-x-16 top-10 hidden h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent md:block" />
+          {HOW_IT_WORKS.map((s) => {
             const Icon = s.icon
             return (
-              <div key={s.step} className="text-center relative z-10">
-                <div className="w-24 h-24 rounded-full border-4 border-emerald-100 flex items-center justify-center mx-auto mb-6 bg-white shadow-lg">
-                  <Icon size={32} className="text-[#047857]" />
+              <div key={s.step} className="group relative rounded-3xl border border-gray-100 bg-white p-8 text-center transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/5 hover:ring-emerald-200">
+                <span aria-hidden className="absolute right-6 top-5 font-display text-5xl font-bold text-gray-100 transition-colors group-hover:text-emerald-100">
+                  {s.step}
+                </span>
+                <div className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br ${s.grad} text-white shadow-lg transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105`}>
+                  <Icon size={30} aria-hidden="true" />
                 </div>
-                <div className="inline-block bg-amber-400 text-gray-900 text-xs font-bold px-2 py-0.5 rounded mb-2">{s.step}</div>
-                <h3 className="font-display text-xl font-bold text-gray-900 mb-2">{s.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{s.desc}</p>
+                <h3 className="font-display text-xl font-bold text-gray-900">{s.title}</h3>
+                <p className="mt-2.5 leading-relaxed text-gray-500">{s.desc}</p>
               </div>
             )
           })}
@@ -238,19 +366,31 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA Banner ───────────────────────────────────────────────── */}
-      <section
-        className="mx-6 md:mx-auto max-w-6xl mb-20 rounded-3xl overflow-hidden relative"
-        style={{ background: 'linear-gradient(135deg, #047857, #065f46)' }}
-      >
-        <div className="relative px-8 md:px-14 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-white mb-2">Are you a skilled artisan?</h2>
-            <p className="text-emerald-200 max-w-md">Join Nigeria&apos;s growing network of verified artisans. Free to register. Get job requests from day one.</p>
-          </div>
-          <div className="flex gap-3 shrink-0">
-            <Link href="/register" className="px-6 py-3 bg-amber-400 text-gray-900 font-semibold rounded-xl hover:bg-amber-300 transition-colors">
-              Join Now — Free
-            </Link>
+      <section className="mx-6 max-w-6xl overflow-hidden rounded-3xl md:mx-auto md:mb-20">
+        <div className="relative bg-gradient-to-br from-[#047857] via-[#065f46] to-[#022c22] px-8 py-12 md:px-14 md:py-14">
+          <div aria-hidden className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl" />
+          <div aria-hidden className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-emerald-300/20 blur-3xl" />
+          <div className="relative flex flex-col items-center justify-between gap-8 md:flex-row">
+            <div className="max-w-xl text-center md:text-left">
+              <h2 className="font-display text-2xl font-bold text-white md:text-3xl">Are you a skilled artisan?</h2>
+              <p className="mt-2 text-emerald-200">
+                Join Nigeria&apos;s growing network of verified artisans. Free to register — get job requests from day one.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link
+                href="/register"
+                className="rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-7 py-3.5 text-center font-bold text-gray-900 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-orange-400"
+              >
+                Join Now — Free
+              </Link>
+              <Link
+                href="/search"
+                className="rounded-xl bg-white/10 px-7 py-3.5 text-center font-semibold text-white ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/20"
+              >
+                Explore Artisans
+              </Link>
+            </div>
           </div>
         </div>
       </section>

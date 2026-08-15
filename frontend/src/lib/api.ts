@@ -395,6 +395,11 @@ export async function setUserStatus(id: string, status: string) {
   return data.data
 }
 
+export async function deleteUser(id: string) {
+  const { data } = await api.delete(`/admin/users/${id}`)
+  return data.data
+}
+
 export async function fetchAdminReviews(params?: Record<string, string>): Promise<{ data: AdminReview[]; total: number }> {
   const { data } = await api.get('/admin/reviews', { params })
   return data.data

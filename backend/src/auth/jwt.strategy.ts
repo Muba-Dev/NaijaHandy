@@ -19,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.id },
       select: { id: true, role: true, status: true, isDemo: true, name: true, email: true },
     })
-    if (!user || user.status === 'SUSPENDED') {
+    if (!user || user.status === 'SUSPENDED' || user.status === 'DELETED') {
       throw new UnauthorizedException('Account suspended')
     }
     return { id: user.id, role: user.role, isDemo: user.isDemo, name: user.name, email: user.email }
