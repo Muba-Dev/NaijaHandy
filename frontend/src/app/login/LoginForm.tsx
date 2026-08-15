@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mail, Shield } from 'lucide-react'
+import { Mail, Shield, Eye, EyeOff } from 'lucide-react'
 import { login, API_BASE_URL } from '@/lib/api'
 import { getStoredUser, getApiErrorMessage } from '@/lib/utils'
 import Brand from '@/components/Brand'
@@ -14,6 +14,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -104,13 +105,21 @@ export default function LoginForm() {
               <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3 focus-within:border-[#047857] transition-colors">
                 <Shield size={16} className="text-gray-400" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   className="flex-1 text-sm outline-none text-gray-900 placeholder-gray-400"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+                >
+                  {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                </button>
               </div>
             </div>
 

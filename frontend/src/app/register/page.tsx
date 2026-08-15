@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Eye, EyeOff } from 'lucide-react'
 import Brand from '@/components/Brand'
 import { CATEGORIES, NIGERIAN_CITIES } from '@/lib/data'
 import { register } from '@/lib/api'
@@ -15,6 +16,7 @@ export default function RegisterPage() {
   const [role, setRole] = useState<Role>('CUSTOMER')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({
     name: '', email: '', phone: '', city: '', password: '', profession: '',
   })
@@ -147,16 +149,26 @@ export default function RegisterPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={form.password}
-              onChange={set('password')}
-              placeholder="Min. 8 characters"
-              minLength={8}
-              required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={set('password')}
+                placeholder="Min. 8 characters"
+                minLength={8}
+                required
+                className="w-full border border-gray-200 rounded-xl px-4 pr-11 py-3 text-sm outline-none focus:border-[#047857] transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              </button>
+            </div>
           </div>
 
           {error && (
