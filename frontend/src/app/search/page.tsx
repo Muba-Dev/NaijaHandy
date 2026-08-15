@@ -37,7 +37,9 @@ function SearchPage() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
   const [locError, setLocError] = useState('')
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(
+    () => searchParams.get('available') === '1' || !!searchParams.get('category') || !!searchParams.get('minRating') || !!searchParams.get('city') || !!searchParams.get('price'),
+  )
   const [artisans, setArtisans] = useState<Artisan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

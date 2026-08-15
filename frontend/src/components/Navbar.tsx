@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
-import { Search, Menu, X, LogOut, Bell, ChevronDown } from 'lucide-react'
+import { Search, Menu, X, LogOut, Bell, ChevronDown, LayoutDashboard, CalendarDays, Heart, Settings, Briefcase, LifeBuoy, LogIn, UserPlus } from 'lucide-react'
 import Brand from '@/components/Brand'
 import { logout, fetchUnreadCount } from '@/lib/api'
 import { getStoredUser, isAuthenticated } from '@/lib/utils'
@@ -225,73 +225,96 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div id="mobile-menu" className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-3">
-          <form onSubmit={submitSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2.5">
-            <Search size={15} className="text-gray-400 shrink-0" aria-hidden="true" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search artisans…"
-              aria-label="Search artisans"
-              className="bg-transparent text-sm outline-none flex-1 text-gray-700 placeholder-gray-400"
-            />
-          </form>
-          <Link href="/search" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
-            Find Artisans
-          </Link>
-          <Link href="/dashboard/artisan" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
-            Become an Artisan
-          </Link>
-          <Link href="/help" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
-            Help
-          </Link>
-          {user ? (
-            <>
-              {user.role === 'CUSTOMER' && (
-                <>
-                  <Link href="/bookings" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
-                    Bookings
-                  </Link>
-                  <Link href="/saved" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-gray-700 py-2">
-                    Saved
-                  </Link>
-                </>
-              )}
-              <Link href="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm font-medium text-gray-700 py-2">
-                <Bell size={15} aria-hidden="true" />
-                Notifications
-                {unread > 0 && (
-                  <span className="min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
-                    {unread > 9 ? '9+' : unread}
-                  </span>
-                )}
+        <div id="mobile-menu" className="md:hidden border-t border-gray-100 bg-gray-50 pb-6">
+          <div className="px-4 pt-4">
+            <form onSubmit={submitSearch} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3.5 py-3 shadow-sm">
+              <Search size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search artisans…"
+                aria-label="Search artisans"
+                className="bg-transparent text-sm outline-none flex-1 text-gray-700 placeholder-gray-400"
+              />
+            </form>
+          </div>
+
+          <div className="px-4 pt-4">
+            <p className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Browse</p>
+            <div className="divide-y divide-gray-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <Link href="/search" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                <Search size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Find Artisans
               </Link>
-              <div className="flex gap-2 pt-2">
-              <Link
-                href={dashboardHref}
-                onClick={() => setMobileOpen(false)}
-                className="flex-1 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg py-2 text-center"
-              >
-                Dashboard
+              <Link href="/dashboard/artisan" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                <Briefcase size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Become an Artisan
               </Link>
-              <button
-                onClick={handleLogout}
-                className="flex-1 text-sm font-medium text-red-600 border border-red-200 rounded-lg py-2 text-center"
-              >
-                Log Out
-              </button>
+              <Link href="/help" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                <LifeBuoy size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Help
+              </Link>
             </div>
-            </>
+          </div>
+
+          {user ? (
+            <div className="px-4 pt-4">
+              <p className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Account</p>
+              <div className="divide-y divide-gray-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <div className="flex items-center gap-3 bg-gradient-to-br from-emerald-50 to-teal-50 px-4 py-3.5">
+                  <Image src={user.avatar || DEFAULT_AVATAR} alt={user.name} width={44} height={44} className="rounded-full object-cover ring-2 ring-white" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900">{user.name}</p>
+                    <p className="truncate text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <span className="ml-auto shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#047857]">{user.role}</span>
+                </div>
+                <Link href={dashboardHref} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                  <LayoutDashboard size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Dashboard
+                </Link>
+                {user.role === 'CUSTOMER' && (
+                  <>
+                    <Link href="/bookings" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                      <CalendarDays size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Bookings
+                    </Link>
+                    <Link href="/saved" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                      <Heart size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Saved
+                    </Link>
+                  </>
+                )}
+                <Link href="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                  <Bell size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Notifications
+                  {unread > 0 && (
+                    <span className="min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </Link>
+                <Link href="/settings" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                  <Settings size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Profile Settings
+                </Link>
+                <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-semibold text-red-600 transition-colors active:bg-red-50">
+                  <LogOut size={16} className="shrink-0" aria-hidden="true" /> Log Out
+                </button>
+              </div>
+            </div>
           ) : (
-            <div className="flex gap-2 pt-2">
-              <Link href="/login" onClick={() => setMobileOpen(false)} className="flex-1 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg py-2 text-center">
-                Log In
-              </Link>
-              <Link href="/register" onClick={() => setMobileOpen(false)} className="flex-1 text-sm font-semibold text-white rounded-lg py-2 text-center bg-[#047857]">
-                Register
-              </Link>
+            <div className="px-4 pt-4">
+              <p className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Account</p>
+              <div className="divide-y divide-gray-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <Link href="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-700 transition-colors active:bg-emerald-50/60">
+                  <LogIn size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Log In
+                </Link>
+                <Link href="/register" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3.5 text-sm font-semibold text-[#047857] transition-colors active:bg-emerald-50/60">
+                  <UserPlus size={16} className="shrink-0 text-[#047857]" aria-hidden="true" /> Create Account
+                </Link>
+              </div>
             </div>
           )}
+
+          <p className="px-6 pt-5 text-center text-xs text-gray-500">
+            Need help?{' '}
+            <Link href="/help" onClick={() => setMobileOpen(false)} className="font-medium text-[#047857] hover:underline">
+              Visit our Help Centre
+            </Link>
+          </p>
         </div>
       )}
     </nav>

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import StatusBadge from '@/components/StatusBadge'
-import { formatNGN, getApiErrorMessage, setStoredUser } from '@/lib/utils'
+import { formatNGN, getApiErrorMessage, setStoredUser, compressImage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import {
   fetchAdminStats, fetchAdminArtisans, setArtisanApproval, setArtisanVerification,
@@ -244,18 +244,13 @@ export default function AdminDashboardPage() {
       setAvatarError('Please choose an image file (JPG, PNG or WebP).')
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setAvatarError('Image is too large. Maximum size is 2MB.')
+    if (file.size > 15 * 1024 * 1024) {
+      setAvatarError('Image is too large. Please choose a photo under 15MB.')
       return
     }
     setUploadingAvatar(true)
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(new Error('Could not read the file'))
-        reader.readAsDataURL(file)
-      })
+      const dataUrl = await compressImage(file)
       const updated = await updateAvatar(dataUrl)
       setUser((u) => (u ? { ...u, ...updated } : u))
       setStoredUser(updated)

@@ -7,7 +7,7 @@ import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
 import { fetchMe, updateProfile, updateAvatar, changePassword } from '@/lib/api'
 import { DEFAULT_AVATAR } from '@/lib/data'
-import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
+import { setStoredUser, getApiErrorMessage, compressImage } from '@/lib/utils'
 import type { AuthUser } from '@/types'
 
 type SettingsTab = 'personal' | 'security' | 'payment' | 'notifications'
@@ -71,18 +71,13 @@ export default function ProfileSettingsPage() {
       setUploadError('Please choose an image file (JPG, PNG or WebP).')
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError('Image is too large. Maximum size is 2MB.')
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError('Image is too large. Please choose a photo under 15MB.')
       return
     }
     setUploading(true)
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(new Error('Could not read the file'))
-        reader.readAsDataURL(file)
-      })
+      const dataUrl = await compressImage(file)
       const updated = await updateAvatar(dataUrl)
       setUser((u) => (u ? { ...u, avatar: updated.avatar } : u))
       setStoredUser(updated)
@@ -175,7 +170,7 @@ export default function ProfileSettingsPage() {
                     >
                       {uploading ? 'Uploading…' : 'Change Photo'}
                     </label>
-                    <p className="text-xs text-gray-500 mt-1.5">JPG, PNG, WebP up to 2MB</p>
+                    <p className="text-xs text-gray-500 mt-1.5">JPG, PNG or WebP — auto-resized to upload fast</p>
                     {uploadError && <p className="text-xs text-red-600 mt-1.5" role="alert">{uploadError}</p>}
                   </div>
                 </div>

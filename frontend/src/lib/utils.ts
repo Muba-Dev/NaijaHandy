@@ -8,6 +8,33 @@ export function formatNGN(amount: number): string {
   return `₦${amount.toLocaleString('en-NG')}`
 }
 
+// Reads a user-selected image and returns a compressed data URL so profile
+// photos (especially large phone photos) upload reliably on mobile.
+export function compressImage(file: File, maxDimension = 800, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height))
+      const width = Math.max(1, Math.round(img.width * scale))
+      const height = Math.max(1, Math.round(img.height * scale))
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('Could not process the image'))
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Could not read the file'))
+    }
+    img.src = url
+  })
+}
+
 export function minServiceRate(services: Array<{ rate: number }>): number | null {
   if (!services || services.length === 0) return null
   return Math.min(...services.map((s) => s.rate))

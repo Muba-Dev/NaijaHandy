@@ -70,12 +70,12 @@ export default function ArtisanCard({ artisan }: Props) {
           <StarRating value={artisan.rating} count={artisan.reviews} />
           {rate != null ? (
             <div className="text-right">
-              <p className="text-[11px] text-gray-400">Starts from</p>
+              <p className="text-[11px] text-gray-600">Starts from</p>
               <p className="text-sm font-bold text-gray-900">{formatNGN(rate)}</p>
             </div>
           ) : (
             <div className="text-right">
-              <p className="text-[11px] text-gray-400">Rate</p>
+              <p className="text-[11px] text-gray-600">Rate</p>
               <p className="text-sm font-bold text-gray-900">{formatNGN(artisan.hourlyRate)}/hr</p>
             </div>
           )}

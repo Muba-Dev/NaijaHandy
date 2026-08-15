@@ -351,7 +351,7 @@ export default function HomePage() {
             const Icon = s.icon
             return (
               <div key={s.step} className="group relative rounded-3xl border border-gray-100 bg-white p-8 text-center transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/5 hover:ring-emerald-200">
-                <span aria-hidden className="absolute right-6 top-5 font-display text-5xl font-bold text-gray-100 transition-colors group-hover:text-emerald-100">
+                <span className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white shadow-md ring-4 ring-white">
                   {s.step}
                 </span>
                 <div className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br ${s.grad} text-white shadow-lg transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105`}>

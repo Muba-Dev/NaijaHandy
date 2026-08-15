@@ -48,7 +48,7 @@ const SOCIAL_LINKS = [
   { label: 'NaijaHandy on X', icon: XIcon, href: 'https://x.com/naijahandy' },
 ]
 
-const TRUST_POINTS = ['Verified artisans', 'Escrow payments', 'Satisfaction guarantee']
+const TRUST_POINTS = ['Background-checked pros', 'Escrow payments', 'Satisfaction guarantee']
 
 export default function Footer() {
   return (
@@ -135,10 +135,10 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="text-gray-500 text-sm">© 2026 NaijaHandy. All rights reserved.</p>
+          <p className="text-gray-400 text-sm">© 2026 NaijaHandy. All rights reserved.</p>
           <div className="flex gap-6">
             {['Privacy Policy', 'Terms of Service', 'Contact'].map((l) => (
-              <span key={l} className="text-gray-500 text-sm transition-colors hover:text-gray-300 cursor-pointer">
+              <span key={l} className="text-gray-400 text-sm transition-colors hover:text-gray-300 cursor-pointer">
                 {l}
               </span>
             ))}
