@@ -118,7 +118,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1.5">City / State</label>
+            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
             <select
               id="city"
               value={form.city}
@@ -126,7 +126,7 @@ export default function RegisterPage() {
               required
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#047857] transition-colors text-gray-700"
             >
-              <option value="">Select your city</option>
+              <option value="">Select your state</option>
               {NIGERIAN_CITIES.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
