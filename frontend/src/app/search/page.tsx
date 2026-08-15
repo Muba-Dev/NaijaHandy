@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Search, MapPin, CheckCircle, Filter, SlidersHorizontal, AlertTriangle, Star, RefreshCw } from 'lucide-react'
+import { Search, MapPin, CheckCircle, SlidersHorizontal, AlertTriangle, Star, RefreshCw, X } from 'lucide-react'
 import { CATEGORIES } from '@/lib/data'
 import { fetchArtisans } from '@/lib/api'
 import { formatNGN, minServiceRate } from '@/lib/utils'
@@ -37,7 +37,7 @@ function SearchPage() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
   const [locError, setLocError] = useState('')
-  const [mobileFilter, setMobileFilter] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [artisans, setArtisans] = useState<Artisan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -121,6 +121,16 @@ function SearchPage() {
     }
   }
 
+  const activeFilters = [
+    { key: 'category', label: category !== 'All' ? category : null, clear: () => setCategory('All') },
+    { key: 'rating', label: minRating > 0 ? `${minRating}+ stars` : null, clear: () => setMinRating(0) },
+    { key: 'price', label: priceBand !== 'any' ? PRICE_BANDS.find((b) => b.id === priceBand)?.label ?? null : null, clear: () => setPriceBand('any') },
+    { key: 'city', label: city.trim() || null, clear: () => setCity('') },
+    { key: 'available', label: availableOnly ? 'Available now' : null, clear: () => setAvailableOnly(false) },
+    { key: 'location', label: location ? 'Near me' : null, clear: () => { setLocation(null); setSortBy('Rating') } },
+  ].filter((f) => f.label)
+  const activeCount = activeFilters.length
+
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50">
       <h1 className="sr-only">Find Artisans</h1>
@@ -137,23 +147,14 @@ function SearchPage() {
               className="flex-1 text-sm outline-none bg-transparent text-gray-700"
             />
           </div>
-          <h2 className="md:hidden">
-            <button
-              onClick={() => setMobileFilter(!mobileFilter)}
-              aria-expanded={mobileFilter}
-              aria-controls="filter-sidebar"
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700"
-            >
-              <Filter size={15} aria-hidden="true" /> Filters
-            </button>
-          </h2>
-          <div className="hidden md:flex items-center gap-2">
-            <label htmlFor="sort-select" className="text-sm text-gray-500">Sort:</label>
+          <div className="flex items-center gap-2">
+            <label htmlFor="sort-select" className="text-sm text-gray-500 hidden sm:inline">Sort:</label>
             <select
               id="sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               disabled={!!location}
+              aria-label="Sort results"
               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none disabled:bg-gray-50 disabled:text-gray-400"
             >
               {location ? (
@@ -169,115 +170,160 @@ function SearchPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex gap-6">
-        {/* Filter sidebar */}
-        <aside id="filter-sidebar" className={`${mobileFilter ? 'block' : 'hidden'} md:block w-64 shrink-0`}>
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 sticky top-20">
-            <div className="flex items-center gap-2 mb-5">
-              <SlidersHorizontal size={16} className="text-gray-500" aria-hidden="true" />
-              <h2 className="font-semibold text-gray-900">Filters</h2>
-            </div>
-
-            <div className="mb-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Category</p>
-              <div className="space-y-1.5">
-                {['All', ...CATEGORIES.map((c) => c.name)].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCategory(c)}
-                    aria-pressed={category === c}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${category === c ? 'text-white font-medium bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Min. Rating</p>
-              <div className="space-y-1.5">
-                {[0, 4, 4.5, 4.8].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setMinRating(r)}
-                    aria-pressed={minRating === r}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-1.5 ${minRating === r ? 'text-white font-medium bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    <Star size={12} className="fill-current opacity-80" aria-hidden="true" />
-                    {r === 0 ? 'Any rating' : `${r}+`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Price</p>
-              <div className="space-y-1.5">
-                {PRICE_BANDS.map((b) => (
-                  <button
-                    key={b.id}
-                    onClick={() => setPriceBand(b.id)}
-                    aria-pressed={priceBand === b.id}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${priceBand === b.id ? 'text-white font-medium bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Location</p>
-              <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-                <MapPin size={14} className="text-gray-400 shrink-0" aria-hidden="true" />
-                <input
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="City or area"
-                  aria-label="Filter by city or area"
-                  className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400"
-                />
-              </div>
-              {location ? (
-                <div className="mt-2 flex items-center justify-between gap-2 bg-[#ECFDF5] border border-emerald-200 rounded-lg px-3 py-2">
-                  <span className="text-xs font-medium text-emerald-800">Using your location</span>
-                  <button
-                    onClick={() => { setLocation(null); setSortBy('Rating') }}
-                    className="text-xs font-semibold text-[#047857] hover:underline"
-                  >
-                    Clear
-                  </button>
-                </div>
-              ) : (
+      {/* Filter bar — collapsed by default, active filters shown as chips */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            aria-expanded={filtersOpen}
+            aria-controls="filter-panel"
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${filtersOpen ? 'text-white bg-[#047857]' : 'text-gray-700 border border-gray-200 hover:border-[#047857] hover:text-[#047857]'}`}
+          >
+            <SlidersHorizontal size={15} aria-hidden="true" />
+            Filters
+            {activeCount > 0 && (
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center" aria-label={`${activeCount} active filters`}>
+                {activeCount}
+              </span>
+            )}
+          </button>
+          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+            {activeFilters.map((f) => (
+              <span key={f.key} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#047857] text-xs font-medium">
+                {f.label}
                 <button
-                  onClick={handleUseMyLocation}
-                  disabled={locating}
-                  className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-[#047857] hover:text-[#047857] transition-colors disabled:opacity-60"
+                  onClick={f.clear}
+                  aria-label={`Remove filter ${f.label}`}
+                  className="hover:text-[#065f46] transition-colors"
                 >
-                  <MapPin size={14} aria-hidden="true" />
-                  {locating ? 'Locating…' : 'Use my location'}
+                  <X size={12} aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+            {activeCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-900 underline underline-offset-2 transition-colors"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        </div>
+
+        {filtersOpen && (
+          <div id="filter-panel" role="region" aria-label="Filters" className="bg-gray-50/70 border-t border-gray-100">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-900">Refine results</p>
+              {activeCount > 0 && (
+                <button onClick={clearFilters} className="text-xs font-semibold text-[#047857] hover:underline transition-colors">
+                  Reset all filters
                 </button>
               )}
-              {locError && <p className="text-xs text-red-600 mt-1.5" role="alert">{locError}</p>}
             </div>
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Category</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['All', ...CATEGORIES.map((c) => c.name)].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCategory(c)}
+                      aria-pressed={category === c}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${category === c ? 'border-[#047857] bg-[#047857] text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-[#047857] hover:text-[#047857]'}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            <div className="mt-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Availability</p>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={availableOnly}
-                  onChange={(e) => setAvailableOnly(e.target.checked)}
-                  className="w-5 h-5 rounded accent-emerald-600"
-                />
-                <span className="text-sm text-gray-600">Available now only</span>
-              </label>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Min. Rating</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[0, 4, 4.5, 4.8].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setMinRating(r)}
+                      aria-pressed={minRating === r}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5 ${minRating === r ? 'border-[#047857] bg-[#047857] text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-[#047857] hover:text-[#047857]'}`}
+                    >
+                      <Star size={11} className="fill-current opacity-80" aria-hidden="true" />
+                      {r === 0 ? 'Any' : `${r}+`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Price</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PRICE_BANDS.map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() => setPriceBand(b.id)}
+                      aria-pressed={priceBand === b.id}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${priceBand === b.id ? 'border-[#047857] bg-[#047857] text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-[#047857] hover:text-[#047857]'}`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Location</p>
+                <div className="flex items-center gap-2 border border-gray-200 bg-white rounded-lg px-3 py-2">
+                  <MapPin size={14} className="text-gray-400 shrink-0" aria-hidden="true" />
+                  <input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City or area"
+                    aria-label="Filter by city or area"
+                    className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+                  />
+                </div>
+                {location ? (
+                  <div className="mt-2 flex items-center justify-between gap-2 bg-[#ECFDF5] border border-emerald-200 rounded-lg px-3 py-2">
+                    <span className="text-xs font-medium text-emerald-800">Using your location</span>
+                    <button
+                      onClick={() => { setLocation(null); setSortBy('Rating') }}
+                      className="text-xs font-semibold text-[#047857] hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleUseMyLocation}
+                    disabled={locating}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:border-[#047857] hover:text-[#047857] transition-colors disabled:opacity-60"
+                  >
+                    <MapPin size={14} aria-hidden="true" />
+                    {locating ? 'Locating…' : 'Use my location'}
+                  </button>
+                )}
+                {locError && <p className="text-xs text-red-600 mt-1.5" role="alert">{locError}</p>}
+              </div>
+
+              <div className="sm:col-span-2 xl:col-span-4 border-t border-gray-200 pt-4">
+                <label className="flex items-center gap-2 cursor-pointer w-fit">
+                  <input
+                    type="checkbox"
+                    checked={availableOnly}
+                    onChange={(e) => setAvailableOnly(e.target.checked)}
+                    className="w-5 h-5 rounded accent-emerald-600"
+                  />
+                  <span className="text-sm text-gray-600">Available now only</span>
+                </label>
+              </div>
             </div>
           </div>
-        </aside>
+        )}
+      </div>
 
-        {/* Results */}
+      {/* Results */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4" role="status" aria-live="polite">
             <p className="text-sm text-gray-600">
@@ -320,7 +366,7 @@ function SearchPage() {
                   alt={a.name}
                   width={64}
                   height={64}
-                  className="rounded-xl object-cover shrink-0"
+                  className="w-16 h-16 rounded-xl object-cover shrink-0 self-start"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 flex-wrap">

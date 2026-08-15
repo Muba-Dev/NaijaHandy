@@ -14,6 +14,7 @@ test.describe('Search filters', () => {
     await addE2EService(pricey.id, 'Premium Job', 25000)
 
     await page.goto('/search')
+    await page.getByRole('button', { name: /Filters/ }).click()
     const searchInput = page.getByLabel('Search by name, skill or category')
     await searchInput.fill(cheap.user.name)
     await page.getByRole('button', { name: 'Under ₦5,000' }).click()
@@ -34,6 +35,7 @@ test.describe('Search filters', () => {
     await context.grantPermissions(['geolocation'], { origin: 'http://localhost:3000' })
     await context.setGeolocation({ latitude: nearLat, longitude: nearLng })
     await page.goto('/search')
+    await page.getByRole('button', { name: /Filters/ }).click()
 
     const searchInput = page.getByLabel('Search by name, skill or category')
     await searchInput.fill(near.user.name)

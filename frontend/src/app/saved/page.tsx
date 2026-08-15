@@ -81,7 +81,7 @@ export default function SavedArtisansPage() {
                   alt={a.name}
                   width={64}
                   height={64}
-                  className="rounded-xl object-cover shrink-0"
+                  className="w-16 h-16 rounded-xl object-cover shrink-0 self-start"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
