@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import StatusBadge from '@/components/StatusBadge'
+import Brand from '@/components/Brand'
 import { formatNGN, getApiErrorMessage, setStoredUser, compressImage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import {
@@ -350,13 +351,29 @@ export default function AdminDashboardPage() {
 
       {/* Mobile top nav */}
       <div className="fixed top-0 inset-x-0 z-20 bg-white border-b border-gray-100 md:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
-          <p className="font-semibold text-gray-900 text-sm">{user?.name?.split(' ')[0] || 'Admin'}</p>
-          <button onClick={async () => { await logout(); router.push('/login') }} className="flex items-center gap-1.5 text-sm text-gray-600">
-            <LogOut size={16} /> Log Out
-          </button>
+        <div className="flex items-center justify-between px-4 pt-3 pb-2.5">
+          <Brand compact />
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2.5 pl-1 pr-1">
+              <Image
+                src={user?.avatar || DEFAULT_AVATAR}
+                alt=""
+                width={28}
+                height={28}
+                className="rounded-full object-cover"
+              />
+              <span className="text-sm font-medium text-gray-800">{user?.name?.split(' ')[0] || 'Admin'}</span>
+            </div>
+            <button
+              onClick={async () => { await logout(); router.push('/login') }}
+              aria-label="Log out"
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <LogOut size={18} aria-hidden="true" />
+            </button>
+          </div>
         </div>
-        <nav className="flex gap-1 px-2 pb-2 overflow-x-auto" aria-label="Admin console navigation">
+        <nav className="flex gap-1 px-3 pt-2 pb-3 overflow-x-auto border-t border-gray-100" aria-label="Admin console navigation">
           {TABS.map((t) => {
             const Icon = t.icon
             const isActive = t.id === tab
@@ -365,7 +382,7 @@ export default function AdminDashboardPage() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 aria-pressed={isActive}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-[#047857] bg-[#047857]/10' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <Icon size={13} aria-hidden="true" />
                 {t.label}
@@ -385,7 +402,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Main */}
-      <div className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
+      <div className="flex-1 p-5 md:p-8 overflow-auto pt-28 md:pt-8">
         <div className="max-w-5xl">
           <div className="flex items-center justify-between mb-7">
             <div>

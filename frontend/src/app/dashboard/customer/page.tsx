@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Calendar, CheckCircle, CreditCard, TrendingUp, Heart, Settings, LogOut, Plus } from 'lucide-react'
+import Brand from '@/components/Brand'
 import { fetchBookings, fetchMe, logout } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -90,13 +91,29 @@ export default function CustomerDashboardPage() {
 
       {/* Mobile top nav */}
       <div className="fixed top-0 inset-x-0 z-20 bg-white border-b border-gray-100 md:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
-          <p className="font-semibold text-gray-900 text-sm">{user?.name || 'Dashboard'}</p>
-          <button onClick={async () => { await logout(); router.push('/login') }} className="flex items-center gap-1.5 text-sm text-gray-600">
-            <LogOut size={16} /> Log Out
-          </button>
+        <div className="flex items-center justify-between px-4 pt-3 pb-2.5">
+          <Brand compact />
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2.5 pl-1 pr-1">
+              <Image
+                src={user?.avatar || DEFAULT_AVATAR}
+                alt=""
+                width={28}
+                height={28}
+                className="rounded-full object-cover"
+              />
+              <span className="text-sm font-medium text-gray-800">{user?.name?.split(' ')[0] || 'Dashboard'}</span>
+            </div>
+            <button
+              onClick={async () => { await logout(); router.push('/login') }}
+              aria-label="Log out"
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <LogOut size={18} aria-hidden="true" />
+            </button>
+          </div>
         </div>
-        <nav className="flex gap-1 px-2 pb-2 overflow-x-auto">
+        <nav className="flex gap-1 px-3 pt-2 pb-3 overflow-x-auto border-t border-gray-100" aria-label="Customer dashboard navigation">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = item.id === 'overview'
@@ -104,9 +121,10 @@ export default function CustomerDashboardPage() {
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-[#047857] bg-[#047857]/10' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                <Icon size={13} />
+                <Icon size={13} aria-hidden="true" />
                 {item.label}
               </Link>
             )
@@ -115,7 +133,7 @@ export default function CustomerDashboardPage() {
       </div>
 
       {/* Main */}
-      <div className="flex-1 p-5 md:p-8 overflow-auto pt-24 md:pt-8">
+      <div className="flex-1 p-5 md:p-8 overflow-auto pt-28 md:pt-8">
         <div className="max-w-4xl">
           <div className="flex items-center justify-between mb-7">
             <div>
