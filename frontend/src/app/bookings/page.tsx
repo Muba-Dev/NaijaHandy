@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw, ShieldCheck, Flame } from 'lucide-react'
-import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview } from '@/lib/api'
+import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw, ShieldCheck, Flame, Coins } from 'lucide-react'
+import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview, fetchMyCredits } from '@/lib/api'
 import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
-import type { Booking, BookingStatus } from '@/types'
+import type { Booking, BookingStatus, CreditWallet } from '@/types'
 
 type FilterTab = 'All' | 'Active' | 'Urgent' | 'Rejected' | 'Completed' | 'Cancelled'
 
@@ -23,6 +23,9 @@ export default function BookingHistoryPage() {
   const [loadError, setLoadError] = useState('')
   const [payingId, setPayingId] = useState<string | null>(null)
   const [paymentMsg, setPaymentMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [payFor, setPayFor] = useState<Booking | null>(null)
+  const [applyCredits, setApplyCredits] = useState(false)
+  const [wallet, setWallet] = useState<CreditWallet | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [cancelConfirm, setCancelConfirm] = useState<Booking | null>(null)
   const [disputeFor, setDisputeFor] = useState<Booking | null>(null)
@@ -57,8 +60,13 @@ export default function BookingHistoryPage() {
       .finally(() => setLoading(false))
   }
 
+  const loadWallet = () => {
+    fetchMyCredits().then(setWallet).catch(() => setWallet(null))
+  }
+
   useEffect(() => {
     loadBookings()
+    loadWallet()
 
     const params = new URLSearchParams(window.location.search)
     const reference = params.get('reference')
@@ -67,16 +75,19 @@ export default function BookingHistoryPage() {
         .then(() => {
           setPaymentMsg({ type: 'success', text: 'Payment successful — your booking is now paid.' })
           loadBookings()
+          loadWallet()
         })
         .catch(() => setPaymentMsg({ type: 'error', text: 'Payment could not be verified. Contact support if you were charged.' }))
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
 
-  const handlePay = async (b: Booking) => {
-    setPayingId(b.id)
+  const handlePay = async () => {
+    if (!payFor) return
+    setPayingId(payFor.id)
+    const credits = applyCredits ? Math.min(wallet?.balance ?? 0, payFor.amount) : 0
     try {
-      const { authorization_url } = await initializePayment(b.id)
+      const { authorization_url } = await initializePayment(payFor.id, credits)
       window.location.href = authorization_url
     } catch {
       setPayingId(null)
@@ -175,6 +186,42 @@ export default function BookingHistoryPage() {
           >
             {paymentMsg.type === 'success' ? <CheckCircle2 size={16} className="shrink-0" aria-hidden="true" /> : <AlertCircle size={16} className="shrink-0" aria-hidden="true" />}
             {paymentMsg.text}
+          </div>
+        )}
+
+        {/* Rewards (loyalty credits) */}
+        {wallet && (
+          <div className="mb-6 bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 rounded-2xl p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-[#047857] flex items-center justify-center shrink-0">
+                  <Coins size={20} className="text-white" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Rewards credits</p>
+                  <p className="text-xs text-gray-500">Earn 5% back on every completed booking</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-display text-2xl font-bold text-[#047857]">{formatNGN(wallet.balance)}</p>
+                <p className="text-xs text-gray-500">Available to use on your next booking</p>
+              </div>
+            </div>
+            {wallet.transactions.length > 0 && (
+              <ul className="mt-4 pt-4 border-t border-emerald-100 divide-y divide-emerald-50">
+                {wallet.transactions.slice(0, 4).map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="text-gray-700 font-medium truncate">{t.note || (t.type === 'EARNED' ? 'Reward earned' : 'Credits used')}</p>
+                      <p className="text-xs text-gray-500">{new Date(t.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                    <span className={`shrink-0 font-semibold ${t.amount > 0 ? 'text-[#047857]' : 'text-gray-600'}`}>
+                      {t.amount > 0 ? '+' : ''}{formatNGN(t.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -303,11 +350,10 @@ export default function BookingHistoryPage() {
                       ) : null}
                       {b.paymentStatus === 'UNPAID' && b.status === 'Pending' && (
                         <button
-                          onClick={() => handlePay(b)}
-                          disabled={payingId === b.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
+                          onClick={() => { setPayFor(b); setApplyCredits(false) }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-[#047857] hover:opacity-90 transition-opacity"
                         >
-                          <CreditCard size={13} />{payingId === b.id ? 'Redirecting…' : 'Pay Now'}
+                          <CreditCard size={13} />Pay Now
                         </button>
                       )}
                       <Link
@@ -354,6 +400,82 @@ export default function BookingHistoryPage() {
                 {cancellingId === cancelConfirm.id ? 'Cancelling…' : 'Yes, Cancel'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment modal */}
+      {payFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setPayFor(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="pay-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <h2 id="pay-dialog-title" className="font-display text-lg font-bold text-gray-900">Pay for your booking</h2>
+              <button onClick={() => setPayFor(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">
+              Booking with <span className="font-semibold text-gray-900">{payFor.artisan}</span> on {payFor.date} at {payFor.time}.
+            </p>
+
+            {(() => {
+              const credits = Math.min(wallet?.balance ?? 0, payFor.amount)
+              const applied = applyCredits ? credits : 0
+              const charge = payFor.amount - applied
+              return (
+                <>
+                  <dl className="space-y-2 mb-5">
+                    <div className="flex items-center justify-between text-sm">
+                      <dt className="text-gray-600">Job total</dt>
+                      <dd className="font-medium text-gray-900">{formatNGN(payFor.amount)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <dt className="text-gray-600">Rewards credits</dt>
+                      <dd className="font-medium text-[#047857]">− {formatNGN(applied)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-sm font-semibold">
+                      <dt className="text-gray-900">You&apos;ll pay</dt>
+                      <dd className="text-gray-900">{formatNGN(charge)}</dd>
+                    </div>
+                  </dl>
+
+                  {wallet && wallet.balance > 0 && (
+                    <label className="flex items-center gap-2.5 mb-5 bg-emerald-50 rounded-xl px-3 py-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={applyCredits}
+                        onChange={(e) => setApplyCredits(e.target.checked)}
+                        className="w-5 h-5 accent-[#047857]"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Apply <span className="font-semibold">{formatNGN(credits)}</span> in rewards credits
+                      </span>
+                    </label>
+                  )}
+                  {wallet && wallet.balance === 0 && (
+                    <p className="text-xs text-gray-500 mb-5">
+                      No rewards credits yet — earn 5% back when your booking is completed.
+                    </p>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setPayFor(null)}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handlePay}
+                      disabled={payingId === payFor.id}
+                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      {payingId === payFor.id ? 'Redirecting…' : 'Continue to Payment'}
+                    </button>
+                  </div>
+                </>
+              )
+            })()}
           </div>
         </div>
       )}

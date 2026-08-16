@@ -3,7 +3,12 @@ import { PaymentService } from './payment.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { z } from 'zod'
 
-const initSchema = z.object({ bookingId: z.string() })
+const initSchema = z
+  .object({
+    bookingId: z.string(),
+    creditsToApply: z.number().int().min(0).max(1000000).optional().default(0),
+  })
+  .strict()
 
 @Controller('api/payments')
 export class PaymentController {
@@ -13,8 +18,8 @@ export class PaymentController {
   @Post('initialize')
   async initialize(@Req() req: any, @Body() body: any) {
     try {
-      const { bookingId } = initSchema.parse(body)
-      return { data: await this.paymentService.initialize(req.user.id, bookingId) }
+      const { bookingId, creditsToApply } = initSchema.parse(body)
+      return { data: await this.paymentService.initialize(req.user.id, bookingId, creditsToApply) }
     } catch (err) {
       if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
       throw err

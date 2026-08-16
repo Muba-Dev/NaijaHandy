@@ -36,6 +36,7 @@ model User {
   status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
   avatar    String?
   isDemo    Boolean  @default(false)
+  creditBalance Int  @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -50,6 +51,7 @@ model User {
   notifications      Notification[]
   supportMessages    SupportMessage[]
   supportChatLogs    SupportChatLog[]
+  creditTransactions CreditTransaction[]
 
   @@map("users")
 }
@@ -238,7 +240,9 @@ model Payment {
   id          String   @id @default(cuid())
   bookingId   String   @unique
   reference   String   @unique
-  amount      Int
+  amount      Int      // amount actually charged via Paystack (gross − credits)
+  grossAmount Int      // booking.amount (job total + fee) — for accounting/escrow
+  creditsApplied Int  @default(0)
   status      String   @default("PENDING")
   provider    String   @default("PAYSTACK")
   paidAt      DateTime?
@@ -295,4 +299,21 @@ model SavedArtisan {
 
   @@unique([userId, artisanId])
   @@map("saved_artisans")
+}
+
+// Loyalty credits ledger — every earn/use is an auditable row.
+model CreditTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  amount       Int      // positive = earned, negative = used
+  type         String   // EARNED | USED
+  bookingId    String?
+  balanceAfter Int
+  note         String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("credit_transactions")
 }

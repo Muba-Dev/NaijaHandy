@@ -379,8 +379,8 @@ The frontend now uses:
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, better search filters, service guarantee, and emergency/same-day urgent jobs — all DONE below.
-**Remaining (best next):** 11. Customer rewards, 12. Referral program. Harder backlog: 16. Escrow protection.
+**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, better search filters, service guarantee, emergency/same-day urgent jobs, **and customer rewards (loyalty credits)** — all DONE below.
+**Remaining (best next):** 12. Referral program. Harder backlog: 16. Escrow protection (needs real Paystack keys; credits accounting is in place).
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
@@ -570,3 +570,21 @@ The frontend now uses:
 - ✅ **Fast path:** home hero gains a red "Urgent? Find same-day help" CTA → `/search?available=1`; the search page preselects the existing "Available now only" filter from the `?available=1` param (reuses the existing availability toggle as the same-day signal — no new artisan setting).
 - ✅ **Verified:** backend `tsc` + 93 unit tests green (3 new booking-create tests: non-urgent persistence + `BOOKING_REQUEST`, urgent persistence + `URGENT_REQUEST`, self-booking no-notify; existing create assertions updated for `isUrgent`). Backend `booking.e2e-spec` green (12, incl. urgent create + artisan `URGENT_REQUEST` row). Frontend lint + `tsc` + build clean. Playwright: `urgent.spec.ts` (1, home CTA + search preset) and the urgent-flow test in `booking.spec.ts` (checkbox → paid → Urgent badge + filter on customer side, Urgent badge on artisan requests page; runs in its own 150s budget because it uses two browser contexts).
 - ⏭️ **Future upgrade path:** broadcast model (`UrgentRequest` job board with accept-by-first-artisan + notify nearby artisans) when emergency volume justifies it.
+
+### Customer rewards — loyalty credits (Growth Roadmap P2.11) — DONE
+
+- ✅ **Schema:** `User.creditBalance Int @default(0)` + new `CreditTransaction` ledger (`userId`, `amount` signed, `type` EARNED|USED, `bookingId?`, `balanceAfter`, `note?`, index `[userId, createdAt]`, cascade to user). Migration `20260816000000_add_credits` applied to **CI** (`naijahandy_ci`) — created **manually** (not `migrate dev`) because `migrate dev` demanded a DB reset after detecting the earlier modified `20260812220000_add_help_articles_chat` migration (see ⚠️ below).
+- ✅ **Accounting on `Payment`:** `grossAmount` (booking.amount, backfilled from `amount` on existing rows) + `creditsApplied`; `Payment.amount` now means **the amount actually charged** (gross − credits). Verify/webhook amount checks use the charged amount, so the flow stays consistent.
+- ✅ **Backend:**
+  - New `CreditsModule` (`GET /api/credits` → `{ balance, transactions }`; JWT-guarded). `CreditsService`: `award`, `use` (throws if insufficient, ledger row with running `balanceAfter`), `wallet`, static `rewardFor` (5% of gross, clamped ₦100–₦5,000).
+  - `POST /api/payments/initialize` accepts optional `creditsToApply` (Zod-validated, ≤ booking.amount, ≤ user balance); charge = gross − credits.
+  - Credits are **debit-on-success only** (idempotent): `finalizePayment` runs the `USED` ledger entry, and the verify/webhook idempotency guards prevent double-debits. A failed charge simply never debits.
+  - `BookingService.updateStatus` → **COMPLETED** awards `rewardFor(gross)` to the customer (only when `paymentStatus=PAID` and not a self-booking) with note "5% back on a completed booking".
+  - `UserService.findMe/updateMe` now return `creditBalance` (frontend shows it without an extra call).
+- ✅ **Frontend:**
+  - `/bookings` gains a **Rewards credits** card (balance + last-4 ledger entries with +/- amounts and notes).
+  - **Pay Now** opens a checkout modal: shows job total, applies credits via a checkbox ("Apply ₦X in rewards credits"), shows the discounted **You'll pay**, then redirects to Paystack with `creditsToApply`. Zero-balance customers see a "earn 5% back" explainer instead.
+  - Balance refreshes after payment verification.
+- ✅ **Tests:** backend `tsc` clean; **124 unit tests** (new `credits.service.spec.ts` + payment initialize/finalize credit tests + booking award tests); **66 e2e** (new `credits.e2e-spec.ts`: charge split, wallet debit, completion reward 5% = ₦1,250 on ₦25,000, wallet endpoint, over-balance 400, unauth 401). Frontend lint + `tsc` + build clean.
+- ⏭️ **Future upgrade path (escrow/commission, Growth Roadmap P3.16):** the `grossAmount`/`creditsApplied` columns are the accounting bedrock for escrow — add `escrowStatus` (HELD/RELEASED/REFUNDED) + artisan bank-detail capture + Paystack Transfers payout on completion. Credits stay a platform-funded discount (artisan payout computed on gross). Fee model decision: keep the flat ₦500 fee for now; revisit hybrid commission when real payouts launch.
+- ✅ **Resolved deploy blocker:** the earlier "migration was modified after it was applied" state for `20260812220000_add_help_articles_chat` was cleared — the migration file on disk now matches the applied version exactly (pgvector-optional form is the committed one). `prisma migrate status` → "Database schema is up to date!" and `prisma migrate deploy` → "No pending migrations to apply", so the Render deploy step is unblocked. Prod still needs `20260816000000_add_credits` applied on the next deploy.

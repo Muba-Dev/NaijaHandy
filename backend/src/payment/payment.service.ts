@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, ForbiddenException, NotFoundException,
 import { createHmac, timingSafeEqual, randomUUID } from 'crypto'
 import { PrismaService } from '../prisma/prisma.service'
 import { NotificationsService } from '../notifications/notifications.service'
+import { CreditsService } from '../credits/credits.service'
 
 const SECRET_KEY = () => process.env.PAYSTACK_SECRET_KEY || ''
 const BASE_URL = () => process.env.PAYSTACK_BASE_URL || 'https://api.paystack.co'
@@ -13,12 +14,13 @@ export class PaymentService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private creditsService: CreditsService,
   ) {}
 
-  async initialize(userId: string, bookingId: string) {
+  async initialize(userId: string, bookingId: string, creditsToApply = 0) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { customer: { select: { email: true } }, payment: true },
+      include: { customer: { select: { email: true, creditBalance: true } }, payment: true },
     })
     if (!booking) throw new NotFoundException('Booking not found')
     if (booking.customerId !== userId) throw new ForbiddenException('You cannot pay for this booking')
@@ -26,11 +28,18 @@ export class PaymentService {
       throw new BadRequestException('Booking already paid')
     }
 
+    const grossAmount = booking.amount
+    const credits = Math.min(creditsToApply, grossAmount)
+    if (credits > 0 && credits > (booking.customer.creditBalance ?? 0)) {
+      throw new BadRequestException('Insufficient credit balance')
+    }
+    const amount = grossAmount - credits
+
     const reference = `pay_${randomUUID().replace(/-/g, '')}`
     const payment = await this.prisma.payment.upsert({
       where: { bookingId },
-      update: { reference, amount: booking.amount, status: 'PENDING' },
-      create: { bookingId, reference, amount: booking.amount, status: 'PENDING', provider: 'PAYSTACK' },
+      update: { reference, amount, grossAmount, creditsApplied: credits, status: 'PENDING' },
+      create: { bookingId, reference, amount, grossAmount, creditsApplied: credits, status: 'PENDING', provider: 'PAYSTACK' },
     })
 
     if (MOCK()) {
@@ -41,7 +50,7 @@ export class PaymentService {
       method: 'POST',
       headers: { Authorization: `Bearer ${SECRET_KEY()}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: booking.amount * 100,
+        amount: amount * 100,
         email: booking.customer.email,
         reference,
         metadata: { bookingId: booking.id, customerId: userId },
@@ -118,6 +127,22 @@ export class PaymentService {
       data: { paymentStatus: 'PAID', paymentReference: payment.reference, paidAt: new Date() },
     })
 
+    // Debit applied credits (only once — this method is idempotency-gated by the callers).
+    if (payment.creditsApplied > 0) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { customerId: true },
+      })
+      if (booking) {
+        await this.creditsService.use(
+          booking.customerId,
+          payment.creditsApplied,
+          bookingId,
+          `Applied to booking ${bookingId}`,
+        )
+      }
+    }
+
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: { artisan: { select: { userId: true } } },
@@ -126,7 +151,7 @@ export class PaymentService {
       await this.notificationsService.create(booking.artisan.userId, {
         type: 'PAYMENT_RECEIVED',
         title: 'Payment received',
-        body: `You have been paid ₦${payment.amount.toLocaleString('en-NG')} for a booking.`,
+        body: `You have been paid ₦${payment.grossAmount.toLocaleString('en-NG')} for a booking.`,
         link: '/dashboard/artisan/requests',
       })
     }

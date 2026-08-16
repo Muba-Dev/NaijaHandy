@@ -10,7 +10,8 @@ describe('BookingService', () => {
   const emailService = { sendBookingStatusEmail: jest.fn() } as any
   const notificationsService = { create: jest.fn() } as any
   const uploadService = { uploadReviewPhoto: jest.fn() } as any
-  const service = new BookingService(prisma, emailService, notificationsService, uploadService)
+  const creditsService = { award: jest.fn() } as any
+  const service = new BookingService(prisma, emailService, notificationsService, uploadService, creditsService)
 
   const baseBooking = {
     id: 'b1',
@@ -115,6 +116,32 @@ describe('BookingService', () => {
         body: expect.any(String),
         link: '/bookings',
       })
+    })
+
+    it('awards loyalty credits to the customer when a paid booking is completed', async () => {
+      booking.findUnique.mockResolvedValue({ ...baseBooking, status: 'CONFIRMED', paymentStatus: 'PAID' })
+      booking.update.mockResolvedValue({ id: 'b1', status: 'COMPLETED' })
+      creditsService.award.mockResolvedValue([{}, {}])
+
+      await expect(service.updateStatus('a1', 'ARTISAN', 'b1', 'COMPLETED')).resolves.toEqual({
+        id: 'b1',
+        status: 'COMPLETED',
+      })
+      expect(creditsService.award).toHaveBeenCalledWith('c1', expect.any(Number), 'b1', expect.any(String))
+    })
+
+    it('does not award credits for unpaid or self-booked completed jobs', async () => {
+      booking.findUnique.mockResolvedValue({
+        ...baseBooking,
+        status: 'CONFIRMED',
+        paymentStatus: 'UNPAID',
+        customerId: 'a1',
+        artisan: { id: 'art-1', userId: 'a1', user: { id: 'a1', name: 'Emeka', email: 'emeka@example.com' } },
+      })
+      booking.update.mockResolvedValue({ id: 'b1', status: 'COMPLETED' })
+
+      await service.updateStatus('a1', 'ARTISAN', 'b1', 'COMPLETED')
+      expect(creditsService.award).not.toHaveBeenCalled()
     })
   })
 

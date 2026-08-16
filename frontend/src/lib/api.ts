@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification, SupportMessage, HelpArticleGroup, ChatResponse, ChatTranscriptItem, PlatformStats } from '@/types'
+import type { Artisan, Booking, AuthUser, LoginCredentials, RegisterPayload, AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute, AppNotification, SupportMessage, HelpArticleGroup, ChatResponse, ChatTranscriptItem, PlatformStats, CreditWallet } from '@/types'
 import { getAuthToken, getRefreshToken, setAuthTokens, setStoredUser, clearAuthTokens } from '@/lib/utils'
 
 export const API_BASE_URL =
@@ -198,6 +198,13 @@ export async function fetchMe(): Promise<AuthUser> {
   return data.data
 }
 
+// ─── Credits (loyalty rewards) ────────────────────────────────────────────────
+
+export async function fetchMyCredits(): Promise<CreditWallet> {
+  const { data } = await api.get('/credits')
+  return data.data
+}
+
 // ─── Auth: Password reset ────────────────────────────────────────────────────
 
 export async function forgotPassword(email: string): Promise<{ success: boolean }> {
@@ -314,8 +321,8 @@ export async function raiseDispute(bookingId: string, reason: string) {
   return data.data
 }
 
-export async function initializePayment(bookingId: string): Promise<{ authorization_url: string; reference: string }> {
-  const { data } = await api.post('/payments/initialize', { bookingId })
+export async function initializePayment(bookingId: string, creditsToApply = 0): Promise<{ authorization_url: string; reference: string }> {
+  const { data } = await api.post('/payments/initialize', { bookingId, creditsToApply })
   return data.data
 }
 

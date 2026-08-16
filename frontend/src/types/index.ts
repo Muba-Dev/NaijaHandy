@@ -117,6 +117,22 @@ export interface AuthUser {
   address?: string | null
   latitude?: number | null
   longitude?: number | null
+  creditBalance?: number
+}
+
+export interface CreditTransaction {
+  id: string
+  amount: number
+  type: 'EARNED' | 'USED'
+  bookingId?: string | null
+  balanceAfter: number
+  note?: string | null
+  createdAt: string
+}
+
+export interface CreditWallet {
+  balance: number
+  transactions: CreditTransaction[]
 }
 
 export type AdminUserRole = 'CUSTOMER' | 'ARTISAN' | 'ADMIN'

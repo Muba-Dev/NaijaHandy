@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { UploadService } from '../upload/upload.service'
+import { CreditsService } from '../credits/credits.service'
 import { BOOKING_STATUSES, canTransitionBookingStatus } from '../domain/booking'
 
 @Injectable()
@@ -12,6 +13,7 @@ export class BookingService {
     private emailService: EmailService,
     private notificationsService: NotificationsService,
     private uploadService: UploadService,
+    private creditsService: CreditsService,
   ) {}
 
   async create(userId: string, data: any) {
@@ -96,6 +98,16 @@ export class BookingService {
     }
 
     const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
+
+    // Reward loyalty credits on a paid, completed job (skip self-bookings).
+    if (status === 'COMPLETED' && current.paymentStatus === 'PAID' && current.customerId !== current.artisan.userId) {
+      await this.creditsService.award(
+        current.customerId,
+        CreditsService.rewardFor(current.amount),
+        bookingId,
+        '5% back on a completed booking',
+      )
+    }
 
     const recipient = isArtisan ? current.customer : current.artisan.user
     await this.emailService.sendBookingStatusEmail({

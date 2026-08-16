@@ -7,7 +7,7 @@ export class UserService {
 
   private readonly select = {
     id: true, name: true, email: true, phone: true, city: true, address: true,
-    latitude: true, longitude: true, role: true, avatar: true,
+    latitude: true, longitude: true, role: true, avatar: true, creditBalance: true,
   } as const
 
   async findMe(userId: string) {
