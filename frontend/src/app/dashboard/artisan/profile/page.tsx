@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { BadgeCheck, MapPin, Star, Save, Loader2, Camera, ImagePlus, Trash2, ShieldCheck, Upload } from 'lucide-react'
-import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, uploadPortfolioItem, deletePortfolioItem, updateProfile, submitVerificationDocument } from '@/lib/api'
-import { formatNGN, getApiErrorMessage } from '@/lib/utils'
+import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, uploadPortfolioItem, deletePortfolioItem, updateProfile, submitVerificationDocument, updateAvatar } from '@/lib/api'
+import { formatNGN, getApiErrorMessage, compressImage, setStoredUser } from '@/lib/utils'
 import { CATEGORIES, DEFAULT_AVATAR } from '@/lib/data'
 import MapPicker from '@/components/map/MapPicker'
 import type { Artisan, PortfolioItem } from '@/types'
@@ -39,6 +39,10 @@ export default function MyProfilePage() {
   const [coverStatus, setCoverStatus] = useState<'idle' | 'uploading' | 'saved' | 'error'>('idle')
   const [coverError, setCoverError] = useState('')
   const coverInputRef = useRef<HTMLInputElement>(null)
+
+  const [avatarStatus, setAvatarStatus] = useState<'idle' | 'uploading' | 'saved' | 'error'>('idle')
+  const [avatarError, setAvatarError] = useState('')
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const [portfolioStatus, setPortfolioStatus] = useState<'idle' | 'uploading' | 'saved' | 'error'>('idle')
   const [portfolioError, setPortfolioError] = useState('')
@@ -98,6 +102,33 @@ export default function MyProfilePage() {
       setError(getApiErrorMessage(err, 'Failed to save profile. Please try again.'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarStatus('idle')
+    setAvatarError('')
+    const message = validateImage(file)
+    if (message) {
+      setAvatarStatus('error')
+      setAvatarError(message)
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+      return
+    }
+    setAvatarStatus('uploading')
+    try {
+      const dataUrl = await compressImage(file)
+      const updated = await updateAvatar(dataUrl)
+      setArtisan((a) => (a ? { ...a, avatar: updated.avatar || a.avatar } : a))
+      setStoredUser(updated)
+      setAvatarStatus('saved')
+    } catch (err: unknown) {
+      setAvatarStatus('error')
+      setAvatarError(getApiErrorMessage(err, 'Failed to update profile picture. Please try again.'))
+    } finally {
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
     }
   }
 
@@ -258,13 +289,31 @@ export default function MyProfilePage() {
       {/* Profile header */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
         <div className="flex items-start gap-4 flex-wrap">
-          <Image
-            src={artisan?.avatar || DEFAULT_AVATAR}
-            alt={artisan?.name || 'Artisan'}
-            width={72}
-            height={72}
-            className="rounded-2xl object-cover shrink-0"
-          />
+          <div className="relative shrink-0">
+            <Image
+              src={artisan?.avatar || DEFAULT_AVATAR}
+              alt={artisan?.name || 'Artisan'}
+              width={72}
+              height={72}
+              className="rounded-2xl object-cover shrink-0"
+            />
+            <input
+              ref={avatarInputRef}
+              id="avatar-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="sr-only"
+              onChange={handleAvatarFile}
+            />
+            <label
+              htmlFor="avatar-upload"
+              aria-disabled={avatarStatus === 'uploading'}
+              aria-label="Change profile picture"
+              className="absolute -bottom-2 -right-2 p-2 rounded-full bg-[#047857] text-white shadow-lg cursor-pointer hover:opacity-90 transition-opacity aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
+            >
+              {avatarStatus === 'uploading' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Camera size={14} aria-hidden="true" />}
+            </label>
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-display text-xl font-bold text-gray-900">{artisan?.name || 'Loading…'}</p>
@@ -282,6 +331,12 @@ export default function MyProfilePage() {
             {available ? 'Available for Work' : 'Unavailable'}
           </div>
         </div>
+        {avatarStatus === 'saved' && (
+          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-4">Profile picture updated.</div>
+        )}
+        {avatarStatus === 'error' && avatarError && (
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-4">{avatarError}</div>
+        )}
       </div>
 
       {/* Cover photo */}
