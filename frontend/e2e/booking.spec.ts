@@ -49,7 +49,7 @@ test.describe('Booking & payment', () => {
 
     const expectedAmount = `₦${(artisan.hourlyRate * 2 + 500).toLocaleString('en-NG')}`
     await expect(page.getByText(expectedAmount).first()).toBeVisible()
-    await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Paid — held in escrow').first()).toBeVisible()
   })
 
   test('pays for an unpaid booking with the Pay Now button', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('Booking & payment', () => {
     await card.getByRole('button', { name: 'Pay Now' }).first().click()
 
     await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
-    await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Paid — held in escrow').first()).toBeVisible()
   })
 
   test('cancels a pending booking from booking history', async ({ page }) => {

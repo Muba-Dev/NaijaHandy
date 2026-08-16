@@ -373,15 +373,15 @@ The frontend now uses:
     - Effort: Medium (urgent flag + filter + notify nearby artisans).
     - Success: emergency-job volume.
 
-16. **Feature: Escrow protection (hold payment until job done)**
+16. **Feature: Escrow protection (hold payment until job done)** — ✅ DONE in mock mode (bookkeeping layer; real-key payout is the upgrade path, see below)
     - Problem: paying upfront is scary for customers; paying after is scary for artisans.
     - Benefit: two-sided safety — category-defining trust.
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, better search filters, service guarantee, emergency/same-day urgent jobs, **and customer rewards (loyalty credits)** — all DONE below.
-**Remaining (best next):** 12. Referral program. Harder backlog: 16. Escrow protection (needs real Paystack keys; credits accounting is in place).
-**Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before escrow/credits.
+**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, better search filters, service guarantee, emergency/same-day urgent jobs, customer rewards (loyalty credits), **and escrow protection** — all DONE below.
+**Remaining (best next):** 12. Referral program. Escrow payouts to real bank accounts still need real Paystack keys (the mock escrow bookkeeping is done).
+**Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before real payouts; escrow/credits run on the mock gateway so the bookkeeping, UI, and tests are fully exercisable today.
 
 ### WhatsApp booking (Growth Roadmap P1.5) — DONE
 
@@ -588,3 +588,17 @@ The frontend now uses:
 - ✅ **Tests:** backend `tsc` clean; **124 unit tests** (new `credits.service.spec.ts` + payment initialize/finalize credit tests + booking award tests); **66 e2e** (new `credits.e2e-spec.ts`: charge split, wallet debit, completion reward 5% = ₦1,250 on ₦25,000, wallet endpoint, over-balance 400, unauth 401). Frontend lint + `tsc` + build clean.
 - ⏭️ **Future upgrade path (escrow/commission, Growth Roadmap P3.16):** the `grossAmount`/`creditsApplied` columns are the accounting bedrock for escrow — add `escrowStatus` (HELD/RELEASED/REFUNDED) + artisan bank-detail capture + Paystack Transfers payout on completion. Credits stay a platform-funded discount (artisan payout computed on gross). Fee model decision: keep the flat ₦500 fee for now; revisit hybrid commission when real payouts launch.
 - ✅ **Resolved deploy blocker:** the earlier "migration was modified after it was applied" state for `20260812220000_add_help_articles_chat` was cleared — the migration file on disk now matches the applied version exactly (pgvector-optional form is the committed one). `prisma migrate status` → "Database schema is up to date!" and `prisma migrate deploy` → "No pending migrations to apply", so the Render deploy step is unblocked. Prod still needs `20260816000000_add_credits` applied on the next deploy.
+
+### Escrow protection — hold payment until the job is done (Growth Roadmap P3.16) — DONE (mock-mode bookkeeping)
+
+- ✅ **Schema:** `Payment.escrowStatus` (`HELD` → `RELEASED` | `REFUNDED`) + `escrowHeldAt` / `escrowReleasedAt` / `escrowRefundedAt` + `payoutAmount` (gross − platform fee). Migration `20260816120000_add_escrow` applied to **CI**; existing `SUCCESS` payments are backfilled as `RELEASED` (they were already paid out under the old model).
+- ✅ **Flow:** on payment success the money is **HELD** (artisan told "payment received and held in escrow — released when you complete the job"). Marking a paid booking **COMPLETED** releases it to the artisan (`payoutAmount = grossAmount − ₦500`, `PAYMENT_RELEASED` notification). **Cancelling** a paid booking refunds it (`REFUNDED`, booking `paymentStatus` → `REFUNDED`, applied credits restored to the wallet, `PAYMENT_REFUNDED` notification).
+- ✅ **Dispute tie-in:** a `HELD` escrow stays held while a dispute is open. Admin **RESOLVED** → refunds the customer; **DISMISSED** → releases to the artisan. Idempotent (a release/refund only fires from `HELD`).
+- ✅ **Module wiring:** `PaymentModule` now exports `PaymentService`; imported by `BookingModule` and `AdminModule`. New notification types `PAYMENT_RELEASED` / `PAYMENT_REFUNDED`. `AdminService.getStats` returns `heldEscrow` (₦ sum of held payments) + `heldEscrowCount`.
+- ✅ **Frontend:**
+  - Customer `/bookings`: payment chip is escrow-aware — **Paid — held in escrow** (amber) / **Paid — released** (emerald) / **Refunded**; a shield line under HELD bookings ("Payment held in escrow — released to the artisan when the job is completed"); checkout modal gains the escrow explainer; cancelling a paid booking warns "your payment is held in escrow — cancelling refunds it to you".
+  - Artisan `/dashboard/artisan/requests`: **Held in escrow** / **Released** badge on paid bookings.
+  - Admin dashboard: **Escrow Held** stat card.
+  - Playwright `booking.spec.ts` "Paid" assertions updated to the escrow chip text.
+- ✅ **Tests:** backend `tsc` clean; **131 unit tests** (payment escrow release/refund idempotency, HELD finalization, credits restore; booking completes→release, cancels→refund, no-escrow on unpaid) and **70 e2e** (new `escrow.e2e-spec.ts`: hold→release with `payoutAmount = ₦24,500` on ₦25,000, refund-on-cancel with credit restore, dispute RESOLVED→refund, DISMISSED→release). Frontend lint + `tsc` + build clean.
+- ⏭️ **Future upgrade path (real money):** switch `PAYSTACK_MOCK` → real keys, add artisan bank-detail capture + Paystack **Transfers** payout on release (the escrow state machine already models the payout). Credits stay a platform-funded discount (artisan payout computed on gross). Revisit the flat-₦500 fee → hybrid commission when real payouts launch.

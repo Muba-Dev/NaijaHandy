@@ -4,15 +4,16 @@ import { createHmac } from 'crypto'
 
 describe('PaymentService', () => {
   const findFirst = jest.fn()
+  const paymentFindUnique = jest.fn()
   const paymentUpdate = jest.fn()
   const bookingUpdate = jest.fn()
   const bookingFindUnique = jest.fn()
   const prisma = {
-    payment: { findFirst, update: paymentUpdate },
+    payment: { findFirst, findUnique: paymentFindUnique, update: paymentUpdate },
     booking: { update: bookingUpdate, findUnique: bookingFindUnique },
   } as any
   const notificationsService = { create: jest.fn() } as any
-  const creditsService = { use: jest.fn() } as any
+  const creditsService = { use: jest.fn(), award: jest.fn() } as any
   const service = new PaymentService(prisma, notificationsService, creditsService)
 
   const event = {
@@ -175,6 +176,87 @@ describe('PaymentService', () => {
           create: expect.objectContaining({ amount: 0, grossAmount: 25000, creditsApplied: 25000 }),
         }),
       )
+    })
+  })
+
+  describe('escrow', () => {
+    beforeEach(() => {
+      process.env.PAYSTACK_MOCK = 'true'
+    })
+
+    it('finalizes into HELD escrow and tells the artisan the payment is held', async () => {
+      findFirst.mockResolvedValue({ id: 'p1', bookingId: 'b1', status: 'PENDING', amount: 25000, creditsApplied: 0 })
+      paymentUpdate.mockResolvedValue({ id: 'p1', status: 'SUCCESS', reference: 'pay_x', amount: 25000, grossAmount: 25000, creditsApplied: 0, escrowStatus: 'HELD' })
+      bookingUpdate.mockResolvedValue({ id: 'b1', paymentStatus: 'PAID' })
+      bookingFindUnique.mockResolvedValue({ id: 'b1', artisan: { userId: 'a1' } })
+
+      await service.handleWebhook(body, undefined)
+
+      expect(paymentUpdate).toHaveBeenCalledWith({
+        where: { bookingId: 'b1' },
+        data: expect.objectContaining({ status: 'SUCCESS', escrowStatus: 'HELD' }),
+      })
+      expect(notificationsService.create).toHaveBeenCalledWith('a1', {
+        type: 'PAYMENT_RECEIVED',
+        title: 'Payment received',
+        body: expect.stringContaining('held in escrow'),
+        link: '/dashboard/artisan/requests',
+      })
+    })
+
+    it('releases a HELD escrow to the artisan with payout = gross − platform fee', async () => {
+      paymentFindUnique.mockResolvedValue({ id: 'p1', bookingId: 'b1', escrowStatus: 'HELD', grossAmount: 25000 })
+      paymentUpdate.mockResolvedValue({ id: 'p1', escrowStatus: 'RELEASED', payoutAmount: 24500 })
+      bookingFindUnique.mockResolvedValue({ id: 'b1', artisan: { userId: 'a1' } })
+
+      await service.releaseEscrow('b1')
+
+      expect(paymentUpdate).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: expect.objectContaining({ escrowStatus: 'RELEASED', payoutAmount: 24500 }),
+      })
+      expect(notificationsService.create).toHaveBeenCalledWith('a1', {
+        type: 'PAYMENT_RELEASED',
+        title: 'Payment released',
+        body: expect.stringContaining('24,500'),
+        link: '/dashboard/artisan/requests',
+      })
+    })
+
+    it('does not double-release an already released escrow', async () => {
+      paymentFindUnique.mockResolvedValue({ id: 'p1', bookingId: 'b1', escrowStatus: 'RELEASED', grossAmount: 25000 })
+      await service.releaseEscrow('b1')
+      expect(paymentUpdate).not.toHaveBeenCalled()
+    })
+
+    it('refunds a HELD escrow, marks payment/booking refunded, and restores applied credits', async () => {
+      paymentFindUnique.mockResolvedValue({ id: 'p1', bookingId: 'b1', escrowStatus: 'HELD', grossAmount: 25000, creditsApplied: 2000 })
+      paymentUpdate.mockResolvedValue({ id: 'p1', escrowStatus: 'REFUNDED', status: 'REFUNDED' })
+      bookingUpdate.mockResolvedValue({ id: 'b1', paymentStatus: 'REFUNDED' })
+      bookingFindUnique.mockResolvedValue({ id: 'b1', customerId: 'c1' })
+      creditsService.award.mockResolvedValue([{}, {}])
+
+      await service.refundEscrow('b1')
+
+      expect(paymentUpdate).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: expect.objectContaining({ escrowStatus: 'REFUNDED', status: 'REFUNDED' }),
+      })
+      expect(bookingUpdate).toHaveBeenCalledWith({ where: { id: 'b1' }, data: { paymentStatus: 'REFUNDED' } })
+      expect(creditsService.award).toHaveBeenCalledWith('c1', 2000, 'b1', expect.stringContaining('Refund'))
+      expect(notificationsService.create).toHaveBeenCalledWith('c1', {
+        type: 'PAYMENT_REFUNDED',
+        title: 'Payment refunded',
+        body: expect.stringContaining('refunded'),
+        link: '/bookings',
+      })
+    })
+
+    it('does not refund an already refunded escrow', async () => {
+      paymentFindUnique.mockResolvedValue({ id: 'p1', bookingId: 'b1', escrowStatus: 'REFUNDED', grossAmount: 25000, creditsApplied: 0 })
+      await service.refundEscrow('b1')
+      expect(paymentUpdate).not.toHaveBeenCalled()
+      expect(bookingUpdate).not.toHaveBeenCalled()
     })
   })
 })

@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual, randomUUID } from 'crypto'
 import { PrismaService } from '../prisma/prisma.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreditsService } from '../credits/credits.service'
+import { PLATFORM_FEE } from '../domain/booking'
 
 const SECRET_KEY = () => process.env.PAYSTACK_SECRET_KEY || ''
 const BASE_URL = () => process.env.PAYSTACK_BASE_URL || 'https://api.paystack.co'
@@ -120,7 +121,7 @@ export class PaymentService {
   private async finalizePayment(bookingId: string) {
     const payment = await this.prisma.payment.update({
       where: { bookingId },
-      data: { status: 'SUCCESS', paidAt: new Date() },
+      data: { status: 'SUCCESS', paidAt: new Date(), escrowStatus: 'HELD', escrowHeldAt: new Date() },
     })
     await this.prisma.booking.update({
       where: { id: bookingId },
@@ -151,11 +152,75 @@ export class PaymentService {
       await this.notificationsService.create(booking.artisan.userId, {
         type: 'PAYMENT_RECEIVED',
         title: 'Payment received',
-        body: `You have been paid ₦${payment.grossAmount.toLocaleString('en-NG')} for a booking.`,
+        body: `Payment of ₦${payment.grossAmount.toLocaleString('en-NG')} received and held in escrow — it is released to you when you complete the job.`,
         link: '/dashboard/artisan/requests',
       })
     }
 
     return payment
+  }
+
+  // Releases a held escrow payment to the artisan (payout = gross − platform fee).
+  // Idempotent: only transitions HELD → RELEASED.
+  async releaseEscrow(bookingId: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { bookingId } })
+    if (!payment || payment.escrowStatus !== 'HELD') return payment
+
+    const payoutAmount = Math.max((payment.grossAmount ?? 0) - PLATFORM_FEE, 0)
+    const updated = await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { escrowStatus: 'RELEASED', escrowReleasedAt: new Date(), payoutAmount },
+    })
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { artisan: { select: { userId: true } } },
+    })
+    if (booking) {
+      await this.notificationsService.create(booking.artisan.userId, {
+        type: 'PAYMENT_RELEASED',
+        title: 'Payment released',
+        body: `Your payment of ₦${payoutAmount.toLocaleString('en-NG')} has been released — it is now yours.`,
+        link: '/dashboard/artisan/requests',
+      })
+    }
+
+    return updated
+  }
+
+  // Refunds a held escrow payment to the customer and returns any applied credits.
+  // Idempotent: only transitions HELD → REFUNDED.
+  async refundEscrow(bookingId: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { bookingId } })
+    if (!payment || payment.escrowStatus !== 'HELD') return payment
+
+    const updated = await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { escrowStatus: 'REFUNDED', escrowRefundedAt: new Date(), status: 'REFUNDED' },
+    })
+    await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { paymentStatus: 'REFUNDED' },
+    })
+
+    // Restore credits that were applied to this booking (platform-funded discount).
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { customerId: true },
+    })
+    if (booking && payment.creditsApplied > 0) {
+      await this.creditsService.award(booking.customerId, payment.creditsApplied, bookingId, 'Refund — applied credits returned')
+    }
+
+    if (booking) {
+      await this.notificationsService.create(booking.customerId, {
+        type: 'PAYMENT_REFUNDED',
+        title: 'Payment refunded',
+        body: `₦${payment.grossAmount.toLocaleString('en-NG')} was refunded to you because the booking was not completed.`,
+        link: '/bookings',
+      })
+    }
+
+    return updated
   }
 }

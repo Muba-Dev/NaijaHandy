@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
+import { PaymentService } from '../payment/payment.service'
 
 const APPROVAL_STATUSES = ['PENDING', 'APPROVED', 'REJECTED']
 const VERIFICATION_STATUSES = ['UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED']
@@ -16,10 +17,11 @@ export class AdminService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private notificationsService: NotificationsService,
+    private paymentService: PaymentService,
   ) {}
 
   async getStats() {
-    const [pendingArtisans, totalArtisans, totalUsers, totalBookings, hiddenReviews, openDisputes, openSupport, revenueAgg] =
+    const [pendingArtisans, totalArtisans, totalUsers, totalBookings, hiddenReviews, openDisputes, openSupport, revenueAgg, escrowAgg] =
       await Promise.all([
         this.prisma.artisanProfile.count({ where: { approvalStatus: 'PENDING' } }),
         this.prisma.artisanProfile.count(),
@@ -29,6 +31,7 @@ export class AdminService {
         this.prisma.dispute.count({ where: { status: 'OPEN' } }),
         this.prisma.supportMessage.count({ where: { status: 'OPEN' } }),
         this.prisma.payment.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
+        this.prisma.payment.aggregate({ where: { escrowStatus: 'HELD' }, _sum: { grossAmount: true }, _count: true }),
       ])
     return {
       pendingArtisans,
@@ -39,6 +42,8 @@ export class AdminService {
       openDisputes,
       openSupportMessages: openSupport,
       revenue: revenueAgg._sum.amount ?? 0,
+      heldEscrow: escrowAgg._sum.grossAmount ?? 0,
+      heldEscrowCount: escrowAgg._count,
     }
   }
 
@@ -283,7 +288,17 @@ export class AdminService {
     }
     const dispute = await this.prisma.dispute.findUnique({ where: { id } })
     if (!dispute) throw new NotFoundException('Dispute not found')
-    return this.prisma.dispute.update({ where: { id }, data: { status, resolution: resolution || null } })
+    const updated = await this.prisma.dispute.update({ where: { id }, data: { status, resolution: resolution || null } })
+
+    // Escrow tie-in: an upheld dispute refunds the held payment to the customer;
+    // a dismissed dispute releases it to the artisan.
+    if (status === 'RESOLVED') {
+      await this.paymentService.refundEscrow(dispute.bookingId)
+    } else if (status === 'DISMISSED') {
+      await this.paymentService.releaseEscrow(dispute.bookingId)
+    }
+
+    return updated
   }
 
   // ─── Support inbox ──────────────────────────────────────────────────────────

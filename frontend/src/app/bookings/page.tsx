@@ -290,9 +290,15 @@ export default function BookingHistoryPage() {
                           </span>
                         )}
                         <StatusBadge status={b.status as BookingStatus} />
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${b.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                          {b.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
-                        </span>
+                        {b.paymentStatus === 'REFUNDED' ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Refunded</span>
+                        ) : b.paymentStatus === 'PAID' ? (
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${b.escrowStatus === 'HELD' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                            {b.escrowStatus === 'HELD' ? 'Paid — held in escrow' : 'Paid — released'}
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Unpaid</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-gray-500">
@@ -302,6 +308,11 @@ export default function BookingHistoryPage() {
                     </div>
                     {b.description && (
                       <p className="mt-2 text-sm text-gray-500 line-clamp-2">{b.description}</p>
+                    )}
+                    {b.paymentStatus === 'PAID' && b.escrowStatus === 'HELD' && (
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-700">
+                        <ShieldCheck size={13} aria-hidden="true" /> Payment held in escrow — released to the artisan when the job is completed.
+                      </p>
                     )}
                     <div className="flex gap-2 mt-3 flex-wrap">
                       <Link
@@ -385,6 +396,12 @@ export default function BookingHistoryPage() {
               Your booking with <span className="font-semibold text-gray-900">{cancelConfirm.artisan}</span> on{' '}
               {cancelConfirm.date} at {cancelConfirm.time} will be cancelled. This can&apos;t be undone.
             </p>
+            {cancelConfirm.paymentStatus === 'PAID' && (
+              <p className="flex items-start gap-1.5 text-xs font-medium text-amber-700 mb-4">
+                <ShieldCheck size={14} className="shrink-0 mt-0.5" aria-hidden="true" />
+                Your payment is held in escrow — cancelling refunds it to you.
+              </p>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => setCancelConfirm(null)}
@@ -457,6 +474,13 @@ export default function BookingHistoryPage() {
                       No rewards credits yet — earn 5% back when your booking is completed.
                     </p>
                   )}
+
+                  <div className="flex items-start gap-2 bg-emerald-50 rounded-xl px-3 py-2.5 mb-5">
+                    <ShieldCheck size={15} className="text-[#047857] shrink-0 mt-0.5" aria-hidden="true" />
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Your payment is held in escrow and only released to the artisan once the job is completed.
+                    </p>
+                  </div>
 
                   <div className="flex gap-3">
                     <button

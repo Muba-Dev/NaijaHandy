@@ -422,6 +422,7 @@ export default function AdminDashboardPage() {
                 { label: 'Open Disputes', value: stats.openDisputes, sub: 'need resolution', color: '#EF4444', icon: Scale },
                 { label: 'Open Support', value: stats.openSupportMessages, sub: 'messages awaiting reply', color: '#8B5CF6', icon: LifeBuoy },
                 { label: 'Hidden Reviews', value: stats.hiddenReviews, sub: 'moderated out', color: '#6B7280', icon: Star },
+                { label: 'Escrow Held', value: formatNGN(stats.heldEscrow ?? 0), sub: `${stats.heldEscrowCount ?? 0} payments awaiting release`, color: '#D97706', icon: ShieldCheck },
                 { label: 'Revenue', value: formatNGN(stats.revenue), sub: 'successful payments', color: '#047857', icon: CreditCard },
               ].map((s) => {
                 const Icon = s.icon

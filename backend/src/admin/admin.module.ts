@@ -5,9 +5,10 @@ import { RolesGuard } from '../auth/roles.guard'
 import { PrismaModule } from '../prisma/prisma.module'
 import { EmailModule } from '../email/email.module'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { PaymentModule } from '../payment/payment.module'
 
 @Module({
-  imports: [PrismaModule, EmailModule, NotificationsModule],
+  imports: [PrismaModule, EmailModule, NotificationsModule, PaymentModule],
   controllers: [AdminController],
   providers: [AdminService, RolesGuard],
 })

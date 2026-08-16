@@ -4,6 +4,7 @@ import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { UploadService } from '../upload/upload.service'
 import { CreditsService } from '../credits/credits.service'
+import { PaymentService } from '../payment/payment.service'
 import { BOOKING_STATUSES, canTransitionBookingStatus } from '../domain/booking'
 
 @Injectable()
@@ -14,6 +15,7 @@ export class BookingService {
     private notificationsService: NotificationsService,
     private uploadService: UploadService,
     private creditsService: CreditsService,
+    private paymentService: PaymentService,
   ) {}
 
   async create(userId: string, data: any) {
@@ -66,7 +68,7 @@ export class BookingService {
       include: {
         artisan: { include: { user: { select: { name: true, avatar: true } } } },
         customer: { select: { name: true, avatar: true } },
-        payment: { select: { status: true, reference: true } },
+        payment: { select: { status: true, reference: true, escrowStatus: true } },
         review: { select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -98,6 +100,15 @@ export class BookingService {
     }
 
     const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
+
+    // Escrow lifecycle: completing a paid job releases the held payment to the
+    // artisan; cancelling a paid job refunds it to the customer.
+    if (status === 'COMPLETED' && current.paymentStatus === 'PAID') {
+      await this.paymentService.releaseEscrow(bookingId)
+    }
+    if (status === 'CANCELLED' && current.paymentStatus === 'PAID') {
+      await this.paymentService.refundEscrow(bookingId)
+    }
 
     // Reward loyalty credits on a paid, completed job (skip self-bookings).
     if (status === 'COMPLETED' && current.paymentStatus === 'PAID' && current.customerId !== current.artisan.userId) {

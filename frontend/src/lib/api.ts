@@ -141,7 +141,7 @@ type RawBooking = {
   paymentReference?: string | null
   artisan: { id: string; profession: string; user: { name: string; avatar: string | null } }
   customer: { name: string; avatar: string | null }
-  payment?: { status: string; reference: string } | null
+  payment?: { status: string; reference: string; escrowStatus?: string | null } | null
   review?: { id: string } | null
 }
 
@@ -164,6 +164,7 @@ function normalizeBooking(b: RawBooking): Booking {
     customer: b.customer?.name,
     customerAvatar: b.customer?.avatar || '',
     paymentStatus: b.paymentStatus,
+    escrowStatus: (b.payment?.escrowStatus as Booking['escrowStatus']) || undefined,
     paymentReference: b.paymentReference,
     reviewed: !!b.review,
   }

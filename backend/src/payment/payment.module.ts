@@ -8,5 +8,6 @@ import { CreditsModule } from '../credits/credits.module'
   imports: [NotificationsModule, CreditsModule],
   controllers: [PaymentController],
   providers: [PaymentService],
+  exports: [PaymentService],
 })
 export class PaymentModule {}

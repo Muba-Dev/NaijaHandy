@@ -93,6 +93,8 @@ export interface Booking {
   customer?: string
   customerAvatar?: string
   paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED'
+  escrowStatus?: 'HELD' | 'RELEASED' | 'REFUNDED'
+  payoutAmount?: number | null
   paymentReference?: string | null
   reviewed?: boolean
 }
@@ -245,6 +247,8 @@ export interface AdminStats {
   openDisputes: number
   openSupportMessages: number
   revenue: number
+  heldEscrow?: number
+  heldEscrowCount?: number
 }
 
 export type SupportMessageStatus = 'OPEN' | 'REPLIED' | 'CLOSED'

@@ -246,6 +246,11 @@ model Payment {
   status      String   @default("PENDING")
   provider    String   @default("PAYSTACK")
   paidAt      DateTime?
+  escrowStatus   String   @default("HELD") // HELD | RELEASED | REFUNDED
+  escrowHeldAt   DateTime?
+  escrowReleasedAt DateTime?
+  escrowRefundedAt DateTime?
+  payoutAmount    Int?     // amount released to the artisan (gross − platform fee)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

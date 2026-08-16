@@ -101,6 +101,11 @@ export default function JobRequestsPage() {
                         </span>
                       )}
                       <StatusBadge status={b.status as BookingStatus} />
+                      {b.paymentStatus === 'PAID' && (
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${b.escrowStatus === 'RELEASED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                          {b.escrowStatus === 'RELEASED' ? 'Released' : 'Held in escrow'}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-gray-500">

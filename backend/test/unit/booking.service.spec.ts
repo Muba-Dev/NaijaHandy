@@ -11,7 +11,8 @@ describe('BookingService', () => {
   const notificationsService = { create: jest.fn() } as any
   const uploadService = { uploadReviewPhoto: jest.fn() } as any
   const creditsService = { award: jest.fn() } as any
-  const service = new BookingService(prisma, emailService, notificationsService, uploadService, creditsService)
+  const paymentService = { releaseEscrow: jest.fn(), refundEscrow: jest.fn() } as any
+  const service = new BookingService(prisma, emailService, notificationsService, uploadService, creditsService, paymentService)
 
   const baseBooking = {
     id: 'b1',
@@ -122,15 +123,17 @@ describe('BookingService', () => {
       booking.findUnique.mockResolvedValue({ ...baseBooking, status: 'CONFIRMED', paymentStatus: 'PAID' })
       booking.update.mockResolvedValue({ id: 'b1', status: 'COMPLETED' })
       creditsService.award.mockResolvedValue([{}, {}])
+      paymentService.releaseEscrow.mockResolvedValue({})
 
       await expect(service.updateStatus('a1', 'ARTISAN', 'b1', 'COMPLETED')).resolves.toEqual({
         id: 'b1',
         status: 'COMPLETED',
       })
       expect(creditsService.award).toHaveBeenCalledWith('c1', expect.any(Number), 'b1', expect.any(String))
+      expect(paymentService.releaseEscrow).toHaveBeenCalledWith('b1')
     })
 
-    it('does not award credits for unpaid or self-booked completed jobs', async () => {
+    it('does not award credits or release escrow for unpaid or self-booked completed jobs', async () => {
       booking.findUnique.mockResolvedValue({
         ...baseBooking,
         status: 'CONFIRMED',
@@ -142,6 +145,27 @@ describe('BookingService', () => {
 
       await service.updateStatus('a1', 'ARTISAN', 'b1', 'COMPLETED')
       expect(creditsService.award).not.toHaveBeenCalled()
+      expect(paymentService.releaseEscrow).not.toHaveBeenCalled()
+    })
+
+    it('refunds the held escrow when a paid booking is cancelled', async () => {
+      booking.findUnique.mockResolvedValue({ ...baseBooking, status: 'CONFIRMED', paymentStatus: 'PAID' })
+      booking.update.mockResolvedValue({ id: 'b1', status: 'CANCELLED' })
+      paymentService.refundEscrow.mockResolvedValue({})
+
+      await expect(service.updateStatus('c1', 'CUSTOMER', 'b1', 'CANCELLED')).resolves.toEqual({
+        id: 'b1',
+        status: 'CANCELLED',
+      })
+      expect(paymentService.refundEscrow).toHaveBeenCalledWith('b1')
+    })
+
+    it('does not refund escrow for an unpaid cancelled booking', async () => {
+      booking.findUnique.mockResolvedValue(baseBooking)
+      booking.update.mockResolvedValue({ id: 'b1', status: 'CANCELLED' })
+
+      await service.updateStatus('c1', 'CUSTOMER', 'b1', 'CANCELLED')
+      expect(paymentService.refundEscrow).not.toHaveBeenCalled()
     })
   })
 

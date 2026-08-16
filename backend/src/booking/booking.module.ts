@@ -7,9 +7,10 @@ import { EmailModule } from '../email/email.module'
 import { NotificationsModule } from '../notifications/notifications.module'
 import { UploadModule } from '../upload/upload.module'
 import { CreditsModule } from '../credits/credits.module'
+import { PaymentModule } from '../payment/payment.module'
 
 @Module({
-  imports: [PrismaModule, AuthModule, EmailModule, NotificationsModule, UploadModule, CreditsModule],
+  imports: [PrismaModule, AuthModule, EmailModule, NotificationsModule, UploadModule, CreditsModule, PaymentModule],
   controllers: [BookingController],
   providers: [BookingService],
 })
