@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Users, Shield, CreditCard, Bell, Plus, CheckCircle2, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { Users, Shield, CreditCard, Bell, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
 import { fetchMe, updateProfile, updateAvatar, changePassword } from '@/lib/api'
@@ -285,11 +286,17 @@ export default function ProfileSettingsPage() {
 
             {activeTab === 'payment' && (
               <div>
-                <h2 className="font-semibold text-gray-900 mb-5">Payment Methods</h2>
+                <h2 className="font-semibold text-gray-900 mb-3">Payment Methods</h2>
+                <p className="text-sm text-gray-500 leading-relaxed mb-5">
+                  Payments are processed securely by Paystack at checkout. NaijaHandy never stores your
+                  card or bank details on your account — choose a method each time you pay for a booking.
+                </p>
+
                 <div className="space-y-3 mb-5">
                   {[
-                    { type: 'Bank Transfer', detail: 'Zenith Bank — 2031 456 789', primary: true },
-                    { type: 'Card', detail: 'Mastercard •••• 4421', primary: false },
+                    { type: 'Card', detail: 'Visa, Mastercard and Verve cards' },
+                    { type: 'Bank Transfer', detail: 'Pay from any Nigerian bank account' },
+                    { type: 'USSD', detail: 'Pay with *737# or your bank\u2019s USSD code' },
                   ].map((m) => (
                     <div key={m.type} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
                       <div className="flex items-center gap-3">
@@ -299,15 +306,20 @@ export default function ProfileSettingsPage() {
                           <p className="text-xs text-gray-500">{m.detail}</p>
                         </div>
                       </div>
-                      {m.primary && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#047857]">Primary</span>
-                      )}
                     </div>
                   ))}
                 </div>
-                <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm font-medium text-gray-600 hover:border-[#047857] hover:text-[#047857] transition-colors">
-                  <Plus size={16} /> Add Payment Method
-                </button>
+
+                <div className="flex items-start gap-2.5 bg-[#ECFDF5] border border-emerald-100 rounded-xl px-4 py-3 text-sm text-emerald-800">
+                  <ShieldCheck size={16} className="shrink-0 mt-0.5 text-[#047857]" aria-hidden="true" />
+                  <p className="leading-relaxed">
+                    Your payment is held in escrow and only released to the artisan once you mark the job as
+                    completed. Read more about the{' '}
+                    <Link href="/guarantee" className="font-semibold text-[#047857] hover:underline">
+                      NaijaHandy Guarantee
+                    </Link>.
+                  </p>
+                </div>
               </div>
             )}
 
