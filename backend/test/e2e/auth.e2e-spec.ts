@@ -13,6 +13,7 @@ describe('Auth (e2e)', () => {
   let userId: string
   let accessToken: string
   let refreshToken: string
+  let devCode: string
 
   beforeAll(async () => {
     ;({ app, prisma, server } = await setupApp())
@@ -25,13 +26,13 @@ describe('Auth (e2e)', () => {
     await app.close()
   })
 
-  it('registers a new customer', async () => {
+  it('registers a new customer but does not log them in until verified', async () => {
     const res = await request(server)
       .post('/api/auth/register')
       .send({ name: 'Auth Test', email, password, role: 'CUSTOMER' })
     expect(res.status).toBe(201)
-    expect(res.body.accessToken).toBeTruthy()
-    expect(res.body.refreshToken).toBeTruthy()
+    expect(res.body.verificationRequired).toBe(true)
+    expect(res.body.accessToken).toBeUndefined()
     expect(res.body.user.email).toBe(email)
     userId = res.body.user.id
     createdIds.push(userId)
@@ -51,7 +52,41 @@ describe('Auth (e2e)', () => {
     expect(res.status).toBe(400)
   })
 
-  it('logs in with valid credentials', async () => {
+  it('blocks login until the email is verified', async () => {
+    const res = await loginReq(server, email, password)
+    expect(res.status).toBe(401)
+    expect(res.body.message).toMatch(/verify your email/i)
+  })
+
+  it('sends a verification code', async () => {
+    const res = await request(server)
+      .post('/api/auth/verify-email/request')
+      .send({ email })
+    expect(res.status).toBe(200)
+    expect(res.body.success).toBe(true)
+    expect(res.body.devCode).toMatch(/^\d{6}$/)
+    devCode = res.body.devCode
+  })
+
+  it('rejects an incorrect verification code', async () => {
+    const res = await request(server)
+      .post('/api/auth/verify-email/confirm')
+      .send({ email, code: '000000' })
+    expect(res.status).toBe(400)
+  })
+
+  it('verifies the email and returns tokens', async () => {
+    const res = await request(server)
+      .post('/api/auth/verify-email/confirm')
+      .send({ email, code: devCode })
+    expect(res.status).toBe(201)
+    expect(res.body.accessToken).toBeTruthy()
+    expect(res.body.refreshToken).toBeTruthy()
+    accessToken = res.body.accessToken
+    refreshToken = res.body.refreshToken
+  })
+
+  it('logs in with valid credentials once verified', async () => {
     const res = await loginReq(server, email, password)
     expect(res.status).toBe(201)
     accessToken = res.body.accessToken

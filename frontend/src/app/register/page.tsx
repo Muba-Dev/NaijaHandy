@@ -36,7 +36,7 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
     try {
-      await register({
+      const result = await register({
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -46,7 +46,11 @@ export default function RegisterPage() {
         profession: role === 'ARTISAN' ? form.profession : undefined,
         category: role === 'ARTISAN' ? form.profession : undefined,
       })
-      router.push(role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
+      if (result.verificationRequired) {
+        router.push(`/verify-email?email=${encodeURIComponent(result.user.email)}&role=${encodeURIComponent(role)}`)
+      } else {
+        router.push(role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
+      }
     } catch (err) {
       setError(getApiErrorMessage(err, 'Registration failed. Please try again.'))
       setLoading(false)

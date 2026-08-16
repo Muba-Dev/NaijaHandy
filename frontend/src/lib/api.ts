@@ -179,8 +179,19 @@ export async function login(credentials: LoginCredentials): Promise<AuthUser> {
   return data.user
 }
 
-export async function register(payload: RegisterPayload): Promise<AuthUser> {
+export async function register(payload: RegisterPayload): Promise<{ user: AuthUser; verificationRequired?: boolean }> {
   const { data } = await api.post('/auth/register', payload)
+  if (data.accessToken && data.refreshToken) setAuthTokens(data.accessToken, data.refreshToken)
+  return data
+}
+
+export async function requestEmailVerification(email: string): Promise<{ success: boolean; devCode?: string }> {
+  const { data } = await api.post('/auth/verify-email/request', { email })
+  return data
+}
+
+export async function confirmEmailVerification(email: string, code: string): Promise<AuthUser> {
+  const { data } = await api.post('/auth/verify-email/confirm', { email, code })
   setAuthTokens(data.accessToken, data.refreshToken)
   setStoredUser(data.user)
   return data.user

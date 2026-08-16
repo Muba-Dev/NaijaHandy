@@ -27,6 +27,29 @@ export async function fillBookingDate(page: Page, date: string): Promise<void> {
   await expect(input).toHaveValue(date)
 }
 
+// New accounts are blocked from logging in until their email is verified by
+// OTP. EMAIL_ENABLED is off in the test backend, so the code comes back as
+// `devCode`. This helper verifies a just-registered email and returns tokens.
+export async function verifyEmailAndGetTokens(email: string): Promise<{ accessToken: string; refreshToken: string }> {
+  const codeRes = await fetch(`${API_URL}/auth/verify-email/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (!codeRes.ok) throw new Error(`Requesting a verification code failed: ${codeRes.status}`)
+  const { devCode } = (await codeRes.json()) as { devCode?: string }
+  if (!devCode) throw new Error('No devCode returned — EMAIL_ENABLED must be disabled in the test backend')
+
+  const confirm = await fetch(`${API_URL}/auth/verify-email/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code: devCode }),
+  })
+  if (!confirm.ok) throw new Error(`Confirming the verification code failed: ${confirm.status}`)
+  const body = (await confirm.json()) as { accessToken: string; refreshToken: string }
+  return { accessToken: body.accessToken, refreshToken: body.refreshToken }
+}
+
 // Registered artisans start as non-demo (isDemo=false) but PENDING approval, so
 // they are hidden from public browsing. This helper registers one and has the
 // seeded admin approve it, returning a fully bookable profile.
@@ -52,7 +75,7 @@ export async function createBookableArtisan(opts: { latitude?: number; longitude
     }),
   })
   if (!reg.ok) throw new Error(`Registering an artisan failed: ${reg.status}`)
-  const { accessToken } = (await reg.json()) as { accessToken: string }
+  const { accessToken } = await verifyEmailAndGetTokens(email)
 
   if (opts.latitude != null && opts.longitude != null) {
     const loc = await fetch(`${API_URL}/users/me`, {

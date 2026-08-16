@@ -141,6 +141,16 @@ export default function LoginForm() {
             {error && (
               <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
                 {error}
+                {/verify your email/i.test(error) && (
+                  <p className="mt-2">
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(email)}`}
+                      className="font-semibold text-[#047857] hover:underline"
+                    >
+                      Verify your email now
+                    </Link>
+                  </p>
+                )}
               </div>
             )}
 

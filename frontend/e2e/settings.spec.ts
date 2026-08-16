@@ -18,6 +18,14 @@ test.describe('Profile settings', () => {
     await page.locator('main form select').selectOption({ label: 'Lagos' })
     await page.locator('main form input[type="password"]').fill('password123')
     await page.getByRole('button', { name: 'Create Customer Account' }).click()
+    await expect(page).toHaveURL(/\/verify-email\?/, { timeout: 20_000 })
+
+    // Emails are disabled in the test backend, so the code is shown on screen.
+    const hint = page.getByText(/your code is \d{6}/)
+    await expect(hint).toBeVisible({ timeout: 20_000 })
+    const code = (await hint.textContent())!.match(/\d{6}/)![0]
+    await page.locator('input[placeholder="••••••"]').fill(code)
+    await page.getByRole('button', { name: 'Verify & continue' }).click()
     await expect(page).toHaveURL(/\/dashboard\//, { timeout: 20_000 })
 
     await page.goto('/settings')

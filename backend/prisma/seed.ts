@@ -339,10 +339,10 @@ const monthsAgo = (n: number): Date => new Date(Date.now() - n * 30.44 * 24 * 36
 async function upsertArtisan(a: ArtisanSeed) {
   const user = await prisma.user.upsert({
     where: { email: a.email },
-    update: { avatar: AVATARS[a.key], name: a.name, city: a.city, isDemo: SEED_DEMO },
+    update: { avatar: AVATARS[a.key], name: a.name, city: a.city, isDemo: SEED_DEMO, emailVerified: true },
     create: {
       name: a.name, email: a.email, phone: a.phone, city: a.city,
-      password: await bcrypt.hash('password123', 12), role: 'ARTISAN', avatar: AVATARS[a.key], isDemo: SEED_DEMO,
+      password: await bcrypt.hash('password123', 12), role: 'ARTISAN', avatar: AVATARS[a.key], isDemo: SEED_DEMO, emailVerified: true,
     },
   })
   return prisma.artisanProfile.upsert({
@@ -359,9 +359,9 @@ async function upsertArtisan(a: ArtisanSeed) {
 async function upsertCustomer(key: string, name: string, email: string, phone: string, city: string) {
   const user = await prisma.user.upsert({
     where: { email },
-    update: { name, phone, city, avatar: CUSTOMER_AVATARS[key], isDemo: SEED_DEMO },
+    update: { name, phone, city, avatar: CUSTOMER_AVATARS[key], isDemo: SEED_DEMO, emailVerified: true },
     create: {
-      name, email, phone, city, avatar: CUSTOMER_AVATARS[key], password: await bcrypt.hash('password123', 12), role: 'CUSTOMER', isDemo: SEED_DEMO,
+      name, email, phone, city, avatar: CUSTOMER_AVATARS[key], password: await bcrypt.hash('password123', 12), role: 'CUSTOMER', isDemo: SEED_DEMO, emailVerified: true,
     },
   })
   return user
@@ -375,8 +375,8 @@ async function main() {
   // ── Admin ──
   await prisma.user.upsert({
     where: { email: 'admin@naijahandy.com' },
-    update: { name: 'NaijaHandy Admin', phone: '+234 800 000 0000', city: 'Lagos' },
-    create: { name: 'NaijaHandy Admin', email: 'admin@naijahandy.com', phone: '+234 800 000 0000', city: 'Lagos', password, role: 'ADMIN' },
+    update: { name: 'NaijaHandy Admin', phone: '+234 800 000 0000', city: 'Lagos', emailVerified: true },
+    create: { name: 'NaijaHandy Admin', email: 'admin@naijahandy.com', phone: '+234 800 000 0000', city: 'Lagos', password, role: 'ADMIN', emailVerified: true },
   })
 
   // ── Customers (demo) ──

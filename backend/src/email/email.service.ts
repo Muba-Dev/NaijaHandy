@@ -196,6 +196,32 @@ export class EmailService {
     )
   }
 
+  async sendVerificationEmail(to: string, code: string) {
+    const subject = 'Verify your NaijaHandy email'
+    await this.send(
+      to,
+      subject,
+      [
+        `Your NaijaHandy verification code is ${code}.`,
+        '',
+        'Enter it on the verification screen to activate your account. It expires in 10 minutes.',
+        '',
+        'If you did not create a NaijaHandy account, you can ignore this email.',
+        '',
+        'NaijaHandy Team',
+      ].join('\n'),
+      this.layout(
+        'Verify your email',
+        `
+        <p style="color:#374151;line-height:1.6">Use this code to verify your NaijaHandy account:</p>
+        <p style="font-size:34px;font-weight:700;letter-spacing:8px;color:#047857;text-align:center;margin:16px 0">${code}</p>
+        <p style="color:#6b7280;font-size:13px">Enter the code on the verification screen to activate your account. It expires in 10 minutes.</p>
+        <p style="color:#6b7280;font-size:13px">If you did not create a NaijaHandy account, you can safely ignore this email.</p>
+        `,
+      ),
+    )
+  }
+
   async sendPasswordResetEmail(to: string, resetUrl: string) {
     const from = this.sender
     await this.transporter.sendMail({

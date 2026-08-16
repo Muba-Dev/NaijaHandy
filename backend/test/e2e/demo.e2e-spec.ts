@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { setupApp, loginReq } from './helpers'
+import { setupApp, loginReq, registerVerified } from './helpers'
 
 describe('Demo artisans (e2e)', () => {
   let app: any
@@ -34,14 +34,10 @@ describe('Demo artisans (e2e)', () => {
   it('hides demo artisans from a logged-in non-demo customer', async () => {
     const email = `demo.filter.${Date.now()}@example.com`
     createdEmails.push(email)
-    await request(server)
-      .post('/api/auth/register')
-      .send({ name: 'Demo Filter', email, password: 'password123', role: 'CUSTOMER' })
-      .expect(201)
-    const login = await loginReq(server, email, 'password123')
+    const user = await registerVerified(server, { name: 'Demo Filter', email, password: 'password123', role: 'CUSTOMER' })
     const res = await request(server)
       .get('/api/artisans')
-      .set('Authorization', `Bearer ${login.body.accessToken}`)
+      .set('Authorization', `Bearer ${user.accessToken}`)
     expect(res.status).toBe(200)
     expect(res.body.data.some((a: any) => a.isDemo)).toBe(false)
   })
@@ -51,14 +47,10 @@ describe('Demo artisans (e2e)', () => {
     const demo = list.body.data.find((a: any) => a.isDemo)
     const email = `demo.detail.${Date.now()}@example.com`
     createdEmails.push(email)
-    await request(server)
-      .post('/api/auth/register')
-      .send({ name: 'Demo Detail', email, password: 'password123', role: 'CUSTOMER' })
-      .expect(201)
-    const login = await loginReq(server, email, 'password123')
+    const user = await registerVerified(server, { name: 'Demo Detail', email, password: 'password123', role: 'CUSTOMER' })
     const res = await request(server)
       .get(`/api/artisans/${demo.id}`)
-      .set('Authorization', `Bearer ${login.body.accessToken}`)
+      .set('Authorization', `Bearer ${user.accessToken}`)
     expect(res.status).toBe(404)
   })
 

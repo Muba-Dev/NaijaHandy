@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { setupApp, loginReq } from './helpers'
+import { setupApp, loginReq, registerVerified } from './helpers'
 
 describe('Change password (e2e)', () => {
   const createdIds: string[] = []
@@ -16,13 +16,10 @@ describe('Change password (e2e)', () => {
 
   beforeAll(async () => {
     ;({ app, prisma, server } = await setupApp())
-    const res = await request(server)
-      .post('/api/auth/register')
-      .send({ name: 'Change Pass Test', email, password, role: 'CUSTOMER' })
-    expect(res.status).toBe(201)
-    userId = res.body.user.id
-    accessToken = res.body.accessToken
-    refreshToken = res.body.refreshToken
+    const user = await registerVerified(server, { name: 'Change Pass Test', email, password, role: 'CUSTOMER' })
+    userId = user.user.id
+    accessToken = user.accessToken
+    refreshToken = user.refreshToken
     createdIds.push(userId)
   })
 

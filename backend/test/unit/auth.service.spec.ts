@@ -1,13 +1,21 @@
 import { AuthService } from '../../src/auth/auth.service'
-import { UnauthorizedException } from '@nestjs/common'
+import { UnauthorizedException, BadRequestException } from '@nestjs/common'
 import * as bcrypt from 'bcrypt'
+import { createHash } from 'crypto'
+
+const hashOtp = (code: string) => createHash('sha256').update(code).digest('hex')
 
 describe('AuthService', () => {
   const refreshToken = { create: jest.fn(), findUnique: jest.fn(), delete: jest.fn(), deleteMany: jest.fn() }
+  const emailVerificationToken = { create: jest.fn(), findFirst: jest.fn(), update: jest.fn(), deleteMany: jest.fn() }
   const user = { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() }
-  const prisma = { user, refreshToken } as any
+  const prisma = { user, refreshToken, emailVerificationToken, $transaction: jest.fn((ops: any[]) => Promise.all(ops)) } as any
   const jwtService = { sign: jest.fn(() => 'signed-token'), verify: jest.fn() } as any
-  const emailService = { sendPasswordResetEmail: jest.fn(), sendNewArtisanPendingEmail: jest.fn() } as any
+  const emailService = {
+    sendPasswordResetEmail: jest.fn(),
+    sendNewArtisanPendingEmail: jest.fn(),
+    sendVerificationEmail: jest.fn(),
+  } as any
   const service = new AuthService(prisma, jwtService, emailService)
 
   const future = new Date(Date.now() + 86_400_000)
@@ -29,15 +37,24 @@ describe('AuthService', () => {
     it('rejects a wrong password', async () => {
       const hash = await bcrypt.hash('password123', 4)
       user.findUnique.mockResolvedValue({
-        id: 'u1', role: 'CUSTOMER', name: 'A', email: 'a@example.com', password: hash, status: 'ACTIVE',
+        id: 'u1', role: 'CUSTOMER', name: 'A', email: 'a@example.com', password: hash, status: 'ACTIVE', emailVerified: true,
       })
       await expect(service.login('a@example.com', 'wrong-password')).rejects.toThrow(UnauthorizedException)
+    })
+
+    it('blocks login until the email is verified', async () => {
+      const hash = await bcrypt.hash('password123', 4)
+      user.findUnique.mockResolvedValue({
+        id: 'u1', role: 'CUSTOMER', name: 'A', email: 'a@example.com', password: hash, status: 'ACTIVE', emailVerified: false,
+      })
+      await expect(service.login('a@example.com', 'password123')).rejects.toThrow('Please verify your email before logging in')
+      expect(refreshToken.create).not.toHaveBeenCalled()
     })
 
     it('issues tokens for a valid active user', async () => {
       const hash = await bcrypt.hash('password123', 4)
       user.findUnique.mockResolvedValue({
-        id: 'u1', role: 'CUSTOMER', name: 'A', email: 'a@example.com', password: hash, status: 'ACTIVE',
+        id: 'u1', role: 'CUSTOMER', name: 'A', email: 'a@example.com', password: hash, status: 'ACTIVE', emailVerified: true,
       })
       const result = await service.login('a@example.com', 'password123')
       expect(result).toMatchObject({ accessToken: 'signed-token', refreshToken: 'signed-token' })
@@ -52,6 +69,7 @@ describe('AuthService', () => {
       user.findUnique.mockResolvedValue(null)
       user.create.mockResolvedValue({ id: 'u1', name: 'New Art', email: 'art@example.com', role: 'ARTISAN' })
       user.findMany.mockResolvedValue([{ email: 'admin@naijahandy.com' }])
+      emailVerificationToken.create.mockResolvedValue({ id: 't1' })
       await service.register({
         name: 'New Art',
         email: 'art@example.com',
@@ -69,6 +87,7 @@ describe('AuthService', () => {
     it('does not alert admins for customer registrations', async () => {
       user.findUnique.mockResolvedValue(null)
       user.create.mockResolvedValue({ id: 'u2', name: 'Cust', email: 'cust@example.com', role: 'CUSTOMER' })
+      emailVerificationToken.create.mockResolvedValue({ id: 't2' })
       await service.register({
         name: 'Cust',
         email: 'cust@example.com',
@@ -76,6 +95,107 @@ describe('AuthService', () => {
         role: 'CUSTOMER',
       })
       expect(emailService.sendNewArtisanPendingEmail).not.toHaveBeenCalled()
+    })
+
+    it('creates an unverified account and issues no tokens', async () => {
+      user.findUnique.mockResolvedValue(null)
+      user.create.mockResolvedValue({ id: 'u3', name: 'Vera', email: 'vera@example.com', role: 'CUSTOMER', avatar: null })
+      const result = await service.register({
+        name: 'Vera',
+        email: 'vera@example.com',
+        password: 'password123',
+        role: 'CUSTOMER',
+      })
+      expect(result.verificationRequired).toBe(true)
+      expect(result as any).not.toHaveProperty('accessToken')
+      expect(user.create.mock.calls[0][0].data.emailVerified).toBe(false)
+      expect(emailService.sendVerificationEmail).not.toHaveBeenCalled()
+      expect(emailVerificationToken.create).not.toHaveBeenCalled()
+      expect(refreshToken.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('requestEmailVerification', () => {
+    it('sends a code and returns devCode when email sending is disabled', async () => {
+      user.findUnique.mockResolvedValue({ id: 'u1', email: 'vera@example.com', emailVerified: false })
+      emailVerificationToken.findFirst.mockResolvedValue(null)
+      emailVerificationToken.create.mockResolvedValue({ id: 't1' })
+      const result = await service.requestEmailVerification('vera@example.com')
+      expect(result.success).toBe(true)
+      expect(result.devCode).toMatch(/^\d{6}$/)
+      expect(emailService.sendVerificationEmail).toHaveBeenCalledWith('vera@example.com', result.devCode)
+      expect(emailVerificationToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1', used: false } })
+    })
+
+    it('rejects an unknown email', async () => {
+      user.findUnique.mockResolvedValue(null)
+      await expect(service.requestEmailVerification('nope@example.com')).rejects.toThrow(BadRequestException)
+    })
+
+    it('rejects an already verified email', async () => {
+      user.findUnique.mockResolvedValue({ id: 'u1', email: 'vera@example.com', emailVerified: true })
+      await expect(service.requestEmailVerification('vera@example.com')).rejects.toThrow('already verified')
+    })
+
+    it('throttles resends within the cooldown window', async () => {
+      user.findUnique.mockResolvedValue({ id: 'u1', email: 'vera@example.com', emailVerified: false })
+      emailVerificationToken.findFirst.mockResolvedValue({ createdAt: new Date() })
+      await expect(service.requestEmailVerification('vera@example.com')).rejects.toThrow('Please wait a minute')
+      expect(emailVerificationToken.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('confirmEmailVerification', () => {
+    const userRow = { id: 'u1', name: 'Vera', email: 'vera@example.com', role: 'CUSTOMER', avatar: null, emailVerified: false }
+    const record = { id: 't1', userId: 'u1', codeHash: hashOtp('123456'), attempts: 0, expiresAt: future, used: false }
+
+    it('verifies the email and issues tokens', async () => {
+      user.findUnique.mockResolvedValue(userRow)
+      emailVerificationToken.findFirst.mockResolvedValue(record)
+      refreshToken.create.mockResolvedValue({})
+      const result = await service.confirmEmailVerification('vera@example.com', '123456')
+      expect(emailVerificationToken.update).toHaveBeenCalledWith({ where: { id: 't1' }, data: { used: true } })
+      expect(user.update).toHaveBeenCalledWith({ where: { id: 'u1' }, data: { emailVerified: true } })
+      expect(result.accessToken).toBe('signed-token')
+      expect(result.user.email).toBe('vera@example.com')
+    })
+
+    it('rejects an unknown email', async () => {
+      user.findUnique.mockResolvedValue(null)
+      await expect(service.confirmEmailVerification('nope@example.com', '123456')).rejects.toThrow(BadRequestException)
+    })
+
+    it('rejects an already verified email', async () => {
+      user.findUnique.mockResolvedValue({ ...userRow, emailVerified: true })
+      await expect(service.confirmEmailVerification('vera@example.com', '123456')).rejects.toThrow('already verified')
+    })
+
+    it('rejects when no code has been requested', async () => {
+      user.findUnique.mockResolvedValue(userRow)
+      emailVerificationToken.findFirst.mockResolvedValue(null)
+      await expect(service.confirmEmailVerification('vera@example.com', '123456')).rejects.toThrow('No verification code found')
+    })
+
+    it('rejects an expired code and invalidates it', async () => {
+      user.findUnique.mockResolvedValue(userRow)
+      emailVerificationToken.findFirst.mockResolvedValue({ ...record, expiresAt: past })
+      await expect(service.confirmEmailVerification('vera@example.com', '123456')).rejects.toThrow('has expired')
+      expect(emailVerificationToken.update).toHaveBeenCalledWith({ where: { id: 't1' }, data: { used: true } })
+    })
+
+    it('increments the attempt counter on a wrong code', async () => {
+      user.findUnique.mockResolvedValue(userRow)
+      emailVerificationToken.findFirst.mockResolvedValue(record)
+      await expect(service.confirmEmailVerification('vera@example.com', '000000')).rejects.toThrow('Incorrect verification code')
+      expect(emailVerificationToken.update).toHaveBeenCalledWith({ where: { id: 't1' }, data: { attempts: 1 } })
+      expect(user.update).not.toHaveBeenCalled()
+    })
+
+    it('locks the code after too many wrong attempts', async () => {
+      user.findUnique.mockResolvedValue(userRow)
+      emailVerificationToken.findFirst.mockResolvedValue({ ...record, attempts: 4 })
+      await expect(service.confirmEmailVerification('vera@example.com', '000000')).rejects.toThrow('Too many incorrect attempts')
+      expect(emailVerificationToken.update).toHaveBeenCalledWith({ where: { id: 't1' }, data: { used: true, attempts: 5 } })
     })
   })
 

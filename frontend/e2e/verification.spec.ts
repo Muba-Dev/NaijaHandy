@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { verifyEmailAndGetTokens } from './support/helpers'
 
 const API_URL = 'http://localhost:4000/api'
 
@@ -27,7 +28,7 @@ test.describe('ID verification', () => {
       }),
     })
     expect(reg.ok).toBeTruthy()
-    const { accessToken } = (await reg.json()) as { accessToken: string }
+    const { accessToken } = await verifyEmailAndGetTokens(email)
 
     const me = await fetch(`${API_URL}/artisans/me`, { headers: { Authorization: `Bearer ${accessToken}` } })
     expect(me.ok).toBeTruthy()

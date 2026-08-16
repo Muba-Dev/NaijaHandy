@@ -39,6 +39,15 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(8),
 })
 
+const verifyEmailRequestSchema = z.object({
+  email: z.string().email(),
+})
+
+const verifyEmailConfirmSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6).regex(/^\d+$/),
+})
+
 @Controller('api/auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -129,6 +138,31 @@ export class AuthController {
     } catch (err) {
       if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
       if (err instanceof UnauthorizedException || err instanceof BadRequestException) throw err
+      throw new BadRequestException('Invalid request')
+    }
+  }
+
+  @Post('verify-email/request')
+  @HttpCode(HttpStatus.OK)
+  async requestEmailVerification(@Body() body: any) {
+    try {
+      const data = verifyEmailRequestSchema.parse(body)
+      return await this.authService.requestEmailVerification(data.email)
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      if (err instanceof BadRequestException) throw err
+      throw new BadRequestException('Invalid request')
+    }
+  }
+
+  @Post('verify-email/confirm')
+  async confirmEmailVerification(@Body() body: any) {
+    try {
+      const data = verifyEmailConfirmSchema.parse(body)
+      return await this.authService.confirmEmailVerification(data.email, data.code)
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      if (err instanceof BadRequestException) throw err
       throw new BadRequestException('Invalid request')
     }
   }

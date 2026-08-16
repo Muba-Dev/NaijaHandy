@@ -3,12 +3,15 @@ import { JwtService } from '@nestjs/jwt'
 import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import * as bcrypt from 'bcrypt'
-import { randomBytes } from 'crypto'
+import { randomBytes, createHash, timingSafeEqual } from 'crypto'
 import { JWT_SECRET } from '../config'
 
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000 // 1 hour
+const OTP_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const OTP_RESEND_MS = 60 * 1000 // resend cooldown
+const OTP_MAX_ATTEMPTS = 5
 const DEFAULT_AVATAR = '/avatars/default.svg'
 
 @Injectable()
@@ -52,6 +55,7 @@ export class AuthService {
         city: data.city,
         password: hashedPassword,
         role: data.role,
+        emailVerified: false,
         avatar: DEFAULT_AVATAR,
         ...(data.role === 'ARTISAN' && data.profession ? {
           artisanProfile: {
@@ -66,8 +70,6 @@ export class AuthService {
       },
     })
 
-    const tokens = await this.issueTokens({ id: user.id, role: user.role })
-
     if (data.role === 'ARTISAN') {
       const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN' }, select: { email: true } })
       for (const admin of admins) {
@@ -79,7 +81,12 @@ export class AuthService {
       }
     }
 
-    return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR } }
+    // The account exists but cannot log in until the email is verified by OTP.
+    // No tokens are issued here — first login happens via verify-email/confirm.
+    return {
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR },
+      verificationRequired: true,
+    }
   }
 
   async login(email: string, password: string) {
@@ -87,12 +94,99 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid credentials')
     if (user.status === 'SUSPENDED') throw new UnauthorizedException('Account suspended')
     if (user.status === 'DELETED') throw new UnauthorizedException('This account has been deleted')
+    if (!user.emailVerified) {
+      throw new UnauthorizedException('Please verify your email before logging in')
+    }
 
     if (!user.password) {
       throw new UnauthorizedException('This account uses Google sign-in. Please log in with Google.')
     }
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new UnauthorizedException('Invalid credentials')
+
+    const tokens = await this.issueTokens({ id: user.id, role: user.role })
+    return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR } }
+  }
+
+  // ── Email verification (signup OTP) ─────────────────────────────────────────
+
+  private static hashOtp(code: string): string {
+    return createHash('sha256').update(code).digest('hex')
+  }
+
+  private static generateOtp(): string {
+    return String(Math.floor(100000 + Math.random() * 900000))
+  }
+
+  // OTP emails are gated on EMAIL_ENABLED like every other email. When it is
+  // not set (local dev, CI), return the code in the response so the flow stays
+  // usable — the same mock pattern PAYSTACK_MOCK uses.
+  private emailVerificationDevMock(): boolean {
+    return process.env.EMAIL_ENABLED !== 'true'
+  }
+
+  private async sendVerificationCode(userId: string, email: string): Promise<string> {
+    const code = AuthService.generateOtp()
+    await this.prisma.emailVerificationToken.create({
+      data: {
+        userId,
+        codeHash: AuthService.hashOtp(code),
+        expiresAt: new Date(Date.now() + OTP_TTL_MS),
+      },
+    })
+    await this.emailService.sendVerificationEmail(email, code)
+    return code
+  }
+
+  async requestEmailVerification(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } })
+    if (!user) throw new BadRequestException('No account found with that email')
+    if (user.emailVerified) throw new BadRequestException('This email is already verified')
+
+    const last = await this.prisma.emailVerificationToken.findFirst({
+      where: { userId: user.id, used: false },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (last && Date.now() - last.createdAt.getTime() < OTP_RESEND_MS) {
+      throw new BadRequestException('A verification code was just sent. Please wait a minute before requesting another.')
+    }
+
+    await this.prisma.emailVerificationToken.deleteMany({ where: { userId: user.id, used: false } })
+    const code = await this.sendVerificationCode(user.id, user.email)
+
+    return { success: true, ...(this.emailVerificationDevMock() ? { devCode: code } : {}) }
+  }
+
+  async confirmEmailVerification(email: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } })
+    if (!user) throw new BadRequestException('No account found with that email')
+    if (user.emailVerified) throw new BadRequestException('This email is already verified')
+
+    const record = await this.prisma.emailVerificationToken.findFirst({
+      where: { userId: user.id, used: false },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!record) throw new BadRequestException('No verification code found. Please request a new one.')
+    if (record.expiresAt < new Date()) {
+      await this.prisma.emailVerificationToken.update({ where: { id: record.id }, data: { used: true } })
+      throw new BadRequestException('This verification code has expired. Please request a new one.')
+    }
+
+    const matches = timingSafeEqual(Buffer.from(record.codeHash), Buffer.from(AuthService.hashOtp(code)))
+    if (!matches) {
+      const attempts = record.attempts + 1
+      if (attempts >= OTP_MAX_ATTEMPTS) {
+        await this.prisma.emailVerificationToken.update({ where: { id: record.id }, data: { used: true, attempts } })
+        throw new BadRequestException('Too many incorrect attempts. Please request a new code.')
+      }
+      await this.prisma.emailVerificationToken.update({ where: { id: record.id }, data: { attempts } })
+      throw new BadRequestException('Incorrect verification code')
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.emailVerificationToken.update({ where: { id: record.id }, data: { used: true } }),
+      this.prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } }),
+    ])
 
     const tokens = await this.issueTokens({ id: user.id, role: user.role })
     return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR } }
@@ -209,7 +303,11 @@ export class AuthService {
     if (user) {
       user = await this.prisma.user.update({
         where: { id: user.id },
-        data: { googleId: user.googleId || profile.sub, avatar: user.avatar || profile.picture || DEFAULT_AVATAR },
+        data: {
+          googleId: user.googleId || profile.sub,
+          avatar: user.avatar || profile.picture || DEFAULT_AVATAR,
+          emailVerified: true,
+        },
       })
     } else {
       user = await this.prisma.user.create({
@@ -219,6 +317,7 @@ export class AuthService {
           googleId: profile.sub,
           avatar: profile.picture || DEFAULT_AVATAR,
           role: 'CUSTOMER',
+          emailVerified: true,
         },
       })
     }

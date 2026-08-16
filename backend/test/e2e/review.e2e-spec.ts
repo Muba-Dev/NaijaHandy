@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { setupApp, loginReq, futureDate } from './helpers'
+import { setupApp, loginReq, futureDate, registerVerified } from './helpers'
 
 describe('Booking review (e2e)', () => {
   const createdBookings: string[] = []
@@ -28,17 +28,14 @@ describe('Booking review (e2e)', () => {
     originalAvgRating = profile.avgRating
     originalTotalReviews = profile.totalReviews
 
-    const other = await request(server)
-      .post('/api/auth/register')
-      .send({
-        name: 'Other Reviewer',
-        email: `test.reviewer.${Date.now()}@example.com`,
-        password: 'password123',
-        role: 'CUSTOMER',
-      })
-    expect(other.status).toBe(201)
-    otherCustomerToken = other.body.accessToken
-    createdUserIds.push(other.body.user.id)
+    const other = await registerVerified(server, {
+      name: 'Other Reviewer',
+      email: `test.reviewer.${Date.now()}@example.com`,
+      password: 'password123',
+      role: 'CUSTOMER',
+    })
+    otherCustomerToken = other.accessToken
+    createdUserIds.push(other.user.id)
   })
 
   afterAll(async () => {

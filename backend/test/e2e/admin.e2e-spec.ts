@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { setupApp, loginReq } from './helpers'
+import { setupApp, loginReq, registerVerified } from './helpers'
 
 describe('Admin (e2e)', () => {
   const createdIds: string[] = []
@@ -59,11 +59,8 @@ describe('Admin (e2e)', () => {
 
   it('suspends a customer, locks them out, then reactivates', async () => {
     const email = `test.admin.${Date.now()}@example.com`
-    const reg = await request(server)
-      .post('/api/auth/register')
-      .send({ name: 'Suspend Me', email, password: 'password123', role: 'CUSTOMER' })
-    expect(reg.status).toBe(201)
-    const userId = reg.body.user.id
+    const reg = await registerVerified(server, { name: 'Suspend Me', email, password: 'password123', role: 'CUSTOMER' })
+    const userId = reg.user.id
     createdIds.push(userId)
 
     const suspend = await request(server)
@@ -73,7 +70,7 @@ describe('Admin (e2e)', () => {
     expect(suspend.status).toBe(200)
     expect(suspend.body.data.status).toBe('SUSPENDED')
 
-    const me = await request(server).get('/api/users/me').set('Authorization', `Bearer ${reg.body.accessToken}`)
+    const me = await request(server).get('/api/users/me').set('Authorization', `Bearer ${reg.accessToken}`)
     expect(me.status).toBe(401)
 
     const login = await loginReq(server, email, 'password123')
@@ -109,11 +106,8 @@ describe('Admin (e2e)', () => {
 
   it('deletes a customer, anonymizes their data, and locks them out', async () => {
     const email = `test.del.${Date.now()}@example.com`
-    const reg = await request(server)
-      .post('/api/auth/register')
-      .send({ name: 'Delete Me', email, password: 'password123', role: 'CUSTOMER' })
-    expect(reg.status).toBe(201)
-    const userId = reg.body.user.id
+    const reg = await registerVerified(server, { name: 'Delete Me', email, password: 'password123', role: 'CUSTOMER' })
+    const userId = reg.user.id
     createdIds.push(userId)
 
     const del = await request(server)
@@ -129,7 +123,7 @@ describe('Admin (e2e)', () => {
     expect(row.password).toBeNull()
     expect(row.email).toMatch(/^deleted-.*@naijahandy\.local$/)
 
-    const me = await request(server).get('/api/users/me').set('Authorization', `Bearer ${reg.body.accessToken}`)
+    const me = await request(server).get('/api/users/me').set('Authorization', `Bearer ${reg.accessToken}`)
     expect(me.status).toBe(401)
 
     const login = await loginReq(server, email, 'password123')
@@ -154,14 +148,11 @@ describe('Admin (e2e)', () => {
 
   it('deleting an artisan takes them offline and hides them from the public listing', async () => {
     const email = `test.art.del.${Date.now()}@example.com`
-    const reg = await request(server)
-      .post('/api/auth/register')
-      .send({ name: 'Doomed Artisan', email, password: 'password123', role: 'ARTISAN', profession: 'Kettle Repair', category: 'Home Repairs', city: 'Lagos' })
-    expect(reg.status).toBe(201)
-    const userId = reg.body.user.id
+    const reg = await registerVerified(server, { name: 'Doomed Artisan', email, password: 'password123', role: 'ARTISAN', profession: 'Kettle Repair', category: 'Home Repairs', city: 'Lagos' })
+    const userId = reg.user.id
     createdIds.push(userId)
 
-    const me = await request(server).get('/api/artisans/me').set('Authorization', `Bearer ${reg.body.accessToken}`)
+    const me = await request(server).get('/api/artisans/me').set('Authorization', `Bearer ${reg.accessToken}`)
     expect(me.status).toBe(200)
     const profileId = me.body.data.id
 

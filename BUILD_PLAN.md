@@ -379,7 +379,7 @@ The frontend now uses:
     - Effort: Hard (Paystack charge-on-delivery/split; release flow; dispute tie-in).
     - Success: completed-booking trust; fewer disputes.
 
-**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, better search filters, service guarantee, emergency/same-day urgent jobs, customer rewards (loyalty credits), **and escrow protection** — all DONE below.
+**Shipped:** WhatsApp booking, skill badges, completed-job history, response-time badges (proxy), real ID verification, review photos + verified-buyer tag, repeat booking, upfront price estimates, better search filters, service guarantee, emergency/same-day urgent jobs, customer rewards (loyalty credits), escrow protection, **and email verification at signup** — all DONE below.
 **Remaining (best next):** 12. Referral program. Escrow payouts to real bank accounts still need real Paystack keys (the mock escrow bookkeeping is done).
 **Prerequisite for payments work:** switch from `PAYSTACK_MOCK=true` to real test/live Paystack keys before real payouts; escrow/credits run on the mock gateway so the bookkeeping, UI, and tests are fully exercisable today.
 
@@ -602,3 +602,13 @@ The frontend now uses:
   - Playwright `booking.spec.ts` "Paid" assertions updated to the escrow chip text.
 - ✅ **Tests:** backend `tsc` clean; **131 unit tests** (payment escrow release/refund idempotency, HELD finalization, credits restore; booking completes→release, cancels→refund, no-escrow on unpaid) and **70 e2e** (new `escrow.e2e-spec.ts`: hold→release with `payoutAmount = ₦24,500` on ₦25,000, refund-on-cancel with credit restore, dispute RESOLVED→refund, DISMISSED→release). Frontend lint + `tsc` + build clean.
 - ⏭️ **Future upgrade path (real money):** switch `PAYSTACK_MOCK` → real keys, add artisan bank-detail capture + Paystack **Transfers** payout on release (the escrow state machine already models the payout). Credits stay a platform-funded discount (artisan payout computed on gross). Revisit the flat-₦500 fee → hybrid commission when real payouts launch.
+
+### Email verification at signup — DONE
+
+New accounts must verify their email by 6-digit OTP before their first login.
+
+- ✅ **Schema:** `User.emailVerified` (default `false`) + `EmailVerificationToken` (hashed code, 10-min expiry, `attempts` counter, `used` flag). Migration `20260816140000_add_email_verification` applied to **CI**; pre-existing users backfilled as verified. Seeded demo/admin users are created verified.
+- ✅ **Flow:** `POST /api/auth/register` creates the account but issues **no tokens** (`verificationRequired: true`). `POST /api/auth/verify-email/request` emails a 6-digit OTP (1-min resend cooldown, prior tokens invalidated); `POST /api/auth/verify-email/confirm` verifies, marks `emailVerified`, and issues the first tokens (auto-login). Login for an unverified account → 401 "Please verify your email before logging in". Codes are stored sha256-hashed; 5 wrong attempts invalidate a code. `EMAIL_ENABLED` unset (dev/CI) returns the code as `devCode` — the same mock pattern as `PAYSTACK_MOCK`.
+- ✅ **Google sign-in:** Google-created users (and existing users who sign in with Google) are marked `emailVerified: true` — Google already verified their email.
+- ✅ **Frontend:** register redirects to a new `/verify-email` screen (auto-sends the code, 6-digit input, resend with countdown, dev-code hint); login shows a "Verify your email now" link when login is blocked.
+- ✅ **Tests:** **144 unit** (login blocked until verified; register returns `verificationRequired` + no tokens; request send/unknown/already-verified/cooldown; confirm happy path, wrong code attempt counter, expiry, attempt lockout) and **74 e2e** (auth spec covers register→blocked login→OTP→tokens; new `registerVerified` helper keeps artisan/customer specs green). Frontend lint + `tsc` + build clean; Playwright specs updated for the verify flow.
