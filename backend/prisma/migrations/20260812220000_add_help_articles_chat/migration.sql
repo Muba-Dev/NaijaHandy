@@ -1,7 +1,17 @@
 -- Help Centre articles + AI support assistant (Phase 2)
--- pgvector is a Supabase-supported extension; the embedding column needs it.
+-- pgvector is optional: some hosted Postgres (e.g. Render managed) do not
+-- ship the `vector` extension. The Help Centre corpus must still work without
+-- it, so the embedding column is created as TEXT and promoted to vector(1536)
+-- only when the extension is actually available. Without the extension the
+-- embedding stays NULL (nothing to embed against) and the AI chat falls back
+-- to its keyword matcher, so the rest of the feature is unaffected.
 
-CREATE EXTENSION IF NOT EXISTS vector;
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS vector;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pgvector extension unavailable; help_articles will be created without embeddings';
+END $$;
 
 -- CreateTable
 CREATE TABLE "help_articles" (
@@ -11,12 +21,19 @@ CREATE TABLE "help_articles" (
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "order" INTEGER NOT NULL DEFAULT 0,
-    "embedding" vector(1536),
+    "embedding" text,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "help_articles_pkey" PRIMARY KEY ("id")
 );
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vector') THEN
+    ALTER TABLE "help_articles" ALTER COLUMN "embedding" TYPE vector(1536) USING "embedding"::vector;
+  END IF;
+END $$;
 
 -- CreateTable
 CREATE TABLE "support_chat_logs" (

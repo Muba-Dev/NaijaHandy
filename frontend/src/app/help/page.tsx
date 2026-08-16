@@ -1,4 +1,5 @@
 import { fetchHelpArticles } from '@/lib/api'
+import { FALLBACK_SECTIONS } from './fallback-articles'
 import HelpContent from './HelpContent'
 import type { Metadata } from 'next'
 
@@ -11,5 +12,5 @@ export const metadata: Metadata = {
 
 export default async function HelpPage() {
   const sections = await fetchHelpArticles().catch(() => [])
-  return <HelpContent sections={sections} />
+  return <HelpContent sections={sections.length > 0 ? sections : FALLBACK_SECTIONS} />
 }
