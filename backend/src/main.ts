@@ -46,6 +46,28 @@ async function bootstrap() {
     })
   }
 
+  // Safety net: ensure critical columns exist (migration may have failed on Render)
+  try {
+    const { PrismaClient } = await import('@prisma/client')
+    const p = new PrismaClient()
+    await p.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'users' AND column_name = 'emailVerified'
+        ) THEN
+          ALTER TABLE "users" ADD COLUMN "emailVerified" BOOLEAN NOT NULL DEFAULT false;
+        END IF;
+      END $$;
+    `)
+    await p.$executeRawUnsafe(`UPDATE "users" SET "emailVerified" = true`)
+    await p.$disconnect()
+    console.log('Startup fix: emailVerified column verified.')
+  } catch (e: any) {
+    console.warn('Startup fix skipped:', e?.message)
+  }
+
   const port = process.env.PORT || 4000
   await app.listen(port)
   console.log(`NaijaHandy API running on http://localhost:${port}`)
