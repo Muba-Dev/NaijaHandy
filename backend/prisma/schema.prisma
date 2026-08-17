@@ -22,38 +22,38 @@ datasource db {
 // ─── MODELS ───────────────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  city      String?
-  address   String?
-  latitude  Float?
-  longitude Float?
-  password  String?
-  googleId  String?  @unique
-  role      String   @default("CUSTOMER")
-  status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
-  emailVerified Boolean @default(false) // must verify by OTP before first login
-  avatar    String?
-  isDemo    Boolean  @default(false)
-  creditBalance Int  @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  phone         String?
+  city          String?
+  address       String?
+  latitude      Float?
+  longitude     Float?
+  password      String?
+  googleId      String?  @unique
+  role          String   @default("CUSTOMER")
+  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  emailVerified Boolean  @default(false) // must verify by OTP before first login
+  avatar        String?
+  isDemo        Boolean  @default(false)
+  creditBalance Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
-  artisanProfile     ArtisanProfile?
-  bookingsAsCustomer Booking[] @relation("CustomerBookings")
-  reviews            Review[]
-  savedArtisans      SavedArtisan[]
-  refreshTokens      RefreshToken[]
-  disputesRaised     Dispute[] @relation("RaisedDisputes")
-  passwordResetTokens PasswordResetToken[]
+  artisanProfile          ArtisanProfile?
+  bookingsAsCustomer      Booking[]                @relation("CustomerBookings")
+  reviews                 Review[]
+  savedArtisans           SavedArtisan[]
+  refreshTokens           RefreshToken[]
+  disputesRaised          Dispute[]                @relation("RaisedDisputes")
+  passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
-  notifications      Notification[]
-  supportMessages    SupportMessage[]
-  supportChatLogs    SupportChatLog[]
-  creditTransactions CreditTransaction[]
+  notifications           Notification[]
+  supportMessages         SupportMessage[]
+  supportChatLogs         SupportChatLog[]
+  creditTransactions      CreditTransaction[]
 
   @@map("users")
 }
@@ -82,15 +82,15 @@ model SupportMessage {
 // column (text-embedding-3-small, 1536 dims) managed via raw SQL — Prisma
 // only knows it exists (Unsupported), never reads/writes it directly.
 model HelpArticle {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  category  String   // Getting started | Booking & payments | Trust & safety | Disputes & guarantee | For artisans
+  id        String                       @id @default(cuid())
+  slug      String                       @unique
+  category  String // Getting started | Booking & payments | Trust & safety | Disputes & guarantee | For artisans
   title     String
   content   String
-  order     Int      @default(0)
+  order     Int                          @default(0)
   embedding Unsupported("vector(1536)")?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  createdAt DateTime                     @default(now())
+  updatedAt DateTime                     @default(now()) @updatedAt
 
   @@index([category])
   @@map("help_articles")
@@ -99,7 +99,7 @@ model HelpArticle {
 // Quality + rate-limit log for the AI assistant. Stores only the sanitized
 // question, matched article IDs, and confidence — never booking payloads.
 model SupportChatLog {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   userId     String?
   ipHash     String? // sha256 of the request IP (guest rate limiting; never raw IPs)
   question   String
@@ -107,8 +107,8 @@ model SupportChatLog {
   articleIds String? // JSON array of matched HelpArticle ids
   confidence Float?
   model      String?
-  escalated  Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  escalated  Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -119,7 +119,7 @@ model SupportChatLog {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // BOOKING_REQUEST | BOOKING_ACCEPTED | BOOKING_DECLINED | BOOKING_CANCELLED | BOOKING_COMPLETED | REVIEW_RECEIVED | PROFILE_APPROVED | PROFILE_REJECTED | PAYMENT_RECEIVED
+  type      String // BOOKING_REQUEST | BOOKING_ACCEPTED | BOOKING_DECLINED | BOOKING_CANCELLED | BOOKING_COMPLETED | REVIEW_RECEIVED | PROFILE_APPROVED | PROFILE_REJECTED | PAYMENT_RECEIVED
   title     String
   body      String
   link      String?
@@ -133,11 +133,11 @@ model Notification {
 }
 
 model RefreshToken {
-  id         String   @id @default(cuid())
-  token      String   @unique
-  userId     String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -175,29 +175,29 @@ model EmailVerificationToken {
 }
 
 model ArtisanProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  profession  String
-  category    String
-  bio         String
-  hourlyRate  Int      // in kobo (smallest NGN unit) or plain NGN
-  coverImage  String?
-  verified    Boolean  @default(false)
-  available   Boolean  @default(true)
-  approvalStatus    String @default("PENDING")   // PENDING | APPROVED | REJECTED
-  verificationStatus String @default("UNVERIFIED") // UNVERIFIED | PENDING | VERIFIED | REJECTED
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  profession         String
+  category           String
+  bio                String
+  hourlyRate         Int // in kobo (smallest NGN unit) or plain NGN
+  coverImage         String?
+  verified           Boolean  @default(false)
+  available          Boolean  @default(true)
+  approvalStatus     String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  verificationStatus String   @default("UNVERIFIED") // UNVERIFIED | PENDING | VERIFIED | REJECTED
   verificationDocUrl String?
-  isDemo   Boolean  @default(false)
-  avgRating   Float    @default(0)
-  totalReviews Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isDemo             Boolean  @default(false)
+  avgRating          Float    @default(0)
+  totalReviews       Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   services  Service[]
   portfolio PortfolioItem[]
-  bookings  Booking[] @relation("ArtisanBookings")
+  bookings  Booking[]       @relation("ArtisanBookings")
   reviews   Review[]
   savedBy   SavedArtisan[]
 
@@ -208,7 +208,7 @@ model Service {
   id        String   @id @default(cuid())
   artisanId String
   name      String
-  rate      Int      // NGN
+  rate      Int // NGN
   createdAt DateTime @default(now())
 
   artisan ArtisanProfile @relation(fields: [artisanId], references: [id], onDelete: Cascade)
@@ -229,22 +229,22 @@ model PortfolioItem {
 }
 
 model Booking {
-  id          String        @id @default(cuid())
-  customerId  String
-  artisanId   String
-  date        DateTime
-  time        String
-  description String
-  amount      Int           // NGN
-  address     String?
-  customerPhone String?
-  isUrgent    Boolean       @default(false)
-  status      String   @default("PENDING")
-  paymentStatus String      @default("UNPAID")
-  paymentReference String?  @unique
-  paidAt      DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id               String    @id @default(cuid())
+  customerId       String
+  artisanId        String
+  date             DateTime
+  time             String
+  description      String
+  amount           Int // NGN
+  address          String?
+  customerPhone    String?
+  isUrgent         Boolean   @default(false)
+  status           String    @default("PENDING")
+  paymentStatus    String    @default("UNPAID")
+  paymentReference String?   @unique
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   customer User           @relation("CustomerBookings", fields: [customerId], references: [id])
   artisan  ArtisanProfile @relation("ArtisanBookings", fields: [artisanId], references: [id])
@@ -256,22 +256,22 @@ model Booking {
 }
 
 model Payment {
-  id          String   @id @default(cuid())
-  bookingId   String   @unique
-  reference   String   @unique
-  amount      Int      // amount actually charged via Paystack (gross − credits)
-  grossAmount Int      // booking.amount (job total + fee) — for accounting/escrow
-  creditsApplied Int  @default(0)
-  status      String   @default("PENDING")
-  provider    String   @default("PAYSTACK")
-  paidAt      DateTime?
-  escrowStatus   String   @default("HELD") // HELD | RELEASED | REFUNDED
-  escrowHeldAt   DateTime?
+  id               String    @id @default(cuid())
+  bookingId        String    @unique
+  reference        String    @unique
+  amount           Int // amount actually charged via Paystack (gross − credits)
+  grossAmount      Int // booking.amount (job total + fee) — for accounting/escrow
+  creditsApplied   Int       @default(0)
+  status           String    @default("PENDING")
+  provider         String    @default("PAYSTACK")
+  paidAt           DateTime?
+  escrowStatus     String    @default("HELD") // HELD | RELEASED | REFUNDED
+  escrowHeldAt     DateTime?
   escrowReleasedAt DateTime?
   escrowRefundedAt DateTime?
-  payoutAmount    Int?     // amount released to the artisan (gross − platform fee)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  payoutAmount     Int? // amount released to the artisan (gross − platform fee)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
@@ -279,15 +279,15 @@ model Payment {
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  bookingId String   @unique
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
   customerId String
   artisanId  String
-  rating    Int      // 1–5
-  comment   String
-  photoUrl  String?
-  status    String   @default("APPROVED") // APPROVED | HIDDEN
-  createdAt DateTime @default(now())
+  rating     Int // 1–5
+  comment    String
+  photoUrl   String?
+  status     String   @default("APPROVED") // APPROVED | HIDDEN
+  createdAt  DateTime @default(now())
 
   booking  Booking        @relation(fields: [bookingId], references: [id])
   customer User           @relation(fields: [customerId], references: [id])
@@ -329,8 +329,8 @@ model SavedArtisan {
 model CreditTransaction {
   id           String   @id @default(cuid())
   userId       String
-  amount       Int      // positive = earned, negative = used
-  type         String   // EARNED | USED
+  amount       Int // positive = earned, negative = used
+  type         String // EARNED | USED
   bookingId    String?
   balanceAfter Int
   note         String?
