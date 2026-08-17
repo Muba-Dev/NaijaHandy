@@ -46,26 +46,61 @@ async function bootstrap() {
     })
   }
 
-  // Safety net: ensure critical columns exist (migration may have failed on Render)
+  // Safety net: ensure all columns exist (migrations may have failed on Render)
   try {
     const { PrismaClient } = await import('@prisma/client')
     const p = new PrismaClient()
-    await p.$executeRawUnsafe(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'users' AND column_name = 'emailVerified'
-        ) THEN
-          ALTER TABLE "users" ADD COLUMN "emailVerified" BOOLEAN NOT NULL DEFAULT false;
-        END IF;
-      END $$;
-    `)
+
+    const addCol = async (table: string, col: string, typedef: string) => {
+      const exists = await p.$queryRawUnsafe<{ exists: boolean }[]>(
+        `SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2) AS "exists"`,
+        table, col,
+      )
+      if (!exists[0]?.exists) {
+        await p.$executeRawUnsafe(`ALTER TABLE "${table}" ADD COLUMN "${col}" ${typedef}`)
+        console.log(`Startup fix: added "${col}" to "${table}"`)
+      }
+    }
+
+    // users
+    await addCol('users', 'status', `TEXT NOT NULL DEFAULT 'ACTIVE'`)
+    await addCol('users', 'googleId', 'TEXT')
+    await addCol('users', 'isDemo', 'BOOLEAN NOT NULL DEFAULT false')
+    await addCol('users', 'address', 'TEXT')
+    await addCol('users', 'latitude', 'DOUBLE PRECISION')
+    await addCol('users', 'longitude', 'DOUBLE PRECISION')
+    await addCol('users', 'creditBalance', 'INTEGER NOT NULL DEFAULT 0')
+    await addCol('users', 'emailVerified', 'BOOLEAN NOT NULL DEFAULT false')
     await p.$executeRawUnsafe(`UPDATE "users" SET "emailVerified" = true`)
+
+    // artisan_profiles
+    await addCol('artisan_profiles', 'approvalStatus', `TEXT NOT NULL DEFAULT 'PENDING'`)
+    await addCol('artisan_profiles', 'verificationStatus', `TEXT NOT NULL DEFAULT 'UNVERIFIED'`)
+    await addCol('artisan_profiles', 'isDemo', 'BOOLEAN NOT NULL DEFAULT false')
+    await addCol('artisan_profiles', 'verificationDocUrl', 'TEXT')
+
+    // payments
+    await addCol('payments', 'creditsApplied', 'INTEGER NOT NULL DEFAULT 0')
+    await addCol('payments', 'grossAmount', 'INTEGER NOT NULL DEFAULT 0')
+    await addCol('payments', 'escrowStatus', `TEXT NOT NULL DEFAULT 'HELD'`)
+    await addCol('payments', 'escrowHeldAt', 'TIMESTAMP(3)')
+    await addCol('payments', 'escrowReleasedAt', 'TIMESTAMP(3)')
+    await addCol('payments', 'escrowRefundedAt', 'TIMESTAMP(3)')
+    await addCol('payments', 'payoutAmount', 'INTEGER')
+
+    // bookings
+    await addCol('bookings', 'address', 'TEXT')
+    await addCol('bookings', 'customerPhone', 'TEXT')
+    await addCol('bookings', 'isUrgent', 'BOOLEAN NOT NULL DEFAULT false')
+
+    // reviews
+    await addCol('reviews', 'status', `TEXT NOT NULL DEFAULT 'APPROVED'`)
+    await addCol('reviews', 'photoUrl', 'TEXT')
+
     await p.$disconnect()
-    console.log('Startup fix: emailVerified column verified.')
+    console.log('Startup fix: all columns verified.')
   } catch (e: any) {
-    console.warn('Startup fix skipped:', e?.message)
+    console.warn('Startup fix error:', e?.message)
   }
 
   const port = process.env.PORT || 4000
