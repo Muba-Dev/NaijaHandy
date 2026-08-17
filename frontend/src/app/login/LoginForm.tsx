@@ -39,7 +39,7 @@ export default function LoginForm() {
         router.push(user.role === 'ARTISAN' ? '/dashboard/artisan' : '/dashboard/customer')
       }
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Login failed. Check your credentials.'))
+      setError(getApiErrorMessage(err, 'Email or password is incorrect.'))
       setLoading(false)
     }
   }

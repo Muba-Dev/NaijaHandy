@@ -36,11 +36,6 @@ export default function ArtisanCard({ artisan }: Props) {
             <div className="flex items-center gap-1.5">
               <h3 className="truncate font-semibold text-gray-900">{artisan.name}</h3>
               {artisan.verified && <BadgeCheck size={16} className="shrink-0 text-[#047857]" aria-label="Verified artisan" />}
-              {artisan.isDemo && (
-                <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700" title="Demo profile">
-                  Demo
-                </span>
-              )}
             </div>
             <p className="text-sm text-gray-500">{artisan.profession}</p>
             <div className="mt-1 flex items-center gap-1">
@@ -89,21 +84,12 @@ export default function ArtisanCard({ artisan }: Props) {
         >
           View Profile
         </Link>
-        {artisan.isDemo ? (
-          <span
-            className="flex-1 cursor-not-allowed rounded-xl bg-gray-200 py-2.5 text-center text-sm font-semibold text-gray-600"
-            title="Demo profile — not bookable"
-          >
-            Demo profile
-          </span>
-        ) : (
-          <Link
-            href={`/artisans/${artisan.id}`}
-            className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-700 hover:to-teal-600"
-          >
-            Book Now
-          </Link>
-        )}
+        <Link
+          href={`/artisans/${artisan.id}`}
+          className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-700 hover:to-teal-600"
+        >
+          Book Now
+        </Link>
       </div>
     </div>
   )

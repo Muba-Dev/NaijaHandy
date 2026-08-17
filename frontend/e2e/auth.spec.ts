@@ -12,7 +12,7 @@ test.describe('Authentication', () => {
     await page.locator('main form input[type="email"]').fill('nobody@example.com')
     await page.locator('main form input[type="password"]').fill('wrong-password')
     await page.getByRole('button', { name: 'Log In' }).click()
-    await expect(page.getByText(/Invalid credentials|Login failed/)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/Email or password is incorrect/)).toBeVisible({ timeout: 15_000 })
   })
 
   test('logs in as a customer and lands on the dashboard', async ({ page }) => {

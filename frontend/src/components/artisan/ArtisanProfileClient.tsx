@@ -267,11 +267,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                         <XCircle size={12} aria-hidden="true" /> Verification rejected
                       </span>
                     )}
-                    {artisan.isDemo && (
-                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-amber-700">
-                        Demo profile
-                      </span>
-                    )}
+
                   </div>
 
                   <p className="mt-1 text-gray-500 md:text-lg">{artisan.profession}</p>
@@ -323,7 +319,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
 
               {/* Actions */}
               <div className="flex shrink-0 gap-2 lg:ml-auto lg:flex-col">
-                {artisan.phone && !artisan.isDemo ? (
+                {artisan.phone ? (
                   <a href={`tel:${artisan.phone}`} className={actionBtn} aria-label={`Call ${artisan.name}`}>
                     <Phone size={15} aria-hidden="true" /> Call
                   </a>
@@ -332,7 +328,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                     <Phone size={15} aria-hidden="true" /> Call
                   </button>
                 )}
-                {whatsappLink && !artisan.isDemo ? (
+                {whatsappLink ? (
                   <a
                     href={whatsappLink}
                     target="_blank"
@@ -591,13 +587,6 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
               <p className="mt-1 text-xs text-gray-500">Prices vary by job details and duration</p>
 
               <div className="mt-5 space-y-3">
-                {artisan.isDemo ? (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-sm font-semibold text-amber-800">Demo profile — not bookable</p>
-                    <p className="mt-1 text-xs text-amber-700">This profile is sample data for browsing. Register or contact us to book a verified artisan.</p>
-                  </div>
-                ) : (
-                  <>
                     <button
                       onClick={handleInstantRequest}
                       disabled={bookingSubmitting}
@@ -720,8 +709,6 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                         className={`${inputCls} resize-none`}
                       />
                     </div>
-                  </>
-                )}
               </div>
 
               {/* Estimate */}
@@ -752,19 +739,13 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
                 </Link>
               </div>
 
-              {artisan.isDemo ? (
-                <div className="mt-4 block w-full cursor-not-allowed rounded-xl border border-amber-200 bg-amber-50 py-3.5 text-center text-sm font-semibold text-amber-800">
-                  Demo profile — not bookable
-                </div>
-              ) : (
-                <button
-                  onClick={handleBook}
-                  disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
-                  className="mt-4 block w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:from-emerald-700 hover:to-teal-600 disabled:opacity-50"
-                >
-                  {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
-                </button>
-              )}
+              <button
+                onClick={handleBook}
+                disabled={bookingSubmitting || !bookingDate || !bookingTime || !jobDesc}
+                className="mt-4 block w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:from-emerald-700 hover:to-teal-600 disabled:opacity-50"
+              >
+                {bookingSubmitting ? 'Booking…' : bookingSuccess ? 'Booking Created — Pay Later ✓' : 'Proceed to Book & Pay'}
+              </button>
               {bookingError && <p className="mt-2 text-center text-xs text-red-600" role="alert">{bookingError}</p>}
               <p className="mt-2.5 text-center text-xs text-gray-500">Instant requests are free — you&apos;ll only pay when completing checkout</p>
               <Link href="/help" className="mt-2 block text-center text-xs font-medium text-[#047857] hover:underline">

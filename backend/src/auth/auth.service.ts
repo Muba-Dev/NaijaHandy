@@ -91,7 +91,7 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } })
-    if (!user) throw new UnauthorizedException('Invalid credentials')
+    if (!user) throw new UnauthorizedException('Email or password is incorrect')
     if (user.status === 'SUSPENDED') throw new UnauthorizedException('Account suspended')
     if (user.status === 'DELETED') throw new UnauthorizedException('This account has been deleted')
     if (!user.emailVerified) {
@@ -102,7 +102,7 @@ export class AuthService {
       throw new UnauthorizedException('This account uses Google sign-in. Please log in with Google.')
     }
     const valid = await bcrypt.compare(password, user.password)
-    if (!valid) throw new UnauthorizedException('Invalid credentials')
+    if (!valid) throw new UnauthorizedException('Email or password is incorrect')
 
     const tokens = await this.issueTokens({ id: user.id, role: user.role })
     return { ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || DEFAULT_AVATAR } }
