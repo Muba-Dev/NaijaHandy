@@ -8,6 +8,7 @@ export class UserService {
   private readonly select = {
     id: true, name: true, email: true, phone: true, city: true, address: true,
     latitude: true, longitude: true, role: true, avatar: true, creditBalance: true,
+    bankName: true, bankAccountNumber: true, bankAccountName: true,
   } as const
 
   async findMe(userId: string) {
@@ -18,7 +19,7 @@ export class UserService {
   }
 
   async updateMe(userId: string, data: any) {
-    const { name, phone, city, avatar, address, latitude, longitude } = data
+    const { name, phone, city, avatar, address, latitude, longitude, bankName, bankAccountNumber, bankAccountName } = data
 
     let lat: number | undefined
     let lng: number | undefined
@@ -40,6 +41,9 @@ export class UserService {
         address,
         latitude: lat,
         longitude: lng,
+        bankName: bankName ?? undefined,
+        bankAccountNumber: bankAccountNumber ?? undefined,
+        bankAccountName: bankAccountName ?? undefined,
       },
       select: this.select,
     })

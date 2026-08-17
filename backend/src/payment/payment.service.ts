@@ -7,8 +7,9 @@ import { PLATFORM_FEE } from '../domain/booking'
 
 const SECRET_KEY = () => process.env.PAYSTACK_SECRET_KEY || ''
 const BASE_URL = () => process.env.PAYSTACK_BASE_URL || 'https://api.paystack.co'
-const CALLBACK_URL = () => process.env.PAYSTACK_CALLBACK_URL || 'http://localhost:3000/bookings'
-const MOCK = () => process.env.PAYSTACK_MOCK === 'true'
+const FRONTEND_URL = () => process.env.FRONTEND_URL || 'http://localhost:3000'
+const CALLBACK_URL = () => process.env.PAYSTACK_CALLBACK_URL || `${FRONTEND_URL()}/bookings`
+const MOCK = () => process.env.PAYSTACK_MOCK === 'true' || !SECRET_KEY()
 
 @Injectable()
 export class PaymentService {

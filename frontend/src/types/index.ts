@@ -120,6 +120,9 @@ export interface AuthUser {
   latitude?: number | null
   longitude?: number | null
   creditBalance?: number
+  bankName?: string | null
+  bankAccountNumber?: string | null
+  bankAccountName?: string | null
 }
 
 export interface CreditTransaction {

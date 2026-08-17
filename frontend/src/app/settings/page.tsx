@@ -37,6 +37,12 @@ export default function ProfileSettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [changingPassword, setChangingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
+  const [bankName, setBankName] = useState('')
+  const [bankAccountNumber, setBankAccountNumber] = useState('')
+  const [bankAccountName, setBankAccountName] = useState('')
+  const [bankSaving, setBankSaving] = useState(false)
+  const [bankSaved, setBankSaved] = useState(false)
+  const [bankError, setBankError] = useState('')
 
   useEffect(() => {
     fetchMe().then((u) => {
@@ -44,6 +50,9 @@ export default function ProfileSettingsPage() {
       setName(u.name)
       setPhone(u.phone || '')
       setCity(u.city || '')
+      setBankName(u.bankName || '')
+      setBankAccountNumber(u.bankAccountNumber || '')
+      setBankAccountName(u.bankAccountName || '')
     }).catch(() => setError('Could not load your profile. Please refresh.'))
   }, [])
 
@@ -310,7 +319,7 @@ export default function ProfileSettingsPage() {
                   ))}
                 </div>
 
-                <div className="flex items-start gap-2.5 bg-[#ECFDF5] border border-emerald-100 rounded-xl px-4 py-3 text-sm text-emerald-800">
+                <div className="flex items-start gap-2.5 bg-[#ECFDF5] border border-emerald-100 rounded-xl px-4 py-3 text-sm text-emerald-800 mb-6">
                   <ShieldCheck size={16} className="shrink-0 mt-0.5 text-[#047857]" aria-hidden="true" />
                   <p className="leading-relaxed">
                     Your payment is held in escrow and only released to the artisan once you mark the job as
@@ -319,6 +328,96 @@ export default function ProfileSettingsPage() {
                       NaijaHandy Guarantee
                     </Link>.
                   </p>
+                </div>
+
+                <div className="border-t border-gray-100 pt-6">
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    {user?.role === 'ARTISAN' ? 'Payout Bank Details' : 'Saved Bank Account'}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {user?.role === 'ARTISAN'
+                      ? 'Add your bank account details for receiving payouts when jobs are completed.'
+                      : 'Save a bank account for faster checkout in the future.'}
+                  </p>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault()
+                    setBankSaving(true)
+                    setBankSaved(false)
+                    setBankError('')
+                    try {
+                      const updated = await updateProfile({ bankName, bankAccountNumber, bankAccountName })
+                      setUser((u) => (u ? { ...u, ...updated } : u))
+                      setStoredUser(updated)
+                      setBankSaved(true)
+                    } catch (err) {
+                      setBankError(getApiErrorMessage(err, 'Failed to save bank details.'))
+                    } finally {
+                      setBankSaving(false)
+                    }
+                  }} className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                      <select
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:border-[#047857] focus:bg-white focus:outline-none"
+                      >
+                        <option value="">Select your bank</option>
+                        <option>Access Bank</option>
+                        <option>Carbon (Formerly Paylater)</option>
+                        <option>Citibank Nigeria</option>
+                        <option>Ecobank Nigeria</option>
+                        <option>Fidelity Bank</option>
+                        <option>First Bank of Nigeria</option>
+                        <option>First City Monument Bank</option>
+                        <option>Globus Bank</option>
+                        <option>Guaranty Trust Bank</option>
+                        <option>Heritage Bank</option>
+                        <option>Keystone Bank</option>
+                        <option>Kuda Bank</option>
+                        <option>Paga</option>
+                        <option>Polaris Bank</option>
+                        <option>Providus Bank</option>
+                        <option>Sterling Bank</option>
+                        <option>TD Africa</option>
+                        <option>Titan Trust Bank</option>
+                        <option>Union Bank</option>
+                        <option>United Bank for Africa</option>
+                        <option>VFD Microfinance Bank</option>
+                        <option>Wema Bank</option>
+                        <option>Zenith Bank</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                      <input
+                        type="text"
+                        value={bankAccountNumber}
+                        onChange={(e) => setBankAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="e.g. 1234567890"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#047857] focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Account Name</label>
+                      <input
+                        type="text"
+                        value={bankAccountName}
+                        onChange={(e) => setBankAccountName(e.target.value)}
+                        placeholder="e.g. Chisom Okonkwo"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#047857] focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                    {bankError && <p className="text-sm text-red-600">{bankError}</p>}
+                    {bankSaved && <p className="text-sm text-emerald-600">Bank details saved successfully.</p>}
+                    <button
+                      type="submit"
+                      disabled={bankSaving || !bankName || !bankAccountNumber || !bankAccountName}
+                      className="rounded-xl bg-[#047857] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#065f46] disabled:opacity-50"
+                    >
+                      {bankSaving ? 'Saving…' : 'Save Bank Details'}
+                    </button>
+                  </form>
                 </div>
               </div>
             )}

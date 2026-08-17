@@ -71,6 +71,9 @@ async function bootstrap() {
     await addCol('users', 'longitude', 'DOUBLE PRECISION')
     await addCol('users', 'creditBalance', 'INTEGER NOT NULL DEFAULT 0')
     await addCol('users', 'emailVerified', 'BOOLEAN NOT NULL DEFAULT false')
+    await addCol('users', 'bankName', 'TEXT')
+    await addCol('users', 'bankAccountNumber', 'TEXT')
+    await addCol('users', 'bankAccountName', 'TEXT')
     await p.$executeRawUnsafe(`UPDATE "users" SET "emailVerified" = true`)
 
     // artisan_profiles

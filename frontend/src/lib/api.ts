@@ -350,7 +350,7 @@ export async function createReview(bookingId: string, rating: number, comment: s
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export async function updateProfile(payload: { name?: string; phone?: string; city?: string; avatar?: string; address?: string; latitude?: number; longitude?: number }) {
+export async function updateProfile(payload: { name?: string; phone?: string; city?: string; avatar?: string; address?: string; latitude?: number; longitude?: number; bankName?: string; bankAccountNumber?: string; bankAccountName?: string }) {
   const { data } = await api.patch('/users/me', payload)
   return data.data
 }
