@@ -95,9 +95,6 @@ export class BookingService {
     if (!canTransitionBookingStatus(current.status, status)) {
       throw new ForbiddenException(`Cannot change booking from ${current.status} to ${status}`)
     }
-    if (status === 'CONFIRMED' && current.paymentStatus !== 'PAID') {
-      throw new ForbiddenException('Booking must be paid before it can be confirmed')
-    }
 
     const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
 
