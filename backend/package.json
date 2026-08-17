@@ -10,6 +10,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:fix": "ts-node scripts/fix-email-verified.ts",
     "db:studio": "prisma studio",
     "db:seed": "ts-node-dev prisma/seed.ts",
     "db:reset-token": "node scripts/last-reset-token.mjs",
