@@ -100,6 +100,85 @@ async function bootstrap() {
     await addCol('reviews', 'status', `TEXT NOT NULL DEFAULT 'APPROVED'`)
     await addCol('reviews', 'photoUrl', 'TEXT')
 
+    // Ensure missing tables exist
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "refresh_tokens" (
+        "id" TEXT NOT NULL, "userId" TEXT NOT NULL, "token" TEXT NOT NULL,
+        "expiresAt" TIMESTAMP(3) NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "refresh_tokens_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "refresh_tokens_userId_idx" ON "refresh_tokens"("userId")`)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "email_verification_tokens" (
+        "id" TEXT NOT NULL, "userId" TEXT NOT NULL, "codeHash" TEXT NOT NULL,
+        "expiresAt" TIMESTAMP(3) NOT NULL, "used" BOOLEAN NOT NULL DEFAULT false,
+        "attempts" INTEGER NOT NULL DEFAULT 0, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "email_verification_tokens_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "email_verification_tokens_userId_createdAt_idx" ON "email_verification_tokens"("userId", "createdAt")`)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "password_reset_tokens" (
+        "id" TEXT NOT NULL, "userId" TEXT NOT NULL, "tokenHash" TEXT NOT NULL,
+        "expiresAt" TIMESTAMP(3) NOT NULL, "used" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "password_reset_tokens_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "notifications" (
+        "id" TEXT NOT NULL, "userId" TEXT NOT NULL, "type" TEXT NOT NULL,
+        "title" TEXT NOT NULL, "body" TEXT NOT NULL, "link" TEXT,
+        "read" BOOLEAN NOT NULL DEFAULT false, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "notifications_userId_createdAt_idx" ON "notifications"("userId", "createdAt")`)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "credit_transactions" (
+        "id" TEXT NOT NULL, "userId" TEXT NOT NULL, "amount" INTEGER NOT NULL,
+        "type" TEXT NOT NULL, "bookingId" TEXT, "balanceAfter" INTEGER NOT NULL,
+        "note" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "credit_transactions_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "credit_transactions_userId_createdAt_idx" ON "credit_transactions"("userId", "createdAt")`)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "support_messages" (
+        "id" TEXT NOT NULL, "userId" TEXT, "name" TEXT NOT NULL, "email" TEXT NOT NULL,
+        "phone" TEXT, "subject" TEXT, "message" TEXT NOT NULL, "status" TEXT NOT NULL DEFAULT 'NEW',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "support_messages_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "help_articles" (
+        "id" TEXT NOT NULL, "title" TEXT NOT NULL, "category" TEXT NOT NULL,
+        "question" TEXT NOT NULL, "answer" TEXT NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "help_articles_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "support_chat_logs" (
+        "id" TEXT NOT NULL, "userId" TEXT, "sessionId" TEXT NOT NULL,
+        "role" TEXT NOT NULL, "content" TEXT NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "support_chat_logs_pkey" PRIMARY KEY ("id")
+      )
+    `)
+    await p.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "support_chat_logs_sessionId_createdAt_idx" ON "support_chat_logs"("sessionId", "createdAt")`)
+    await p.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "disputes" (
+        "id" TEXT NOT NULL, "bookingId" TEXT NOT NULL, "raisedById" TEXT NOT NULL,
+        "reason" TEXT NOT NULL, "description" TEXT NOT NULL, "status" TEXT NOT NULL DEFAULT 'OPEN',
+        "resolution" TEXT, "resolvedAt" TIMESTAMP(3), "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "disputes_pkey" PRIMARY KEY ("id")
+      )
+    `)
+
     await p.$disconnect()
     console.log('Startup fix: all columns verified.')
   } catch (e: any) {
