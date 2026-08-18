@@ -78,7 +78,9 @@ async function bootstrap() {
 
     // artisan_profiles
     await addCol('artisan_profiles', 'approvalStatus', `TEXT NOT NULL DEFAULT 'PENDING'`)
+    await p.$executeRawUnsafe(`UPDATE "artisan_profiles" SET "approvalStatus" = 'APPROVED'`)
     await addCol('artisan_profiles', 'verificationStatus', `TEXT NOT NULL DEFAULT 'UNVERIFIED'`)
+    await p.$executeRawUnsafe(`UPDATE "artisan_profiles" SET "verificationStatus" = 'VERIFIED', "verified" = true`)
     await addCol('artisan_profiles', 'isDemo', 'BOOLEAN NOT NULL DEFAULT false')
     await addCol('artisan_profiles', 'verificationDocUrl', 'TEXT')
 

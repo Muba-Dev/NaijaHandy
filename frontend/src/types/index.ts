@@ -73,6 +73,7 @@ export interface PlatformStats {
   cities: number
   jobsCompleted: number
   reviews: number
+  totalUsers: number
 }
 
 export interface Booking {

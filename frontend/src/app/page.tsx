@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
-  Search, Briefcase, MapPin, ArrowRight, ArrowUpRight, Calendar, Shield,
+  Search, Briefcase, MapPin, ArrowRight, ArrowUpRight, Calendar, Shield, Users,
   ShieldCheck, Star, Wrench, Zap, Hammer, PaintBucket, Car, Scissors, Home, Layers, Flame,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -103,9 +103,10 @@ export default function HomePage() {
 
   const statTiles = [
     { label: 'Verified Artisans', value: stats?.artisans ?? 0, icon: ShieldCheck, grad: 'from-emerald-400 to-teal-500', suffix: '' },
-    { label: 'Cities Covered', value: stats?.cities ?? 0, icon: MapPin, grad: 'from-sky-400 to-blue-500', suffix: '' },
+    { label: 'Total Users', value: stats?.totalUsers ?? 0, icon: Users, grad: 'from-sky-400 to-blue-500', suffix: '' },
     { label: 'Jobs Completed', value: stats?.jobsCompleted ?? 0, icon: Briefcase, grad: 'from-amber-400 to-orange-500', suffix: '' },
     { label: 'Customer Reviews', value: stats?.reviews ?? 0, icon: Star, grad: 'from-violet-400 to-purple-500', suffix: '' },
+    { label: 'Cities Covered', value: stats?.cities ?? 0, icon: MapPin, grad: 'from-pink-400 to-rose-500', suffix: '' },
   ]
 
   return (

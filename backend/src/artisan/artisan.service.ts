@@ -124,19 +124,21 @@ export class ArtisanService {
       where: { approvalStatus: 'APPROVED', ...demoFilter, user: { city: { not: null }, status: { not: 'DELETED' } } },
       select: { user: { select: { city: true } } },
     })
-    const [jobsCompleted, reviews] = await Promise.all([
+    const [jobsCompleted, reviews, totalUsers] = await Promise.all([
       this.prisma.booking.count({
         where: { status: 'COMPLETED', artisan: { approvalStatus: 'APPROVED', ...demoFilter, user: { is: { status: { not: 'DELETED' } } } } },
       }),
       this.prisma.review.count({
         where: { status: 'APPROVED', artisan: { approvalStatus: 'APPROVED', ...demoFilter, user: { is: { status: { not: 'DELETED' } } } } },
       }),
+      this.prisma.user.count({ where: { status: { not: 'DELETED' } } }),
     ])
     return {
       artisans: profiles.length,
       cities: new Set(profiles.map((p) => p.user.city)).size,
       jobsCompleted,
       reviews,
+      totalUsers,
     }
   }
 
