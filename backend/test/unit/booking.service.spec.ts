@@ -214,6 +214,17 @@ describe('BookingService', () => {
         }),
       )
     })
+
+    it('throws a Conflict when the booking changed during the update', async () => {
+      booking.findUnique.mockResolvedValue({ ...baseBooking, paymentStatus: 'PAID', updatedAt: new Date() })
+      booking.update.mockRejectedValue({ code: 'P2025' })
+
+      await expect(service.updateStatus('a1', 'ARTISAN', 'b1', 'CONFIRMED')).rejects.toThrow(
+        'This booking was updated by someone else. Refresh and try again.',
+      )
+      expect(paymentService.releaseEscrow).not.toHaveBeenCalled()
+      expect(notificationsService.create).not.toHaveBeenCalled()
+    })
   })
 
   describe('create', () => {

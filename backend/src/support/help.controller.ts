@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, UseGuards, Header } from '@nestjs/common'
 import { HelpService } from './help.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../auth/roles.guard'
@@ -9,6 +9,9 @@ export class HelpController {
   constructor(private helpService: HelpService) {}
 
   @Get('articles')
+  // Help articles are a public, infrequently-changing corpus (also the RAG
+  // source) — safe to cache briefly so repeated loads don't re-read from DB.
+  @Header('Cache-Control', 'public, max-age=300')
   async list() {
     return { data: await this.helpService.listArticles() }
   }

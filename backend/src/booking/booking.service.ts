@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
+import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
@@ -117,10 +117,24 @@ export class BookingService {
       }
     }
 
-    const updated = await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: status === 'CONFIRMED' ? { status, confirmedAt: new Date() } : { status },
-    })
+    // Optimistic concurrency: guard the write on the `updatedAt` we just read so a
+    // concurrent status change (e.g. artisan confirms while the customer cancels)
+    // is detected instead of silently lost. When it clashes, abort before any
+    // escrow/notification side effects and tell the client to refresh + retry.
+    let updated
+    try {
+      updated = await this.prisma.booking.update({
+        where: { id: bookingId, updatedAt: current.updatedAt },
+        data: status === 'CONFIRMED' ? { status, confirmedAt: new Date() } : { status },
+      })
+    } catch (err) {
+      if ((err as { code?: string })?.code === 'P2025') {
+        throw new ConflictException(
+          'This booking was updated by someone else. Refresh and try again.',
+        )
+      }
+      throw err
+    }
 
     // Escrow lifecycle: completing a paid job releases the held payment to the
     // artisan; cancelling a paid job refunds it to the customer. Release and

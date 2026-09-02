@@ -43,9 +43,23 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
+const ALL_TAB_IDS = TABS.map((t) => t.id)
+
+function isTabId(v: string | null): v is TabId {
+  return !!v && (ALL_TAB_IDS as string[]).includes(v)
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<TabId>('overview')
+  // Persist the active tab in the URL (?tab=…) so the selection survives a
+  // reload and is shareable. Falls back to the in-memory default if absent.
+  const [tab, setTab] = useState<TabId>(() => {
+    if (typeof window !== 'undefined') {
+      const fromUrl = new URLSearchParams(window.location.search).get('tab')
+      if (isTabId(fromUrl)) return fromUrl
+    }
+    return 'overview'
+  })
   const [user, setUser] = useState<AuthUser | null>(null)
 
   const [stats, setStats] = useState<AdminStats | null>(null)
@@ -71,6 +85,16 @@ export default function AdminDashboardPage() {
   const [notice, setNotice] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+
+  // Keep the ?tab= URL segment in sync with the selected tab (non-navigating).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('tab') !== tab) {
+      url.searchParams.set('tab', tab)
+      window.history.replaceState(null, '', url.pathname + url.search)
+    }
+  }, [tab])
 
   const { busy: uploadingAvatar, error: avatarError, handleFile: handleAvatarFile } = useImageUpload({
     validate: (file) => {
