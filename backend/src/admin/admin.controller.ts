@@ -1,8 +1,29 @@
-import { Controller, Get, Patch, Post, Delete, Param, Body, Query, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, Patch, Post, Delete, Param, Body, Query, Req, UseGuards, BadRequestException } from '@nestjs/common'
 import { AdminService } from './admin.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../auth/roles.guard'
 import { Roles } from '../auth/roles.decorator'
+import { z } from 'zod'
+
+const approvalSchema = z.object({
+  approvalStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
+})
+const verificationSchema = z.object({
+  verificationStatus: z.enum(['UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED']),
+})
+const userStatusSchema = z.object({
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'DELETED']),
+})
+const reviewStatusSchema = z.object({
+  status: z.enum(['APPROVED', 'HIDDEN']),
+})
+const resolveDisputeSchema = z.object({
+  status: z.enum(['RESOLVED', 'DISMISSED']),
+  resolution: z.string().max(2000).optional(),
+})
+const supportStatusSchema = z.object({
+  status: z.enum(['OPEN', 'REPLIED', 'CLOSED']),
+})
 
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -21,13 +42,25 @@ export class AdminController {
   }
 
   @Patch('artisans/:id/approval')
-  async setArtisanApproval(@Param('id') id: string, @Body('approvalStatus') approvalStatus: string) {
-    return { data: await this.adminService.setArtisanApproval(id, approvalStatus) }
+  async setArtisanApproval(@Param('id') id: string, @Body() body: any) {
+    try {
+      const { approvalStatus } = approvalSchema.parse(body)
+      return { data: await this.adminService.setArtisanApproval(id, approvalStatus) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
   }
 
   @Patch('artisans/:id/verification')
-  async setArtisanVerification(@Param('id') id: string, @Body('verificationStatus') verificationStatus: string) {
-    return { data: await this.adminService.setArtisanVerification(id, verificationStatus) }
+  async setArtisanVerification(@Param('id') id: string, @Body() body: any) {
+    try {
+      const { verificationStatus } = verificationSchema.parse(body)
+      return { data: await this.adminService.setArtisanVerification(id, verificationStatus) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
   }
 
   @Get('users')
@@ -36,8 +69,14 @@ export class AdminController {
   }
 
   @Patch('users/:id/status')
-  async setUserStatus(@Param('id') id: string, @Body('status') status: string) {
-    return { data: await this.adminService.setUserStatus(id, status) }
+  async setUserStatus(@Param('id') id: string, @Body() body: any) {
+    try {
+      const { status } = userStatusSchema.parse(body)
+      return { data: await this.adminService.setUserStatus(id, status) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
   }
 
   @Delete('users/:id')
@@ -51,8 +90,14 @@ export class AdminController {
   }
 
   @Patch('reviews/:id/status')
-  async setReviewStatus(@Param('id') id: string, @Body('status') status: string) {
-    return { data: await this.adminService.setReviewStatus(id, status) }
+  async setReviewStatus(@Param('id') id: string, @Body() body: any) {
+    try {
+      const { status } = reviewStatusSchema.parse(body)
+      return { data: await this.adminService.setReviewStatus(id, status) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
   }
 
   @Get('bookings')
@@ -72,7 +117,13 @@ export class AdminController {
 
   @Post('disputes/:id/resolve')
   async resolveDispute(@Param('id') id: string, @Body() body: any) {
-    return { data: await this.adminService.resolveDispute(id, body.status, body.resolution) }
+    try {
+      const { status, resolution } = resolveDisputeSchema.parse(body)
+      return { data: await this.adminService.resolveDispute(id, status, resolution) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
   }
 
   @Get('support-messages')
@@ -81,7 +132,13 @@ export class AdminController {
   }
 
   @Patch('support-messages/:id/status')
-  async setSupportMessageStatus(@Param('id') id: string, @Body('status') status: string) {
-    return { data: await this.adminService.setSupportMessageStatus(id, status) }
+  async setSupportMessageStatus(@Param('id') id: string, @Body() body: any) {
+    try {
+      const { status } = supportStatusSchema.parse(body)
+      return { data: await this.adminService.setSupportMessageStatus(id, status) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
   }
 }

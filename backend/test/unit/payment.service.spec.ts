@@ -24,7 +24,7 @@ describe('PaymentService', () => {
     return Promise.all(arg as unknown[])
   })
   const notificationsService = { create: jest.fn() } as any
-  const creditsService = { use: jest.fn(), award: jest.fn() } as any
+  const creditsService = { use: jest.fn(), award: jest.fn(), useInTx: jest.fn(), awardInTx: jest.fn() } as any
   const service = new PaymentService(prisma, notificationsService, creditsService)
 
   const event = {
@@ -99,9 +99,12 @@ describe('PaymentService', () => {
       )
 
       await expect(service.handleWebhook(chargedBody, undefined)).resolves.toMatchObject({ status: 'SUCCESS' })
-      expect(userUpdate).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { creditBalance: 5000 } })
-      expect(creditTransactionCreate).toHaveBeenCalledWith(
-        { data: expect.objectContaining({ userId: 'c1', amount: -5000, type: 'USED', bookingId: 'b1', balanceAfter: 5000 }) },
+      expect(creditsService.useInTx).toHaveBeenCalledWith(
+        prisma,
+        'c1',
+        5000,
+        'b1',
+        expect.stringContaining('Applied to booking'),
       )
     })
 
@@ -114,7 +117,7 @@ describe('PaymentService', () => {
       bookingFindUnique.mockResolvedValue({ id: 'b1', customerId: 'c1', artisan: { userId: 'a1' } })
 
       await expect(service.handleWebhook(body, undefined)).resolves.toMatchObject({ status: 'SUCCESS' })
-      expect(creditsService.use).not.toHaveBeenCalled()
+      expect(creditsService.useInTx).not.toHaveBeenCalled()
       expect(userUpdate).not.toHaveBeenCalled()
     })
 
@@ -256,9 +259,12 @@ describe('PaymentService', () => {
         data: expect.objectContaining({ escrowStatus: 'REFUNDED', status: 'REFUNDED' }),
       })
       expect(bookingUpdate).toHaveBeenCalledWith({ where: { id: 'b1' }, data: { paymentStatus: 'REFUNDED' } })
-      expect(userUpdate).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { creditBalance: 5000 } })
-      expect(creditTransactionCreate).toHaveBeenCalledWith(
-        { data: expect.objectContaining({ userId: 'c1', amount: 2000, type: 'EARNED', bookingId: 'b1' }) },
+      expect(creditsService.awardInTx).toHaveBeenCalledWith(
+        prisma,
+        'c1',
+        2000,
+        'b1',
+        expect.stringContaining('Refund'),
       )
       expect(notificationsService.create).toHaveBeenCalledWith('c1', {
         type: 'PAYMENT_REFUNDED',

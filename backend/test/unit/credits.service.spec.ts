@@ -51,6 +51,23 @@ describe('CreditsService', () => {
       await expect(service.award('c1', 0, 'b1')).resolves.toBeNull()
       expect(userUpdate).not.toHaveBeenCalled()
     })
+
+    it('awardInTx writes through the supplied transaction client', async () => {
+      const txUserUpdate = jest.fn().mockResolvedValue({ creditBalance: 1500 })
+      const txTransactionCreate = jest.fn().mockResolvedValue({ id: 't1' })
+      const tx = {
+        user: { findUnique: jest.fn().mockResolvedValue({ creditBalance: 500 }), update: txUserUpdate },
+        creditTransaction: { create: txTransactionCreate },
+      } as any
+
+      await service.awardInTx(tx, 'c1', 1000, 'b1', '5% back')
+
+      expect(userUpdate).not.toHaveBeenCalled()
+      expect(txUserUpdate).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { creditBalance: 1500 } })
+      expect(txTransactionCreate).toHaveBeenCalledWith({
+        data: { userId: 'c1', amount: 1000, type: 'EARNED', bookingId: 'b1', balanceAfter: 1500, note: '5% back' },
+      })
+    })
   })
 
   describe('use', () => {
@@ -74,6 +91,23 @@ describe('CreditsService', () => {
       userFindUnique.mockResolvedValue({ creditBalance: 100 })
       await expect(service.use('c1', 500, 'b1')).rejects.toThrow(BadRequestException)
       expect(userUpdate).not.toHaveBeenCalled()
+    })
+
+    it('useInTx writes through the supplied transaction client', async () => {
+      const txUserUpdate = jest.fn().mockResolvedValue({ creditBalance: 1000 })
+      const txTransactionCreate = jest.fn().mockResolvedValue({ id: 't2' })
+      const tx = {
+        user: { findUnique: jest.fn().mockResolvedValue({ creditBalance: 1500 }), update: txUserUpdate },
+        creditTransaction: { create: txTransactionCreate },
+      } as any
+
+      await service.useInTx(tx, 'c1', 500, 'b1', 'Applied to booking')
+
+      expect(userUpdate).not.toHaveBeenCalled()
+      expect(txUserUpdate).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { creditBalance: 1000 } })
+      expect(txTransactionCreate).toHaveBeenCalledWith({
+        data: { userId: 'c1', amount: -500, type: 'USED', bookingId: 'b1', balanceAfter: 1000, note: 'Applied to booking' },
+      })
     })
   })
 

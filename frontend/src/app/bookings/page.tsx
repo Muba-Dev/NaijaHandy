@@ -1,19 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw, ShieldCheck, Flame, Coins } from 'lucide-react'
+import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, Flag, Trash2, RefreshCw, ShieldCheck, Flame, Coins } from 'lucide-react'
 import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview, fetchMyCredits } from '@/lib/api'
-import { formatNGN, getApiErrorMessage, readImageAsDataUrl } from '@/lib/utils'
+import { formatNGN, getApiErrorMessage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
-import Modal from '@/components/ui/Modal'
 import FilterTabs from '@/components/ui/FilterTabs'
 import SkeletonCard from '@/components/ui/SkeletonCard'
 import EmptyState from '@/components/ui/EmptyState'
+import CancelBookingModal from '@/components/bookings/CancelBookingModal'
+import PayBookingModal from '@/components/bookings/PayBookingModal'
+import DisputeBookingModal from '@/components/bookings/DisputeBookingModal'
+import ReviewBookingModal from '@/components/bookings/ReviewBookingModal'
 import type { Booking, BookingStatus, CreditWallet } from '@/types'
 
 type FilterTab = 'All' | 'Active' | 'Urgent' | 'Rejected' | 'Completed' | 'Cancelled'
@@ -33,16 +36,9 @@ export default function BookingHistoryPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [cancelConfirm, setCancelConfirm] = useState<Booking | null>(null)
   const [disputeFor, setDisputeFor] = useState<Booking | null>(null)
-  const [disputeReason, setDisputeReason] = useState('')
   const [disputeSubmitting, setDisputeSubmitting] = useState(false)
-  const [disputeError, setDisputeError] = useState('')
   const [reviewFor, setReviewFor] = useState<Booking | null>(null)
-  const [reviewRating, setReviewRating] = useState(0)
-  const [reviewComment, setReviewComment] = useState('')
-  const [reviewPhoto, setReviewPhoto] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
-  const [reviewError, setReviewError] = useState('')
-  const reviewPhotoInputRef = useRef<HTMLInputElement>(null)
 
   const loadBookings = () => {
     setLoading(true)
@@ -106,36 +102,30 @@ export default function BookingHistoryPage() {
     }
   }
 
-  const handleDispute = async () => {
+  const handleDispute = async (reason: string) => {
     if (!disputeFor) return
     setDisputeSubmitting(true)
-    setDisputeError('')
     try {
-      await raiseDispute(disputeFor.id, disputeReason)
+      await raiseDispute(disputeFor.id, reason)
       setDisputeFor(null)
-      setDisputeReason('')
       setPaymentMsg({ type: 'success', text: 'Dispute raised — our team will review it shortly.' })
     } catch (err) {
-      setDisputeError(getApiErrorMessage(err, 'Could not raise the dispute. Please try again.'))
+      setPaymentMsg({ type: 'error', text: getApiErrorMessage(err, 'Could not raise the dispute. Please try again.') })
     } finally {
       setDisputeSubmitting(false)
     }
   }
 
-  const handleReview = async () => {
+  const handleReview = async (rating: number, comment: string, photoUrl: string) => {
     if (!reviewFor) return
     setReviewSubmitting(true)
-    setReviewError('')
     try {
-      await createReview(reviewFor.id, reviewRating, reviewComment, reviewPhoto || undefined)
+      await createReview(reviewFor.id, rating, comment, photoUrl || undefined)
       setBookings((bs) => bs.map((b) => (b.id === reviewFor.id ? { ...b, reviewed: true } : b)))
       setReviewFor(null)
-      setReviewComment('')
-      setReviewRating(0)
-      setReviewPhoto('')
       setPaymentMsg({ type: 'success', text: 'Thanks! Your review has been published.' })
     } catch (err) {
-      setReviewError(getApiErrorMessage(err, 'Could not submit your review. Please try again.'))
+      setPaymentMsg({ type: 'error', text: getApiErrorMessage(err, 'Could not submit your review. Please try again.') })
     } finally {
       setReviewSubmitting(false)
     }
@@ -324,7 +314,7 @@ export default function BookingHistoryPage() {
                       </Link>
                       {b.status === 'Completed' && !b.reviewed && (
                         <button
-                          onClick={() => { setReviewFor(b); setReviewRating(0); setReviewComment(''); setReviewError('') }}
+                          onClick={() => { setReviewFor(b) }}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-amber-200 rounded-lg text-amber-700 hover:bg-amber-50 transition-colors"
                         >
                           <Star size={13} />Leave Review
@@ -354,7 +344,7 @@ export default function BookingHistoryPage() {
                       )}
                       {b.status === 'Confirmed' || b.status === 'Completed' ? (
                         <button
-                          onClick={() => { setDisputeFor(b); setDisputeReason(''); setDisputeError('') }}
+                          onClick={() => { setDisputeFor(b) }}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
                         >
                           <Flag size={13} />Raise Dispute
@@ -385,244 +375,44 @@ export default function BookingHistoryPage() {
 
       {/* Cancel confirmation modal */}
       {cancelConfirm && (
-        <Modal title="Cancel this booking?" onClose={() => setCancelConfirm(null)}>
-          <p className="text-sm text-gray-500 mb-4">
-            Your booking with <span className="font-semibold text-gray-900">{cancelConfirm.artisan}</span> on{' '}
-            {cancelConfirm.date} at {cancelConfirm.time} will be cancelled. This can&apos;t be undone.
-          </p>
-          {cancelConfirm.paymentStatus === 'PAID' && (
-            <p className="flex items-start gap-1.5 text-xs font-medium text-amber-700 mb-4">
-              <ShieldCheck size={14} className="shrink-0 mt-0.5" aria-hidden="true" />
-              Your payment is held in escrow — cancelling refunds it to you.
-            </p>
-          )}
-          <div className="flex gap-3">
-            <button
-              onClick={() => setCancelConfirm(null)}
-              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Keep Booking
-            </button>
-            <button
-              onClick={handleCancel}
-              disabled={cancellingId === cancelConfirm.id}
-              className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
-            >
-              {cancellingId === cancelConfirm.id ? 'Cancelling…' : 'Yes, Cancel'}
-            </button>
-          </div>
-        </Modal>
+        <CancelBookingModal
+          booking={cancelConfirm}
+          cancelling={cancellingId === cancelConfirm.id}
+          onCancel={handleCancel}
+          onClose={() => setCancelConfirm(null)}
+        />
       )}
 
       {/* Payment modal */}
       {payFor && (
-        <Modal title="Pay for your booking" onClose={() => setPayFor(null)}>
-          <p className="text-sm text-gray-500 mb-5">
-              Booking with <span className="font-semibold text-gray-900">{payFor.artisan}</span> on {payFor.date} at {payFor.time}.
-            </p>
-
-            {(() => {
-              const credits = Math.min(wallet?.balance ?? 0, payFor.amount)
-              const applied = applyCredits ? credits : 0
-              const charge = payFor.amount - applied
-              return (
-                <>
-                  <dl className="space-y-2 mb-5">
-                    <div className="flex items-center justify-between text-sm">
-                      <dt className="text-gray-600">Job total</dt>
-                      <dd className="font-medium text-gray-900">{formatNGN(payFor.amount)}</dd>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <dt className="text-gray-600">Rewards credits</dt>
-                      <dd className="font-medium text-[#047857]">− {formatNGN(applied)}</dd>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-sm font-semibold">
-                      <dt className="text-gray-900">You&apos;ll pay</dt>
-                      <dd className="text-gray-900">{formatNGN(charge)}</dd>
-                    </div>
-                  </dl>
-
-                  {wallet && wallet.balance > 0 && (
-                    <label className="flex items-center gap-2.5 mb-5 bg-emerald-50 rounded-xl px-3 py-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={applyCredits}
-                        onChange={(e) => setApplyCredits(e.target.checked)}
-                        className="w-5 h-5 accent-[#047857]"
-                      />
-                      <span className="text-sm text-gray-700">
-                        Apply <span className="font-semibold">{formatNGN(credits)}</span> in rewards credits
-                      </span>
-                    </label>
-                  )}
-                  {wallet && wallet.balance === 0 && (
-                    <p className="text-xs text-gray-500 mb-5">
-                      No rewards credits yet — earn 5% back when your booking is completed.
-                    </p>
-                  )}
-
-                  <div className="flex items-start gap-2 bg-emerald-50 rounded-xl px-3 py-2.5 mb-5">
-                    <ShieldCheck size={15} className="text-[#047857] shrink-0 mt-0.5" aria-hidden="true" />
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      Your payment is held in escrow and only released to the artisan once the job is completed.
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setPayFor(null)}
-                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handlePay}
-                      disabled={payingId === payFor.id}
-                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
-                    >
-                      {payingId === payFor.id ? 'Redirecting…' : 'Continue to Payment'}
-                    </button>
-                  </div>
-                </>
-              )
-            })()}
-        </Modal>
+        <PayBookingModal
+          booking={payFor}
+          wallet={wallet}
+          applyCredits={applyCredits}
+          onApplyCreditsChange={setApplyCredits}
+          paying={payingId === payFor.id}
+          onPay={handlePay}
+          onClose={() => setPayFor(null)}
+        />
       )}
 
       {/* Dispute modal */}
       {disputeFor && (
-        <Modal title="Raise a dispute" onClose={() => setDisputeFor(null)}>
-          <p className="text-sm text-gray-500 mb-4">
-              Tell us what went wrong with your booking with{' '}
-              <span className="font-semibold text-gray-900">{disputeFor.artisan}</span>. Our team will review it.
-            </p>
-            <div className="flex items-start gap-2 bg-emerald-50 rounded-xl px-3 py-2.5 mb-4">
-              <ShieldCheck size={15} className="text-[#047857] shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Paid bookings are covered by the <span className="font-semibold text-[#047857]">NaijaHandy Guarantee</span> —
-                claims must be raised within 14 days of the job date.{' '}
-                <Link href="/guarantee" className="font-medium text-[#047857] hover:underline">Read the guarantee</Link>
-              </p>
-            </div>
-            <label htmlFor="dispute-reason" className="sr-only">Describe the issue</label>
-            <textarea
-              id="dispute-reason"
-              value={disputeReason}
-              onChange={(e) => setDisputeReason(e.target.value)}
-              rows={4}
-              minLength={10}
-              placeholder="Describe the issue (min 10 characters)..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors resize-none mb-4"
-            />
-            {disputeError && <p className="text-xs text-red-600 mb-3" role="alert">{disputeError}</p>}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDisputeFor(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDispute}
-                disabled={disputeSubmitting || disputeReason.trim().length < 10}
-                className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {disputeSubmitting ? 'Submitting…' : 'Submit Dispute'}
-              </button>
-            </div>
-        </Modal>
+        <DisputeBookingModal
+          booking={disputeFor}
+          submitting={disputeSubmitting}
+          onSubmit={handleDispute}
+          onClose={() => setDisputeFor(null)}
+        />
       )}
       {/* Review modal */}
       {reviewFor && (
-        <Modal title="Review your booking" onClose={() => setReviewFor(null)}>
-          <p className="text-sm text-gray-500 mb-4">
-              How was your experience with{' '}
-              <span className="font-semibold text-gray-900">{reviewFor.artisan}</span>?
-            </p>
-
-            <div className="flex items-center gap-1 mb-4" role="group" aria-label="Rate your experience">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setReviewRating(star)}
-                  className="p-2 -m-1"
-                  aria-label={`${star} star${star > 1 ? 's' : ''}`}
-                  aria-pressed={star <= reviewRating}
-                >
-                  <Star
-                    size={26}
-                    className={star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
-                    aria-hidden="true"
-                  />
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-gray-500">{reviewRating ? `${reviewRating}/5` : 'Tap to rate'}</span>
-            </div>
-
-            <label htmlFor="review-comment" className="sr-only">Share your experience</label>
-            <textarea
-              id="review-comment"
-              value={reviewComment}
-              onChange={(e) => setReviewComment(e.target.value)}
-              rows={4}
-              placeholder="Share your experience (min 3 characters)..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#047857] transition-colors resize-none mb-3"
-            />
-
-            {reviewPhoto && (
-              <div className="relative inline-block mb-3">
-                <Image src={reviewPhoto} alt="Review photo preview" width={200} height={150} className="h-28 w-40 object-cover rounded-xl border border-gray-100" />
-                <button
-                  type="button"
-                  onClick={() => { setReviewPhoto(''); if (reviewPhotoInputRef.current) reviewPhotoInputRef.current.value = '' }}
-                  aria-label="Remove review photo"
-                  className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-900 text-white hover:bg-red-600 transition-colors"
-                >
-                  <X size={13} aria-hidden="true" />
-                </button>
-              </div>
-            )}
-            <div className="mb-3">
-              <input
-                ref={reviewPhotoInputRef}
-                id="review-photo"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="sr-only"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  setReviewError('')
-                  try {
-                    setReviewPhoto(await readImageAsDataUrl(file))
-                  } catch {
-                    setReviewError('Could not read the selected photo. Please try again.')
-                  }
-                }}
-              />
-              <label htmlFor="review-photo" className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer hover:text-gray-900 transition-colors">
-                <Camera size={14} aria-hidden="true" />
-                {reviewPhoto ? 'Change photo (optional)' : 'Add a photo (optional)'}
-              </label>
-            </div>
-            {reviewError && <p className="text-xs text-red-600 mb-3" role="alert">{reviewError}</p>}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setReviewFor(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReview}
-                disabled={reviewSubmitting || reviewRating === 0 || reviewComment.trim().length < 3}
-                className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {reviewSubmitting ? 'Submitting…' : 'Submit Review'}
-              </button>
-            </div>
-        </Modal>
+        <ReviewBookingModal
+          booking={reviewFor}
+          submitting={reviewSubmitting}
+          onSubmit={handleReview}
+          onClose={() => setReviewFor(null)}
+        />
       )}
     </div>
     </AuthGuard>

@@ -143,26 +143,16 @@ export class PaymentService {
       })
 
       // Debit applied credits (only once — this method is idempotency-gated by
-      // the callers). Balance was validated at initialize time, but guard anyway.
+      // the callers). Balance was validated at initialize time, but guarded
+      // again inside creditsService.
       if (pay.creditsApplied > 0 && booking) {
-        const customer = await tx.user.findUnique({
-          where: { id: booking.customerId },
-          select: { creditBalance: true },
-        })
-        const current = customer?.creditBalance ?? 0
-        if (current < pay.creditsApplied) throw new BadRequestException('Insufficient credit balance')
-        const balance = current - pay.creditsApplied
-        await tx.user.update({ where: { id: booking.customerId }, data: { creditBalance: balance } })
-        await tx.creditTransaction.create({
-          data: {
-            userId: booking.customerId,
-            amount: -pay.creditsApplied,
-            type: 'USED',
-            bookingId,
-            balanceAfter: balance,
-            note: `Applied to booking ${bookingId}`,
-          },
-        })
+        await this.creditsService.useInTx(
+          tx,
+          booking.customerId,
+          pay.creditsApplied,
+          bookingId,
+          `Applied to booking ${bookingId}`,
+        )
       }
 
       return pay
@@ -234,22 +224,13 @@ export class PaymentService {
 
       // Restore credits that were applied to this booking (platform-funded discount).
       if (payment.creditsApplied > 0 && booking) {
-        const customer = await tx.user.findUnique({
-          where: { id: booking.customerId },
-          select: { creditBalance: true },
-        })
-        const balance = (customer?.creditBalance ?? 0) + payment.creditsApplied
-        await tx.user.update({ where: { id: booking.customerId }, data: { creditBalance: balance } })
-        await tx.creditTransaction.create({
-          data: {
-            userId: booking.customerId,
-            amount: payment.creditsApplied,
-            type: 'EARNED',
-            bookingId,
-            balanceAfter: balance,
-            note: 'Refund — applied credits returned',
-          },
-        })
+        await this.creditsService.awardInTx(
+          tx,
+          booking.customerId,
+          payment.creditsApplied,
+          bookingId,
+          'Refund — applied credits returned',
+        )
       }
 
       return up

@@ -1,9 +1,21 @@
-import { Controller, Get, Param, Query, UseGuards, Req, Patch, Body, Post, Delete } from '@nestjs/common'
+import { Controller, Get, Param, Query, UseGuards, Req, Patch, Body, Post, Delete, BadRequestException } from '@nestjs/common'
 import { ArtisanService } from './artisan.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard'
 import { RolesGuard } from '../auth/roles.guard'
 import { Roles } from '../auth/roles.decorator'
+import { z } from 'zod'
+
+const updateMeSchema = z
+  .object({
+    profession: z.string().min(2).max(80).optional(),
+    category: z.string().max(80).optional(),
+    bio: z.string().max(2000).optional(),
+    hourlyRate: z.number().int().min(0).max(100000000).optional(),
+    coverImage: z.string().max(2000).optional(),
+    available: z.boolean().optional(),
+  })
+  .strict()
 
 @Controller('api/artisans')
 export class ArtisanController {
@@ -44,7 +56,13 @@ export class ArtisanController {
   @Roles('ARTISAN')
   @Patch('me')
   async updateMe(@Req() req: any, @Body() body: any) {
-    return { data: await this.artisanService.updateMe(req.user.id, body) }
+    try {
+      const data = updateMeSchema.parse(body)
+      return { data: await this.artisanService.updateMe(req.user.id, data) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
