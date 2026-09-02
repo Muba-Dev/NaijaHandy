@@ -8,10 +8,21 @@ describe('PaymentService', () => {
   const paymentUpdate = jest.fn()
   const bookingUpdate = jest.fn()
   const bookingFindUnique = jest.fn()
+  const userFindUnique = jest.fn()
+  const userUpdate = jest.fn()
+  const creditTransactionCreate = jest.fn()
   const prisma = {
     payment: { findFirst, findUnique: paymentFindUnique, update: paymentUpdate },
     booking: { update: bookingUpdate, findUnique: bookingFindUnique },
+    user: { findUnique: userFindUnique, update: userUpdate },
+    creditTransaction: { create: creditTransactionCreate },
   } as any
+  // Interactive $transaction: run the callback with the same client mock so
+  // tx.* calls reuse the shared jest.fn()s above; array form resolves in parallel.
+  prisma.$transaction = jest.fn(async (arg: unknown) => {
+    if (typeof arg === 'function') return arg(prisma)
+    return Promise.all(arg as unknown[])
+  })
   const notificationsService = { create: jest.fn() } as any
   const creditsService = { use: jest.fn(), award: jest.fn() } as any
   const service = new PaymentService(prisma, notificationsService, creditsService)
@@ -77,20 +88,21 @@ describe('PaymentService', () => {
       findFirst.mockResolvedValue({
         id: 'p1', bookingId: 'b1', status: 'PENDING', amount: 20000, grossAmount: 25000, creditsApplied: 5000,
       })
+      bookingFindUnique.mockResolvedValue({ id: 'b1', customerId: 'c1', artisan: { userId: 'a1' } })
       paymentUpdate.mockResolvedValue({
         id: 'p1', status: 'SUCCESS', reference: 'pay_x', amount: 20000, grossAmount: 25000, creditsApplied: 5000,
       })
       bookingUpdate.mockResolvedValue({ id: 'b1', paymentStatus: 'PAID' })
-      bookingFindUnique
-        .mockResolvedValueOnce({ id: 'b1', customerId: 'c1' }) // credit debit lookup
-        .mockResolvedValueOnce({ id: 'b1', artisan: { userId: 'a1' } }) // notification lookup
-      creditsService.use.mockResolvedValue([{}, {}])
+      userFindUnique.mockResolvedValue({ creditBalance: 10000 })
       const chargedBody = Buffer.from(
         JSON.stringify({ event: 'charge.success', data: { status: 'success', amount: 2_000_000, metadata: { bookingId: 'b1' } } }),
       )
 
       await expect(service.handleWebhook(chargedBody, undefined)).resolves.toMatchObject({ status: 'SUCCESS' })
-      expect(creditsService.use).toHaveBeenCalledWith('c1', 5000, 'b1', expect.any(String))
+      expect(userUpdate).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { creditBalance: 5000 } })
+      expect(creditTransactionCreate).toHaveBeenCalledWith(
+        { data: expect.objectContaining({ userId: 'c1', amount: -5000, type: 'USED', bookingId: 'b1', balanceAfter: 5000 }) },
+      )
     })
 
     it('does not debit credits when none were applied', async () => {
@@ -99,10 +111,11 @@ describe('PaymentService', () => {
         id: 'p1', status: 'SUCCESS', reference: 'pay_x', amount: 25000, grossAmount: 25000, creditsApplied: 0,
       })
       bookingUpdate.mockResolvedValue({ id: 'b1', paymentStatus: 'PAID' })
-      bookingFindUnique.mockResolvedValue({ id: 'b1', artisan: { userId: 'a1' } })
+      bookingFindUnique.mockResolvedValue({ id: 'b1', customerId: 'c1', artisan: { userId: 'a1' } })
 
       await expect(service.handleWebhook(body, undefined)).resolves.toMatchObject({ status: 'SUCCESS' })
       expect(creditsService.use).not.toHaveBeenCalled()
+      expect(userUpdate).not.toHaveBeenCalled()
     })
 
     it('returns duplicate when the payment is already SUCCESS', async () => {
@@ -188,7 +201,7 @@ describe('PaymentService', () => {
       findFirst.mockResolvedValue({ id: 'p1', bookingId: 'b1', status: 'PENDING', amount: 25000, creditsApplied: 0 })
       paymentUpdate.mockResolvedValue({ id: 'p1', status: 'SUCCESS', reference: 'pay_x', amount: 25000, grossAmount: 25000, creditsApplied: 0, escrowStatus: 'HELD' })
       bookingUpdate.mockResolvedValue({ id: 'b1', paymentStatus: 'PAID' })
-      bookingFindUnique.mockResolvedValue({ id: 'b1', artisan: { userId: 'a1' } })
+      bookingFindUnique.mockResolvedValue({ id: 'b1', customerId: 'c1', artisan: { userId: 'a1' } })
 
       await service.handleWebhook(body, undefined)
 
@@ -234,7 +247,7 @@ describe('PaymentService', () => {
       paymentUpdate.mockResolvedValue({ id: 'p1', escrowStatus: 'REFUNDED', status: 'REFUNDED' })
       bookingUpdate.mockResolvedValue({ id: 'b1', paymentStatus: 'REFUNDED' })
       bookingFindUnique.mockResolvedValue({ id: 'b1', customerId: 'c1' })
-      creditsService.award.mockResolvedValue([{}, {}])
+      userFindUnique.mockResolvedValue({ creditBalance: 3000 })
 
       await service.refundEscrow('b1')
 
@@ -243,7 +256,10 @@ describe('PaymentService', () => {
         data: expect.objectContaining({ escrowStatus: 'REFUNDED', status: 'REFUNDED' }),
       })
       expect(bookingUpdate).toHaveBeenCalledWith({ where: { id: 'b1' }, data: { paymentStatus: 'REFUNDED' } })
-      expect(creditsService.award).toHaveBeenCalledWith('c1', 2000, 'b1', expect.stringContaining('Refund'))
+      expect(userUpdate).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { creditBalance: 5000 } })
+      expect(creditTransactionCreate).toHaveBeenCalledWith(
+        { data: expect.objectContaining({ userId: 'c1', amount: 2000, type: 'EARNED', bookingId: 'b1' }) },
+      )
       expect(notificationsService.create).toHaveBeenCalledWith('c1', {
         type: 'PAYMENT_REFUNDED',
         title: 'Payment refunded',

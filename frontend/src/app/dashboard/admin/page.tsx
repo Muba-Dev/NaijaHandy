@@ -9,6 +9,7 @@ import {
 import AuthGuard from '@/components/AuthGuard'
 import StatusBadge from '@/components/StatusBadge'
 import Brand from '@/components/Brand'
+import FilterTabs from '@/components/ui/FilterTabs'
 import { formatNGN, getApiErrorMessage, setStoredUser, compressImage } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import {
@@ -132,7 +133,8 @@ export default function AdminDashboardPage() {
         const r = await fetchAdminBookings(params)
         setBookings(r.data)
       } else if (tab === 'payments') {
-        setPayments(await fetchAdminPayments())
+        const r = await fetchAdminPayments()
+        setPayments(r.data)
       } else if (tab === 'disputes') {
         const params: Record<string, string> = {}
         if (disputeFilter !== 'ALL') params.status = disputeFilter
@@ -444,18 +446,16 @@ export default function AdminDashboardPage() {
 
           {tab === 'artisans' && (
             <div>
-              <div className="flex gap-2 mb-4 flex-wrap">
-                {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setArtisanFilter(f)}
-                    aria-pressed={artisanFilter === f}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${artisanFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
-                  >
-                    {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                items={['ALL', 'PENDING', 'APPROVED', 'REJECTED']}
+                active={artisanFilter}
+                onChange={setArtisanFilter}
+                className="mb-4 flex-wrap"
+                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                activeClassName="bg-[#047857] text-white"
+                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
+              />
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
                 {artisans.length === 0 && <p className="p-6 text-sm text-gray-500">No artisans match this filter.</p>}
                 {artisans.map((a) => (
@@ -534,31 +534,27 @@ export default function AdminDashboardPage() {
                   placeholder="Search by name or email…"
                   className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#047857]"
                 />
-                <div className="flex gap-2 flex-wrap">
-                  {['ALL', 'CUSTOMER', 'ARTISAN'].map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setUserFilter(f)}
-                      aria-pressed={userFilter === f}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${userFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
-                    >
-                      {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-                    </button>
-                  ))}
-                </div>
+                <FilterTabs
+                  items={['ALL', 'CUSTOMER', 'ARTISAN']}
+                  active={userFilter}
+                  onChange={setUserFilter}
+                  className="flex-wrap"
+                  baseClassName="px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
+                  activeClassName="bg-[#047857] text-white"
+                  inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                  renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
+                />
               </div>
-              <div className="flex gap-2 mb-4 flex-wrap">
-                {['ALL', 'ACTIVE', 'SUSPENDED', 'DELETED'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setUserStatusFilter(f)}
-                    aria-pressed={userStatusFilter === f}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${userStatusFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
-                  >
-                    {f === 'ALL' ? 'All statuses' : f.charAt(0) + f.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                items={['ALL', 'ACTIVE', 'SUSPENDED', 'DELETED']}
+                active={userStatusFilter}
+                onChange={setUserStatusFilter}
+                className="mb-4 flex-wrap"
+                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                activeClassName="bg-[#047857] text-white"
+                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                renderLabel={(f) => (f === 'ALL' ? 'All statuses' : f.charAt(0) + f.slice(1).toLowerCase())}
+              />
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
                 {users.length === 0 && <p className="p-6 text-sm text-gray-500">No users found.</p>}
                 {users.map((u) => (
@@ -604,18 +600,16 @@ export default function AdminDashboardPage() {
 
           {tab === 'reviews' && (
             <div>
-              <div className="flex gap-2 mb-4 flex-wrap">
-                {['ALL', 'APPROVED', 'HIDDEN'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setReviewFilter(f)}
-                    aria-pressed={reviewFilter === f}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${reviewFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
-                  >
-                    {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                items={['ALL', 'APPROVED', 'HIDDEN']}
+                active={reviewFilter}
+                onChange={setReviewFilter}
+                className="mb-4 flex-wrap"
+                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                activeClassName="bg-[#047857] text-white"
+                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
+              />
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
                 {reviews.length === 0 && <p className="p-6 text-sm text-gray-500">No reviews found.</p>}
                 {reviews.map((r) => (
@@ -653,18 +647,16 @@ export default function AdminDashboardPage() {
 
           {tab === 'bookings' && (
             <div>
-              <div className="flex gap-2 mb-4 flex-wrap">
-                {['ALL', 'PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setBookingFilter(f)}
-                    aria-pressed={bookingFilter === f}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${bookingFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
-                  >
-                    {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                items={['ALL', 'PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED']}
+                active={bookingFilter}
+                onChange={setBookingFilter}
+                className="mb-4 flex-wrap"
+                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                activeClassName="bg-[#047857] text-white"
+                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
+              />
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
                 {bookings.length === 0 && <p className="p-6 text-sm text-gray-500">No bookings found.</p>}
                 {bookings.map((b) => (
@@ -756,18 +748,16 @@ export default function AdminDashboardPage() {
 
           {tab === 'support' && (
             <div>
-              <div className="flex gap-2 mb-4 flex-wrap">
-                {['ALL', 'OPEN', 'REPLIED', 'CLOSED'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setSupportFilter(f)}
-                    aria-pressed={supportFilter === f}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${supportFilter === f ? 'bg-[#047857] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
-                  >
-                    {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                items={['ALL', 'OPEN', 'REPLIED', 'CLOSED']}
+                active={supportFilter}
+                onChange={setSupportFilter}
+                className="mb-4 flex-wrap"
+                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                activeClassName="bg-[#047857] text-white"
+                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
+              />
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
                 {support.length === 0 && <p className="p-6 text-sm text-gray-500">No support messages found.</p>}
                 {support.map((m) => (

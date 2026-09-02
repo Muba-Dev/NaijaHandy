@@ -30,6 +30,16 @@ export class ArtisanService {
     return !!user && user.role !== 'ADMIN' && !user.isDemo
   }
 
+  private demoFilterObj(user?: RequestUser): Prisma.ArtisanProfileWhereInput {
+    return this.hideDemo(user) ? { isDemo: false } : {}
+  }
+
+  private async findProfileByUserOrThrow(userId: string) {
+    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('Artisan profile not found')
+    return profile
+  }
+
   async findAll(filters: any, user?: RequestUser): Promise<Array<ArtisanProfile & { distanceKm?: number | null }>> {
     const { q, category, city, minRating, available, sortBy = 'rating', page = 1, limit = 12, minPrice, maxPrice, lat, lng, radius } = filters
     const skip = (Number(page) - 1) * Number(limit)
@@ -85,14 +95,35 @@ export class ArtisanService {
     }
 
     if (hasLocation) {
-      const artisans = await this.prisma.artisanProfile.findMany({ where, include })
+      // Bounding-box prefilter in SQL so we never load the whole approved set
+      // into Node. 1° latitude ≈ 111.32 km; longitude shrinks with cos(lat).
+      // Prisma re-applies the full `where` below as a safety net.
+      const latDelta = maxDistanceKm / 111.32
+      const lngDelta = maxDistanceKm / (111.32 * Math.cos((originLat * Math.PI) / 180))
+      const box = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT ap."id"
+        FROM "artisan_profiles" ap
+        JOIN "users" u ON u."id" = ap."userId"
+        WHERE ap."approvalStatus" = 'APPROVED'
+          AND u."status" <> 'DELETED'
+          AND u."latitude" IS NOT NULL
+          AND u."longitude" IS NOT NULL
+          AND u."latitude" BETWEEN ${originLat - latDelta} AND ${originLat + latDelta}
+          AND u."longitude" BETWEEN ${originLng - lngDelta} AND ${originLng + lngDelta}
+      `
+      if (box.length === 0) return []
+
+      const artisans = await this.prisma.artisanProfile.findMany({
+        where: { ...where, id: { in: box.map((b) => b.id) } },
+        include,
+      })
       const withDistance = artisans
         .map((a) => {
           const d = haversineKm(originLat, originLng, a.user.latitude, a.user.longitude)
           return { ...a, distanceKm: d == null ? null : Math.round(d * 10) / 10 }
         })
         .filter((a) => a.distanceKm != null && a.distanceKm <= maxDistanceKm)
-        .sort((a, b) => (a.distanceKm! - b.distanceKm!))
+        .sort((a, b) => a.distanceKm! - b.distanceKm!)
       return withDistance.slice(skip, skip + Number(limit))
     }
 
@@ -119,23 +150,30 @@ export class ArtisanService {
   }
 
   async platformStats(user?: RequestUser) {
-    const demoFilter = this.hideDemo(user) ? { isDemo: false } : {}
-    const profiles = await this.prisma.artisanProfile.findMany({
-      where: { approvalStatus: 'APPROVED', ...demoFilter, user: { city: { not: null }, status: { not: 'DELETED' } } },
-      select: { user: { select: { city: true } } },
-    })
-    const [jobsCompleted, reviews, totalUsers] = await Promise.all([
+    const demoFilter = this.hideDemo(user) ? ' AND ap."isDemo" = false' : ''
+    // Aggregate in SQL instead of loading every approved profile into memory
+    // just to count unique cities.
+    const [profilesStats, jobsCompleted, reviews, totalUsers] = await Promise.all([
+      this.prisma.$queryRawUnsafe<{ artisans: number; cities: number }[]>(
+        `SELECT COUNT(*)::int AS "artisans", COUNT(DISTINCT u."city")::int AS "cities"
+         FROM "artisan_profiles" ap
+         JOIN "users" u ON u."id" = ap."userId"
+         WHERE ap."approvalStatus" = 'APPROVED'
+           AND u."status" <> 'DELETED'
+           AND u."city" IS NOT NULL${demoFilter}`,
+      ),
       this.prisma.booking.count({
-        where: { status: 'COMPLETED', artisan: { approvalStatus: 'APPROVED', ...demoFilter, user: { is: { status: { not: 'DELETED' } } } } },
+        where: { status: 'COMPLETED', artisan: { approvalStatus: 'APPROVED', ...this.demoFilterObj(user), user: { is: { status: { not: 'DELETED' } } } } },
       }),
       this.prisma.review.count({
-        where: { status: 'APPROVED', artisan: { approvalStatus: 'APPROVED', ...demoFilter, user: { is: { status: { not: 'DELETED' } } } } },
+        where: { status: 'APPROVED', artisan: { approvalStatus: 'APPROVED', ...this.demoFilterObj(user), user: { is: { status: { not: 'DELETED' } } } } },
       }),
       this.prisma.user.count({ where: { status: { not: 'DELETED' } } }),
     ])
+    const row = profilesStats[0]
     return {
-      artisans: profiles.length,
-      cities: new Set(profiles.map((p) => p.user.city)).size,
+      artisans: Number(row?.artisans ?? 0),
+      cities: Number(row?.cities ?? 0),
       jobsCompleted,
       reviews,
       totalUsers,
@@ -194,8 +232,7 @@ export class ArtisanService {
   }
 
   async updateCover(userId: string, dataUrl: string) {
-    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
-    if (!profile) throw new NotFoundException('Artisan profile not found')
+    const profile = await this.findProfileByUserOrThrow(userId)
     const coverImage = await this.uploadService.uploadCover(dataUrl)
     return this.prisma.artisanProfile.update({
       where: { id: profile.id },
@@ -204,8 +241,7 @@ export class ArtisanService {
   }
 
   async addPortfolio(userId: string, dataUrl: string, caption?: string) {
-    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
-    if (!profile) throw new NotFoundException('Artisan profile not found')
+    const profile = await this.findProfileByUserOrThrow(userId)
     const imageUrl = await this.uploadService.uploadPortfolio(dataUrl)
     return this.prisma.portfolioItem.create({
       data: { artisanId: profile.id, imageUrl, caption: caption || null },
@@ -213,8 +249,7 @@ export class ArtisanService {
   }
 
   async submitVerificationDocument(userId: string, dataUrl: string) {
-    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
-    if (!profile) throw new NotFoundException('Artisan profile not found')
+    const profile = await this.findProfileByUserOrThrow(userId)
     if (profile.verificationStatus === 'PENDING') {
       throw new BadRequestException('A verification document is already pending review')
     }
@@ -226,8 +261,7 @@ export class ArtisanService {
   }
 
   async removePortfolio(userId: string, portfolioId: string) {
-    const profile = await this.prisma.artisanProfile.findUnique({ where: { userId } })
-    if (!profile) throw new NotFoundException('Artisan profile not found')
+    const profile = await this.findProfileByUserOrThrow(userId)
     const item = await this.prisma.portfolioItem.findFirst({
       where: { id: portfolioId, artisanId: profile.id },
     })

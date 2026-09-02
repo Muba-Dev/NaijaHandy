@@ -7,9 +7,13 @@ import { fetchBookings, updateBookingStatus } from '@/lib/api'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import { formatNGN } from '@/lib/utils'
 import StatusBadge from '@/components/StatusBadge'
+import FilterTabs from '@/components/ui/FilterTabs'
+import SkeletonCard from '@/components/ui/SkeletonCard'
+import EmptyState from '@/components/ui/EmptyState'
 import type { Booking, BookingStatus } from '@/types'
 
-type FilterTab = 'All' | 'Pending' | 'Confirmed' | 'Rejected' | 'Completed' | 'Cancelled'
+const REQUEST_TABS = ['All', 'Pending', 'Confirmed', 'Rejected', 'Completed', 'Cancelled'] as const
+type FilterTab = (typeof REQUEST_TABS)[number]
 
 export default function JobRequestsPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('All')
@@ -49,23 +53,18 @@ export default function JobRequestsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {(['All', 'Pending', 'Confirmed', 'Rejected', 'Completed', 'Cancelled'] as FilterTab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            aria-pressed={activeTab === t}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === t ? 'text-white bg-[#047857]' : 'bg-white text-gray-600 border border-gray-100 hover:border-gray-200'}`}
-          >
-            {t} <span>({counts[t]})</span>
-          </button>
-        ))}
-      </div>
+      <FilterTabs
+        items={REQUEST_TABS}
+        active={activeTab}
+        onChange={(t) => setActiveTab(t as FilterTab)}
+        className="mb-6"
+        renderLabel={(t) => `${t} (${counts[t as FilterTab]})`}
+      />
 
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+            <SkeletonCard key={i} className="p-5">
               <div className="flex gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gray-100" />
                 <div className="flex-1 space-y-2">
@@ -73,7 +72,7 @@ export default function JobRequestsPage() {
                   <div className="h-3 bg-gray-100 rounded w-1/2" />
                 </div>
               </div>
-            </div>
+            </SkeletonCard>
           ))}
         </div>
       ) : (
@@ -146,10 +145,12 @@ export default function JobRequestsPage() {
           ))}
 
           {filtered.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100" role="status">
-              <Briefcase size={40} className="text-gray-300 mx-auto mb-3" aria-hidden="true" />
-              <p className="text-gray-600 font-medium">No {activeTab === 'All' ? '' : activeTab.toLowerCase() + ' '}job requests here yet</p>
-              <p className="text-sm text-gray-500 mt-1">New booking requests will appear here.</p>
+            <div className="bg-white rounded-2xl border border-gray-100">
+              <EmptyState
+                icon={Briefcase}
+                title={`No ${activeTab === 'All' ? '' : activeTab.toLowerCase() + ' '}job requests here yet`}
+                description="New booking requests will appear here."
+              />
             </div>
           )}
         </div>

@@ -61,8 +61,8 @@ export class AdminController {
   }
 
   @Get('payments')
-  async listPayments() {
-    return { data: await this.adminService.listPayments() }
+  async listPayments(@Query() query: any) {
+    return { data: await this.adminService.listPayments(query) }
   }
 
   @Get('disputes')

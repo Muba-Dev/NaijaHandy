@@ -5,7 +5,14 @@ describe('ArtisanService', () => {
   const artisanProfile = { groupBy: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() }
   const portfolioItem = { create: jest.fn(), findFirst: jest.fn(), delete: jest.fn() }
   const booking = { count: jest.fn(), findMany: jest.fn() }
-  const prisma = { artisanProfile, portfolioItem, booking } as any
+  // Geo search now pre-filters candidates via a SQL bounding-box query; the
+  // unit tests exercise the haversine filtering that runs afterwards, so the
+  // box just needs to admit the rows the findMany mock returns.
+  const prisma = {
+    artisanProfile, portfolioItem, booking,
+    $queryRaw: jest.fn().mockResolvedValue([{ id: 'near' }, { id: 'far' }, { id: 'noloc' }]),
+    $queryRawUnsafe: jest.fn().mockResolvedValue([{ artisans: 0, cities: 0 }]),
+  } as any
   const uploadService = { uploadCover: jest.fn(), uploadPortfolio: jest.fn(), uploadVerificationDocument: jest.fn() } as any
   const service = new ArtisanService(prisma, uploadService)
 

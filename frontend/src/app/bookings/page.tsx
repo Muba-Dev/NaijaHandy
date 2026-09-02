@@ -10,6 +10,10 @@ import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
+import Modal from '@/components/ui/Modal'
+import FilterTabs from '@/components/ui/FilterTabs'
+import SkeletonCard from '@/components/ui/SkeletonCard'
+import EmptyState from '@/components/ui/EmptyState'
 import type { Booking, BookingStatus, CreditWallet } from '@/types'
 
 type FilterTab = 'All' | 'Active' | 'Urgent' | 'Rejected' | 'Completed' | 'Cancelled'
@@ -235,24 +239,25 @@ export default function BookingHistoryPage() {
         )}
 
         {/* Filter tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1" role="group" aria-label="Filter bookings">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              aria-pressed={activeTab === t}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === t ? 'text-white bg-[#047857]' : 'bg-white text-gray-600 border border-gray-100 hover:border-gray-200'}`}
-            >
+        <FilterTabs
+          items={TABS}
+          active={activeTab}
+          onChange={(t) => setActiveTab(t as FilterTab)}
+          ariaLabel="Filter bookings"
+          className="mb-6"
+          baseClassName="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors"
+          renderLabel={(t, isActive) => (
+            <>
               {t}
-              <span className={`text-xs rounded-full px-1.5 ${activeTab === t ? 'bg-white text-[#065f46]' : 'bg-gray-100 text-gray-700'}`}>{tabCounts[t]}</span>
-            </button>
-          ))}
-        </div>
+              <span className={`text-xs rounded-full px-1.5 ${isActive ? 'bg-white text-[#065f46]' : 'bg-gray-100 text-gray-700'}`}>{tabCounts[t as FilterTab]}</span>
+            </>
+          )}
+        />
 
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+              <SkeletonCard key={i} className="p-5">
                 <div className="flex gap-4">
                   <div className="w-12 h-12 rounded-xl bg-gray-100" />
                   <div className="flex-1 space-y-2">
@@ -260,16 +265,20 @@ export default function BookingHistoryPage() {
                     <div className="h-3 bg-gray-100 rounded w-1/2" />
                   </div>
                 </div>
-              </div>
+              </SkeletonCard>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <Calendar size={40} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">No {activeTab.toLowerCase() === 'all' ? '' : activeTab.toLowerCase() + ' '}bookings here yet</p>
-            <Link href="/search" className="mt-3 inline-block px-5 py-2 rounded-xl text-white text-sm font-semibold bg-[#047857]">
-              Find an Artisan
-            </Link>
+          <div className="bg-white rounded-2xl border border-gray-100">
+            <EmptyState
+              icon={Calendar}
+              title={`No ${activeTab.toLowerCase() === 'all' ? '' : activeTab.toLowerCase() + ' '}bookings here yet`}
+              action={
+                <Link href="/search" className="inline-block px-5 py-2 rounded-xl text-white text-sm font-semibold bg-[#047857]">
+                  Find an Artisan
+                </Link>
+              }
+            />
           </div>
         ) : (
           <div className="space-y-4">
@@ -384,54 +393,39 @@ export default function BookingHistoryPage() {
 
       {/* Cancel confirmation modal */}
       {cancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setCancelConfirm(null)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-4">
-              <h2 id="cancel-dialog-title" className="font-display text-lg font-bold text-gray-900">Cancel this booking?</h2>
-              <button onClick={() => setCancelConfirm(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">
-              Your booking with <span className="font-semibold text-gray-900">{cancelConfirm.artisan}</span> on{' '}
-              {cancelConfirm.date} at {cancelConfirm.time} will be cancelled. This can&apos;t be undone.
+        <Modal title="Cancel this booking?" onClose={() => setCancelConfirm(null)}>
+          <p className="text-sm text-gray-500 mb-4">
+            Your booking with <span className="font-semibold text-gray-900">{cancelConfirm.artisan}</span> on{' '}
+            {cancelConfirm.date} at {cancelConfirm.time} will be cancelled. This can&apos;t be undone.
+          </p>
+          {cancelConfirm.paymentStatus === 'PAID' && (
+            <p className="flex items-start gap-1.5 text-xs font-medium text-amber-700 mb-4">
+              <ShieldCheck size={14} className="shrink-0 mt-0.5" aria-hidden="true" />
+              Your payment is held in escrow — cancelling refunds it to you.
             </p>
-            {cancelConfirm.paymentStatus === 'PAID' && (
-              <p className="flex items-start gap-1.5 text-xs font-medium text-amber-700 mb-4">
-                <ShieldCheck size={14} className="shrink-0 mt-0.5" aria-hidden="true" />
-                Your payment is held in escrow — cancelling refunds it to you.
-              </p>
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCancelConfirm(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Keep Booking
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={cancellingId === cancelConfirm.id}
-                className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {cancellingId === cancelConfirm.id ? 'Cancelling…' : 'Yes, Cancel'}
-              </button>
-            </div>
+          )}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCancelConfirm(null)}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Keep Booking
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={cancellingId === cancelConfirm.id}
+              className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {cancellingId === cancelConfirm.id ? 'Cancelling…' : 'Yes, Cancel'}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Payment modal */}
       {payFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setPayFor(null)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="pay-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-4">
-              <h2 id="pay-dialog-title" className="font-display text-lg font-bold text-gray-900">Pay for your booking</h2>
-              <button onClick={() => setPayFor(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 mb-5">
+        <Modal title="Pay for your booking" onClose={() => setPayFor(null)}>
+          <p className="text-sm text-gray-500 mb-5">
               Booking with <span className="font-semibold text-gray-900">{payFor.artisan}</span> on {payFor.date} at {payFor.time}.
             </p>
 
@@ -500,21 +494,13 @@ export default function BookingHistoryPage() {
                 </>
               )
             })()}
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Dispute modal */}
       {disputeFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setDisputeFor(null)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="dispute-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-4">
-              <h2 id="dispute-dialog-title" className="font-display text-lg font-bold text-gray-900">Raise a dispute</h2>
-              <button onClick={() => setDisputeFor(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">
+        <Modal title="Raise a dispute" onClose={() => setDisputeFor(null)}>
+          <p className="text-sm text-gray-500 mb-4">
               Tell us what went wrong with your booking with{' '}
               <span className="font-semibold text-gray-900">{disputeFor.artisan}</span>. Our team will review it.
             </p>
@@ -552,20 +538,12 @@ export default function BookingHistoryPage() {
                 {disputeSubmitting ? 'Submitting…' : 'Submit Dispute'}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
       {/* Review modal */}
       {reviewFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setReviewFor(null)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-4">
-              <h2 id="review-dialog-title" className="font-display text-lg font-bold text-gray-900">Review your booking</h2>
-              <button onClick={() => setReviewFor(null)} aria-label="Close dialog" className="p-2 -m-1 text-gray-500 hover:text-gray-700">
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">
+        <Modal title="Review your booking" onClose={() => setReviewFor(null)}>
+          <p className="text-sm text-gray-500 mb-4">
               How was your experience with{' '}
               <span className="font-semibold text-gray-900">{reviewFor.artisan}</span>?
             </p>
@@ -652,8 +630,7 @@ export default function BookingHistoryPage() {
                 {reviewSubmitting ? 'Submitting…' : 'Submit Review'}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
     </AuthGuard>

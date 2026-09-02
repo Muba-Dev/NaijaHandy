@@ -434,8 +434,8 @@ export async function fetchAdminBookings(params?: Record<string, string>): Promi
   return data.data
 }
 
-export async function fetchAdminPayments(): Promise<AdminPayment[]> {
-  const { data } = await api.get('/admin/payments')
+export async function fetchAdminPayments(params?: Record<string, string>): Promise<{ data: AdminPayment[]; total: number }> {
+  const { data } = await api.get('/admin/payments', { params })
   return data.data
 }
 

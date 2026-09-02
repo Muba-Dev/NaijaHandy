@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import * as bcrypt from 'bcrypt'
 import { randomBytes, createHash, timingSafeEqual } from 'crypto'
-import { JWT_SECRET } from '../config'
+import { JWT_SECRET, FRONTEND_URL } from '../config'
 
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
@@ -203,8 +203,7 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS)
     await this.prisma.passwordResetToken.create({ data: { token, userId: user.id, expiresAt } })
 
-    const base = process.env.FRONTEND_URL || 'http://localhost:3000'
-    const resetUrl = `${base}/reset-password?token=${token}`
+    const resetUrl = `${FRONTEND_URL()}/reset-password?token=${token}`
     await this.emailService.sendPasswordResetEmail(user.email, resetUrl)
     return { success: true }
   }

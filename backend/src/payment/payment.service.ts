@@ -4,12 +4,14 @@ import { PrismaService } from '../prisma/prisma.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreditsService } from '../credits/credits.service'
 import { PLATFORM_FEE } from '../domain/booking'
+import { PAYSTACK } from '../config'
 
-const SECRET_KEY = () => process.env.PAYSTACK_SECRET_KEY || ''
-const BASE_URL = () => process.env.PAYSTACK_BASE_URL || 'https://api.paystack.co'
-const FRONTEND_URL = () => process.env.FRONTEND_URL || 'http://localhost:3000'
-const CALLBACK_URL = () => process.env.PAYSTACK_CALLBACK_URL || `${FRONTEND_URL()}/bookings`
-const MOCK = () => process.env.PAYSTACK_MOCK === 'true' || !SECRET_KEY()
+const SECRET_KEY = PAYSTACK.secretKey
+const BASE_URL = PAYSTACK.baseUrl
+const CALLBACK_URL = PAYSTACK.callbackUrl
+const MOCK = PAYSTACK.mock
+// Hard ceiling on outbound Paystack calls so a slow gateway never hangs a request.
+const PAYSTACK_TIMEOUT_MS = 15000
 
 @Injectable()
 export class PaymentService {
@@ -58,6 +60,7 @@ export class PaymentService {
         metadata: { bookingId: booking.id, customerId: userId },
         callback_url: CALLBACK_URL(),
       }),
+      signal: AbortSignal.timeout(PAYSTACK_TIMEOUT_MS),
     })
     const json: any = await response.json()
     if (!response.ok || !json.status) {
@@ -81,6 +84,7 @@ export class PaymentService {
     if (!MOCK()) {
       const response = await fetch(`${BASE_URL()}/transaction/verify/${encodeURIComponent(reference)}`, {
         headers: { Authorization: `Bearer ${SECRET_KEY()}` },
+        signal: AbortSignal.timeout(PAYSTACK_TIMEOUT_MS),
       })
       const json: any = await response.json()
       if (!response.ok || !json.status) throw new BadRequestException(json.message || 'Verification failed')
@@ -120,35 +124,50 @@ export class PaymentService {
   }
 
   private async finalizePayment(bookingId: string) {
-    const payment = await this.prisma.payment.update({
-      where: { bookingId },
-      data: { status: 'SUCCESS', paidAt: new Date(), escrowStatus: 'HELD', escrowHeldAt: new Date() },
-    })
-    await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { paymentStatus: 'PAID', paymentReference: payment.reference, paidAt: new Date() },
-    })
-
-    // Debit applied credits (only once — this method is idempotency-gated by the callers).
-    if (payment.creditsApplied > 0) {
-      const booking = await this.prisma.booking.findUnique({
-        where: { id: bookingId },
-        select: { customerId: true },
-      })
-      if (booking) {
-        await this.creditsService.use(
-          booking.customerId,
-          payment.creditsApplied,
-          bookingId,
-          `Applied to booking ${bookingId}`,
-        )
-      }
-    }
-
+    // Fetch the recipients once up front so we don't repeat lookups below.
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { artisan: { select: { userId: true } } },
+      select: { customerId: true, artisan: { select: { userId: true } } },
     })
+
+    // Payment success + booking PAID + credit debit are one atomic unit — no
+    // partial state if any step fails.
+    const payment = await this.prisma.$transaction(async (tx) => {
+      const pay = await tx.payment.update({
+        where: { bookingId },
+        data: { status: 'SUCCESS', paidAt: new Date(), escrowStatus: 'HELD', escrowHeldAt: new Date() },
+      })
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: { paymentStatus: 'PAID', paymentReference: pay.reference, paidAt: new Date() },
+      })
+
+      // Debit applied credits (only once — this method is idempotency-gated by
+      // the callers). Balance was validated at initialize time, but guard anyway.
+      if (pay.creditsApplied > 0 && booking) {
+        const customer = await tx.user.findUnique({
+          where: { id: booking.customerId },
+          select: { creditBalance: true },
+        })
+        const current = customer?.creditBalance ?? 0
+        if (current < pay.creditsApplied) throw new BadRequestException('Insufficient credit balance')
+        const balance = current - pay.creditsApplied
+        await tx.user.update({ where: { id: booking.customerId }, data: { creditBalance: balance } })
+        await tx.creditTransaction.create({
+          data: {
+            userId: booking.customerId,
+            amount: -pay.creditsApplied,
+            type: 'USED',
+            bookingId,
+            balanceAfter: balance,
+            note: `Applied to booking ${bookingId}`,
+          },
+        })
+      }
+
+      return pay
+    })
+
     if (booking) {
       await this.notificationsService.create(booking.artisan.userId, {
         type: 'PAYMENT_RECEIVED',
@@ -168,15 +187,17 @@ export class PaymentService {
     if (!payment || payment.escrowStatus !== 'HELD') return payment
 
     const payoutAmount = Math.max((payment.grossAmount ?? 0) - PLATFORM_FEE, 0)
-    const updated = await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { escrowStatus: 'RELEASED', escrowReleasedAt: new Date(), payoutAmount },
-    })
-
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: bookingId },
-      include: { artisan: { select: { userId: true } } },
-    })
+    // The DB write and the notification lookup are independent — run in parallel.
+    const [updated, booking] = await Promise.all([
+      this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { escrowStatus: 'RELEASED', escrowReleasedAt: new Date(), payoutAmount },
+      }),
+      this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { artisan: { select: { userId: true } } },
+      }),
+    ])
     if (booking) {
       await this.notificationsService.create(booking.artisan.userId, {
         type: 'PAYMENT_RELEASED',
@@ -195,23 +216,44 @@ export class PaymentService {
     const payment = await this.prisma.payment.findUnique({ where: { bookingId } })
     if (!payment || payment.escrowStatus !== 'HELD') return payment
 
-    const updated = await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { escrowStatus: 'REFUNDED', escrowRefundedAt: new Date(), status: 'REFUNDED' },
-    })
-    await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { paymentStatus: 'REFUNDED' },
-    })
-
-    // Restore credits that were applied to this booking (platform-funded discount).
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       select: { customerId: true },
     })
-    if (booking && payment.creditsApplied > 0) {
-      await this.creditsService.award(booking.customerId, payment.creditsApplied, bookingId, 'Refund — applied credits returned')
-    }
+
+    // The refund + booking status flip are one atomic unit.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const up = await tx.payment.update({
+        where: { id: payment.id },
+        data: { escrowStatus: 'REFUNDED', escrowRefundedAt: new Date(), status: 'REFUNDED' },
+      })
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: { paymentStatus: 'REFUNDED' },
+      })
+
+      // Restore credits that were applied to this booking (platform-funded discount).
+      if (payment.creditsApplied > 0 && booking) {
+        const customer = await tx.user.findUnique({
+          where: { id: booking.customerId },
+          select: { creditBalance: true },
+        })
+        const balance = (customer?.creditBalance ?? 0) + payment.creditsApplied
+        await tx.user.update({ where: { id: booking.customerId }, data: { creditBalance: balance } })
+        await tx.creditTransaction.create({
+          data: {
+            userId: booking.customerId,
+            amount: payment.creditsApplied,
+            type: 'EARNED',
+            bookingId,
+            balanceAfter: balance,
+            note: 'Refund — applied credits returned',
+          },
+        })
+      }
+
+      return up
+    })
 
     if (booking) {
       await this.notificationsService.create(booking.customerId, {

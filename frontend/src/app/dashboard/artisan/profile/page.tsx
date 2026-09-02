@@ -7,6 +7,7 @@ import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, upload
 import { formatNGN, getApiErrorMessage, compressImage, setStoredUser } from '@/lib/utils'
 import { CATEGORIES, DEFAULT_AVATAR } from '@/lib/data'
 import MapPicker from '@/components/map/MapPicker'
+import Alert from '@/components/ui/Alert'
 import type { Artisan, PortfolioItem } from '@/types'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -332,10 +333,10 @@ export default function MyProfilePage() {
           </div>
         </div>
         {avatarStatus === 'saved' && (
-          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-4">Profile picture updated.</div>
+          <Alert className="mt-4">Profile picture updated.</Alert>
         )}
         {avatarStatus === 'error' && avatarError && (
-          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-4">{avatarError}</div>
+          <Alert variant="error" className="mt-4">{avatarError}</Alert>
         )}
       </div>
 
@@ -395,10 +396,10 @@ export default function MyProfilePage() {
         </div>
         <p className="text-xs text-gray-500 mt-2">JPG, PNG, WebP or GIF. Maximum 4MB.</p>
         {coverStatus === 'saved' && (
-          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">Cover photo updated.</div>
+          <Alert className="mt-3">Cover photo updated.</Alert>
         )}
         {coverStatus === 'error' && coverError && (
-          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{coverError}</div>
+          <Alert variant="error" className="mt-3">{coverError}</Alert>
         )}
       </div>
 
@@ -433,10 +434,10 @@ export default function MyProfilePage() {
           )}
         </div>
         {locationSaved && (
-          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">Location saved.</div>
+          <Alert className="mt-3">Location saved.</Alert>
         )}
         {locationError && (
-          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{locationError}</div>
+          <Alert variant="error" className="mt-3">{locationError}</Alert>
         )}
       </div>
 
@@ -458,13 +459,13 @@ export default function MyProfilePage() {
         </div>
 
         {artisan?.verificationStatus === 'VERIFIED' ? (
-          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">
+          <Alert className="mt-3">
             Your identity has been verified. You carry the verified badge on your public profile.
-          </div>
+          </Alert>
         ) : artisan?.verificationStatus === 'PENDING' ? (
-          <div role="status" className="bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-xl px-4 py-3 mt-3">
+          <Alert variant="warning" className="mt-3">
             Your document is being reviewed. We&apos;ll let you know as soon as it&apos;s approved or rejected.
-          </div>
+          </Alert>
         ) : (
           <>
             <p className="text-sm text-gray-600 mt-2">
@@ -472,9 +473,9 @@ export default function MyProfilePage() {
               Only our review team can see it.
             </p>
             {artisan?.verificationStatus === 'REJECTED' && (
-              <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">
+              <Alert variant="error" className="mt-3">
                 Your previous document was rejected. Please review it and upload a clearer, valid document.
-              </div>
+              </Alert>
             )}
             {artisan?.verificationDocUrl && (
               <Image
@@ -525,10 +526,10 @@ export default function MyProfilePage() {
             </div>
             <p className="text-xs text-gray-500 mt-2">JPG, PNG, WebP or GIF. Maximum 4MB.</p>
             {verificationStatus === 'saved' && (
-              <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">Document submitted. It&apos;s now pending review.</div>
+              <Alert className="mt-3">Document submitted. It&apos;s now pending review.</Alert>
             )}
             {verificationStatus === 'error' && verificationError && (
-              <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{verificationError}</div>
+              <Alert variant="error" className="mt-3">{verificationError}</Alert>
             )}
           </>
         )}
@@ -604,10 +605,10 @@ export default function MyProfilePage() {
         </div>
 
         {error && (
-          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>
+          <Alert variant="error" className="mb-4">{error}</Alert>
         )}
         {saved && (
-          <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mb-4">Profile updated successfully.</div>
+          <Alert className="mb-4">Profile updated successfully.</Alert>
         )}
 
         <button
@@ -683,10 +684,10 @@ export default function MyProfilePage() {
           </div>
           <p className="text-xs text-gray-500 mt-2">JPG, PNG, WebP or GIF. Maximum 4MB.</p>
           {portfolioStatus === 'saved' && (
-            <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3 mt-3">Photo added to your portfolio.</div>
+            <Alert className="mt-3">Photo added to your portfolio.</Alert>
           )}
           {portfolioStatus === 'error' && portfolioError && (
-            <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mt-3">{portfolioError}</div>
+            <Alert variant="error" className="mt-3">{portfolioError}</Alert>
           )}
         </div>
       </div>

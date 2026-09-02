@@ -6,6 +6,7 @@ import { Bell, CheckCheck, ArrowRight } from 'lucide-react'
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/api'
 import { getApiErrorMessage } from '@/lib/utils'
 import AuthGuard from '@/components/AuthGuard'
+import Spinner from '@/components/ui/Spinner'
 import type { AppNotification } from '@/types'
 
 function timeAgo(date: string): string {
@@ -94,7 +95,7 @@ export default function NotificationsPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-16" role="status" aria-live="polite">
-            <div className="w-8 h-8 border-2 border-[#047857] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+            <Spinner />
           </div>
         ) : notifications.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">

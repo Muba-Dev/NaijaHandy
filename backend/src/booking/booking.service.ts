@@ -54,7 +54,12 @@ export class BookingService {
   }
 
   async findAll(userId: string, role: string, query: any) {
-    const { status } = query
+    const { status, page = 1, limit = 200 } = query
+    // Bound responses — active bookings per user are modest, but never allow an
+    // unbounded payload. Default 200 far exceeds realistic usage while keeping
+    // the array shape the frontend relies on for its local tab filtering.
+    const take = Math.min(Math.max(Number(limit) || 200, 1), 500)
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take
     const isArtisan = role === 'ARTISAN'
     const profile = isArtisan
       ? await this.prisma.artisanProfile.findUnique({ where: { userId }, select: { id: true } })
@@ -72,6 +77,8 @@ export class BookingService {
         review: { select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     })
   }
 
@@ -99,38 +106,26 @@ export class BookingService {
     const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
 
     // Escrow lifecycle: completing a paid job releases the held payment to the
-    // artisan; cancelling a paid job refunds it to the customer.
+    // artisan; cancelling a paid job refunds it to the customer. Release and
+    // the loyalty-credit award are independent — run in parallel.
     if (status === 'COMPLETED' && current.paymentStatus === 'PAID') {
-      await this.paymentService.releaseEscrow(bookingId)
+      await Promise.all([
+        this.paymentService.releaseEscrow(bookingId),
+        current.customerId !== current.artisan.userId
+          ? this.creditsService.award(
+              current.customerId,
+              CreditsService.rewardFor(current.amount),
+              bookingId,
+              '5% back on a completed booking',
+            )
+          : Promise.resolve(),
+      ])
     }
     if (status === 'CANCELLED' && current.paymentStatus === 'PAID') {
       await this.paymentService.refundEscrow(bookingId)
     }
 
-    // Reward loyalty credits on a paid, completed job (skip self-bookings).
-    if (status === 'COMPLETED' && current.paymentStatus === 'PAID' && current.customerId !== current.artisan.userId) {
-      await this.creditsService.award(
-        current.customerId,
-        CreditsService.rewardFor(current.amount),
-        bookingId,
-        '5% back on a completed booking',
-      )
-    }
-
     const recipient = isArtisan ? current.customer : current.artisan.user
-    await this.emailService.sendBookingStatusEmail({
-      to: recipient.email,
-      status,
-      booking: {
-        id: bookingId,
-        artisanName: current.artisan.user.name,
-        customerName: current.customer.name,
-        date: current.date,
-        time: current.time,
-        amount: current.amount,
-      },
-    })
-
     const notifications: Record<string, { type: any; title: string; body: string; link: string }> = {
       CONFIRMED: {
         type: 'BOOKING_ACCEPTED',
@@ -151,25 +146,42 @@ export class BookingService {
         link: '/bookings',
       },
     }
+
+    let notify: Promise<unknown> = Promise.resolve()
     if (status === 'CANCELLED') {
-      if (isCustomer) {
-        await this.notificationsService.create(current.artisan.user.id, {
-          type: 'BOOKING_CANCELLED',
-          title: 'Booking cancelled',
-          body: `${current.customer.name} cancelled their booking.`,
-          link: '/dashboard/artisan/requests',
-        })
-      } else {
-        await this.notificationsService.create(current.customer.id, {
-          type: 'BOOKING_CANCELLED',
-          title: 'Booking cancelled',
-          body: `${current.artisan.user.name} cancelled your booking.`,
-          link: '/bookings',
-        })
-      }
+      notify = isCustomer
+        ? this.notificationsService.create(current.artisan.user.id, {
+            type: 'BOOKING_CANCELLED',
+            title: 'Booking cancelled',
+            body: `${current.customer.name} cancelled their booking.`,
+            link: '/dashboard/artisan/requests',
+          })
+        : this.notificationsService.create(current.customer.id, {
+            type: 'BOOKING_CANCELLED',
+            title: 'Booking cancelled',
+            body: `${current.artisan.user.name} cancelled your booking.`,
+            link: '/bookings',
+          })
     } else if (notifications[status]) {
-      await this.notificationsService.create(recipient.id, notifications[status])
+      notify = this.notificationsService.create(recipient.id, notifications[status])
     }
+
+    // Email + in-app notification are independent — don't serialize them.
+    await Promise.all([
+      this.emailService.sendBookingStatusEmail({
+        to: recipient.email,
+        status,
+        booking: {
+          id: bookingId,
+          artisanName: current.artisan.user.name,
+          customerName: current.customer.name,
+          date: current.date,
+          time: current.time,
+          amount: current.amount,
+        },
+      }),
+      notify,
+    ])
 
     return updated
   }

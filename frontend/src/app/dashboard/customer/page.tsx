@@ -11,6 +11,8 @@ import { formatNGN } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
+import SkeletonCard from '@/components/ui/SkeletonCard'
+import EmptyState from '@/components/ui/EmptyState'
 import type { Booking, BookingStatus } from '@/types'
 import type { AuthUser } from '@/types'
 
@@ -152,10 +154,10 @@ export default function CustomerDashboardPage() {
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+                <SkeletonCard key={i} className="p-5">
                   <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
                   <div className="h-7 bg-gray-100 rounded w-2/3" />
-                </div>
+                </SkeletonCard>
               ))}
             </div>
           ) : (
@@ -200,14 +202,17 @@ export default function CustomerDashboardPage() {
                   </div>
                 ))
               ) : active.length === 0 ? (
-                <div className="text-center py-12 px-5">
-                  <Calendar size={36} className="text-gray-200 mx-auto mb-3" aria-hidden="true" />
-                  <p className="text-gray-600 font-medium text-sm">No upcoming bookings</p>
-                  <p className="text-xs text-gray-500 mt-1">Book an artisan and your upcoming jobs will appear here.</p>
-                  <Link href="/search" className="mt-4 inline-block px-4 py-2 rounded-xl text-white text-xs font-semibold bg-[#047857] hover:opacity-90 transition-opacity">
-                    Find an Artisan
-                  </Link>
-                </div>
+                <EmptyState
+                  icon={Calendar}
+                  compact
+                  title="No upcoming bookings"
+                  description="Book an artisan and your upcoming jobs will appear here."
+                  action={
+                    <Link href="/search" className="inline-block px-4 py-2 rounded-xl text-white text-xs font-semibold bg-[#047857] hover:opacity-90 transition-opacity">
+                      Find an Artisan
+                    </Link>
+                  }
+                />
               ) : active.map((b) => (
                 <div key={b.id} className="flex items-center gap-4 px-5 py-4">
                   <Image src={b.avatar || DEFAULT_AVATAR} alt={b.artisan} width={44} height={44} className="rounded-xl object-cover shrink-0" />

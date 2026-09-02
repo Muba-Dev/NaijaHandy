@@ -7,6 +7,7 @@ import { TrendingUp, Briefcase, Calendar, CreditCard, Bell, Users, CheckCircle, 
 import { fetchMyArtisanProfile, fetchBookings, updateArtisanProfile, updateBookingStatus } from '@/lib/api'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import { formatNGN } from '@/lib/utils'
+import SkeletonCard from '@/components/ui/SkeletonCard'
 import type { Artisan, Booking } from '@/types'
 
 export default function ArtisanOverviewPage() {
@@ -68,10 +69,10 @@ export default function ArtisanOverviewPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {loading ? (
           [1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+            <SkeletonCard key={i} className="p-4">
               <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
               <div className="h-6 bg-gray-100 rounded w-2/3" />
-            </div>
+            </SkeletonCard>
           ))
         ) : [
           { label: 'This Month', value: formatNGN(totalEarnings), sub: 'Earnings', icon: TrendingUp },

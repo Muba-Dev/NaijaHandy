@@ -22,27 +22,27 @@ datasource db {
 // ─── MODELS ───────────────────────────────────────────────────────────────────
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  phone         String?
-  city          String?
-  address       String?
-  latitude      Float?
-  longitude     Float?
-  password      String?
-  googleId      String?  @unique
-  role          String   @default("CUSTOMER")
-  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED
-  emailVerified Boolean  @default(false) // must verify by OTP before first login
-  avatar        String?
-  isDemo        Boolean  @default(false)
-  creditBalance Int      @default(0)
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  phone             String?
+  city              String?
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  password          String?
+  googleId          String?  @unique
+  role              String   @default("CUSTOMER")
+  status            String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  emailVerified     Boolean  @default(false) // must verify by OTP before first login
+  avatar            String?
+  isDemo            Boolean  @default(false)
+  creditBalance     Int      @default(0)
   bankName          String?
   bankAccountNumber String?
   bankAccountName   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   artisanProfile          ArtisanProfile?
@@ -58,6 +58,8 @@ model User {
   supportChatLogs         SupportChatLog[]
   creditTransactions      CreditTransaction[]
 
+  @@index([role, status])
+  @@index([city])
   @@map("users")
 }
 
@@ -144,6 +146,7 @@ model RefreshToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("refresh_tokens")
 }
 
@@ -157,6 +160,7 @@ model PasswordResetToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("password_reset_tokens")
 }
 
@@ -204,6 +208,10 @@ model ArtisanProfile {
   reviews   Review[]
   savedBy   SavedArtisan[]
 
+  @@index([category, approvalStatus])
+  @@index([profession])
+  @@index([approvalStatus, available])
+  @@index([approvalStatus])
   @@map("artisan_profiles")
 }
 
@@ -216,6 +224,7 @@ model Service {
 
   artisan ArtisanProfile @relation(fields: [artisanId], references: [id], onDelete: Cascade)
 
+  @@index([artisanId])
   @@map("services")
 }
 
@@ -228,6 +237,7 @@ model PortfolioItem {
 
   artisan ArtisanProfile @relation(fields: [artisanId], references: [id], onDelete: Cascade)
 
+  @@index([artisanId])
   @@map("portfolio_items")
 }
 
@@ -255,6 +265,9 @@ model Booking {
   payment  Payment?
   disputes Dispute[]
 
+  @@index([customerId, status])
+  @@index([artisanId, status])
+  @@index([status])
   @@map("bookings")
 }
 
@@ -278,6 +291,8 @@ model Payment {
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
+  @@index([status])
+  @@index([escrowStatus])
   @@map("payments")
 }
 
@@ -296,6 +311,9 @@ model Review {
   customer User           @relation(fields: [customerId], references: [id])
   artisan  ArtisanProfile @relation(fields: [artisanId], references: [id])
 
+  @@index([customerId])
+  @@index([artisanId])
+  @@index([status])
   @@map("reviews")
 }
 
@@ -312,6 +330,8 @@ model Dispute {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   user    User    @relation("RaisedDisputes", fields: [raisedBy], references: [id])
 
+  @@index([bookingId, status])
+  @@index([status])
   @@map("disputes")
 }
 

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { PaymentService } from '../payment/payment.service'
+import { Prisma } from '@prisma/client'
 
 const APPROVAL_STATUSES = ['PENDING', 'APPROVED', 'REJECTED']
 const VERIFICATION_STATUSES = ['UNVERIFIED', 'PENDING', 'VERIFIED', 'REJECTED']
@@ -10,6 +11,28 @@ const USER_STATUSES = ['ACTIVE', 'SUSPENDED', 'DELETED']
 const REVIEW_STATUSES = ['APPROVED', 'HIDDEN']
 const DISPUTE_STATUSES = ['OPEN', 'RESOLVED', 'DISMISSED']
 const SUPPORT_STATUSES = ['OPEN', 'REPLIED', 'CLOSED']
+const DEFAULT_PAGE_SIZE = 50
+const MAX_PAGE_SIZE = 200
+
+// Shared offset pagination: returns { data, total } with clamped page size so
+// no admin list can ever return an unbounded payload.
+async function paginate<T>(
+  prisma: PrismaService,
+  model: 'artisanProfile' | 'user' | 'review' | 'booking' | 'payment' | 'dispute' | 'supportMessage',
+  where: object,
+  args: { include?: object; select?: object; orderBy: object },
+  page: unknown,
+  limit: unknown,
+): Promise<{ data: T[]; total: number }> {
+  const take = Math.min(Math.max(Number(limit) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE)
+  const skip = (Math.max(Number(page) || 1, 1) - 1) * take
+
+  const [data, total] = await Promise.all([
+    (prisma[model] as any).findMany({ ...args, where, skip, take }),
+    (prisma[model] as any).count({ where }),
+  ])
+  return { data, total }
+}
 
 @Injectable()
 export class AdminService {
@@ -50,8 +73,7 @@ export class AdminService {
   // ─── Artisan approval / verification ────────────────────────────────────────
 
   async listArtisans(query: any) {
-    const { approvalStatus, verificationStatus, search, page = 1, limit = 50 } = query
-    const skip = (Number(page) - 1) * Number(limit)
+    const { approvalStatus, verificationStatus, search, page, limit } = query
     const where: any = {
       ...(approvalStatus ? { approvalStatus: String(approvalStatus) } : {}),
       ...(verificationStatus ? { verificationStatus: String(verificationStatus) } : {}),
@@ -64,17 +86,10 @@ export class AdminService {
           }
         : {}),
     }
-    const [data, total] = await Promise.all([
-      this.prisma.artisanProfile.findMany({
-        where,
-        include: { user: { select: { id: true, name: true, email: true, city: true, avatar: true, status: true } } },
-        orderBy: { createdAt: 'asc' },
-        skip,
-        take: Number(limit),
-      }),
-      this.prisma.artisanProfile.count({ where }),
-    ])
-    return { data, total }
+    return paginate(this.prisma, 'artisanProfile', where, {
+      include: { user: { select: { id: true, name: true, email: true, city: true, avatar: true, status: true } } },
+      orderBy: { createdAt: 'asc' },
+    }, page, limit)
   }
 
   async setArtisanApproval(id: string, approvalStatus: string) {
@@ -140,26 +155,18 @@ export class AdminService {
   // ─── User management / suspension ───────────────────────────────────────────
 
   async listUsers(query: any) {
-    const { role, status, search, page = 1, limit = 50 } = query
-    const skip = (Number(page) - 1) * Number(limit)
+    const { role, status, search, page, limit } = query
     const where: any = {
       ...(role ? { role: String(role) } : {}),
       ...(status ? { status: String(status) } : {}),
       ...(search ? { OR: [{ name: { contains: String(search), mode: 'insensitive' as const } }, { email: { contains: String(search), mode: 'insensitive' as const } }] } : {}),
     }
-    const [data, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        select: {
-          id: true, name: true, email: true, phone: true, city: true, role: true, status: true, avatar: true, createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: Number(limit),
-      }),
-      this.prisma.user.count({ where }),
-    ])
-    return { data, total }
+    return paginate(this.prisma, 'user', where, {
+      select: {
+        id: true, name: true, email: true, phone: true, city: true, role: true, status: true, avatar: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }, page, limit)
   }
 
   async setUserStatus(id: string, status: string) {
@@ -202,24 +209,16 @@ export class AdminService {
   // ─── Review moderation ──────────────────────────────────────────────────────
 
   async listReviews(query: any) {
-    const { status, page = 1, limit = 50 } = query
-    const skip = (Number(page) - 1) * Number(limit)
+    const { status, page, limit } = query
     const where: any = { ...(status ? { status: String(status) } : {}) }
-    const [data, total] = await Promise.all([
-      this.prisma.review.findMany({
-        where,
-        include: {
-          customer: { select: { id: true, name: true, avatar: true } },
-          artisan: { include: { user: { select: { id: true, name: true } } } },
-          booking: { select: { id: true, amount: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: Number(limit),
-      }),
-      this.prisma.review.count({ where }),
-    ])
-    return { data, total }
+    return paginate(this.prisma, 'review', where, {
+      include: {
+        customer: { select: { id: true, name: true, avatar: true } },
+        artisan: { include: { user: { select: { id: true, name: true } } } },
+        booking: { select: { id: true, amount: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }, page, limit)
   }
 
   async setReviewStatus(id: string, status: string) {
@@ -232,54 +231,38 @@ export class AdminService {
   // ─── Bookings & payments ────────────────────────────────────────────────────
 
   async listBookings(query: any) {
-    const { status, page = 1, limit = 50 } = query
-    const skip = (Number(page) - 1) * Number(limit)
+    const { status, page, limit } = query
     const where: any = { ...(status ? { status: String(status) } : {}) }
-    const [data, total] = await Promise.all([
-      this.prisma.booking.findMany({
-        where,
-        include: {
-          customer: { select: { id: true, name: true, email: true } },
-          artisan: { include: { user: { select: { id: true, name: true } } } },
-          payment: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: Number(limit),
-      }),
-      this.prisma.booking.count({ where }),
-    ])
-    return { data, total }
+    return paginate(this.prisma, 'booking', where, {
+      include: {
+        customer: { select: { id: true, name: true, email: true } },
+        artisan: { include: { user: { select: { id: true, name: true } } } },
+        payment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }, page, limit)
   }
 
-  async listPayments() {
-    return this.prisma.payment.findMany({
+  async listPayments(query: any) {
+    const { page, limit } = query
+    return paginate(this.prisma, 'payment', {}, {
       include: { booking: { select: { id: true, description: true, amount: true } } },
       orderBy: { createdAt: 'desc' },
-      take: 100,
-    })
+    }, page, limit)
   }
 
   // ─── Disputes ───────────────────────────────────────────────────────────────
 
   async listDisputes(query: any) {
-    const { status, page = 1, limit = 50 } = query
-    const skip = (Number(page) - 1) * Number(limit)
+    const { status, page, limit } = query
     const where: any = { ...(status ? { status: String(status) } : {}) }
-    const [data, total] = await Promise.all([
-      this.prisma.dispute.findMany({
-        where,
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-          booking: { include: { artisan: { include: { user: { select: { id: true, name: true } } } } } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: Number(limit),
-      }),
-      this.prisma.dispute.count({ where }),
-    ])
-    return { data, total }
+    return paginate(this.prisma, 'dispute', where, {
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        booking: { include: { artisan: { include: { user: { select: { id: true, name: true } } } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }, page, limit)
   }
 
   async resolveDispute(id: string, status: string, resolution?: string) {
@@ -304,20 +287,12 @@ export class AdminService {
   // ─── Support inbox ──────────────────────────────────────────────────────────
 
   async listSupportMessages(query: any) {
-    const { status, page = 1, limit = 50 } = query
-    const skip = (Number(page) - 1) * Number(limit)
+    const { status, page, limit } = query
     const where: any = { ...(status ? { status: String(status) } : {}) }
-    const [data, total] = await Promise.all([
-      this.prisma.supportMessage.findMany({
-        where,
-        include: { user: { select: { id: true, name: true, email: true } } },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: Number(limit),
-      }),
-      this.prisma.supportMessage.count({ where }),
-    ])
-    return { data, total }
+    return paginate(this.prisma, 'supportMessage', where, {
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+    }, page, limit)
   }
 
   async setSupportMessageStatus(id: string, status: string) {
