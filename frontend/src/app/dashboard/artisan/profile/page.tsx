@@ -4,23 +4,15 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { BadgeCheck, MapPin, Star, Save, Loader2, Camera, ImagePlus, Trash2, ShieldCheck, Upload } from 'lucide-react'
 import { fetchMyArtisanProfile, updateArtisanProfile, updateArtisanCover, uploadPortfolioItem, deletePortfolioItem, updateProfile, submitVerificationDocument, updateAvatar } from '@/lib/api'
-import { formatNGN, getApiErrorMessage, compressImage, setStoredUser } from '@/lib/utils'
+import { formatNGN, getApiErrorMessage, readImageAsDataUrl, setStoredUser } from '@/lib/utils'
 import { CATEGORIES, DEFAULT_AVATAR } from '@/lib/data'
 import MapPicker from '@/components/map/MapPicker'
 import Alert from '@/components/ui/Alert'
+import useImageUpload from '@/hooks/useImageUpload'
 import type { Artisan, PortfolioItem } from '@/types'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024
-
-function readImageAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('Could not read the file'))
-    reader.readAsDataURL(file)
-  })
-}
 
 function validateImage(file: File): string {
   if (!ALLOWED_TYPES.includes(file.type)) return 'Please choose an image file (JPG, PNG, WebP or GIF).'
@@ -41,12 +33,17 @@ export default function MyProfilePage() {
   const [coverError, setCoverError] = useState('')
   const coverInputRef = useRef<HTMLInputElement>(null)
 
-  const [avatarStatus, setAvatarStatus] = useState<'idle' | 'uploading' | 'saved' | 'error'>('idle')
-  const [avatarError, setAvatarError] = useState('')
+  const { status: avatarStatus, error: avatarError, handleFile: uploadAvatarFile } = useImageUpload({
+    validate: validateImage,
+    fallbackError: 'Failed to update profile picture. Please try again.',
+  })
+  const { status: portfolioStatus, error: portfolioError, handleFile: uploadPortfolioFile, setStatus: setPortfolioStatus, setError: setPortfolioError } = useImageUpload({
+    pipeline: 'raw',
+    validate: validateImage,
+    fallbackError: 'Failed to add photo. Please try again.',
+  })
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
-  const [portfolioStatus, setPortfolioStatus] = useState<'idle' | 'uploading' | 'saved' | 'error'>('idle')
-  const [portfolioError, setPortfolioError] = useState('')
   const [portfolioCaption, setPortfolioCaption] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const portfolioInputRef = useRef<HTMLInputElement>(null)
@@ -109,28 +106,12 @@ export default function MyProfilePage() {
   const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setAvatarStatus('idle')
-    setAvatarError('')
-    const message = validateImage(file)
-    if (message) {
-      setAvatarStatus('error')
-      setAvatarError(message)
-      if (avatarInputRef.current) avatarInputRef.current.value = ''
-      return
-    }
-    setAvatarStatus('uploading')
-    try {
-      const dataUrl = await compressImage(file)
+    await uploadAvatarFile(file, async (dataUrl) => {
       const updated = await updateAvatar(dataUrl)
       setArtisan((a) => (a ? { ...a, avatar: updated.avatar || a.avatar } : a))
       setStoredUser(updated)
-      setAvatarStatus('saved')
-    } catch (err: unknown) {
-      setAvatarStatus('error')
-      setAvatarError(getApiErrorMessage(err, 'Failed to update profile picture. Please try again.'))
-    } finally {
-      if (avatarInputRef.current) avatarInputRef.current.value = ''
-    }
+    })
+    if (avatarInputRef.current) avatarInputRef.current.value = ''
   }
 
   const handleCoverFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,28 +154,12 @@ export default function MyProfilePage() {
   const handlePortfolioFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setPortfolioStatus('idle')
-    setPortfolioError('')
-    const message = validateImage(file)
-    if (message) {
-      setPortfolioStatus('error')
-      setPortfolioError(message)
-      if (portfolioInputRef.current) portfolioInputRef.current.value = ''
-      return
-    }
-    setPortfolioStatus('uploading')
-    try {
-      const dataUrl = await readImageAsDataUrl(file)
+    await uploadPortfolioFile(file, async (dataUrl) => {
       const item = await uploadPortfolioItem(dataUrl, portfolioCaption.trim() || undefined)
       setArtisan((a) => (a ? { ...a, portfolio: [item, ...a.portfolio] } : a))
       setPortfolioCaption('')
-      setPortfolioStatus('saved')
-    } catch (err: unknown) {
-      setPortfolioStatus('error')
-      setPortfolioError(getApiErrorMessage(err, 'Failed to add photo. Please try again.'))
-    } finally {
-      if (portfolioInputRef.current) portfolioInputRef.current.value = ''
-    }
+    })
+    if (portfolioInputRef.current) portfolioInputRef.current.value = ''
   }
 
   const handleDeletePortfolio = async (item: PortfolioItem) => {

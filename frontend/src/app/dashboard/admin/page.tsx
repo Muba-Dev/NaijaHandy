@@ -4,13 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
-  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Check, X, RefreshCcw, FileText, LifeBuoy, Camera, Trash2,
+  TrendingUp, Users, ShieldCheck, Star, Calendar, CreditCard, Scale, LogOut, Trash2, Camera, LifeBuoy,
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
-import StatusBadge from '@/components/StatusBadge'
 import Brand from '@/components/Brand'
-import FilterTabs from '@/components/ui/FilterTabs'
-import { formatNGN, getApiErrorMessage, setStoredUser, compressImage } from '@/lib/utils'
+import useImageUpload from '@/hooks/useImageUpload'
+import { setStoredUser } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import {
   fetchAdminStats, fetchAdminArtisans, setArtisanApproval, setArtisanVerification,
@@ -22,6 +21,14 @@ import type {
   AdminStats, AdminArtisan, AdminUser, AdminReview, AdminBooking, AdminPayment, AdminDispute,
   AuthUser, SupportMessage,
 } from '@/types'
+import StatsGrid from '@/components/admin/stats'
+import ArtisansTab from '@/components/admin/ArtisansTab'
+import UsersTab from '@/components/admin/UsersTab'
+import ReviewsTab from '@/components/admin/ReviewsTab'
+import BookingsTab from '@/components/admin/BookingsTab'
+import PaymentsTab from '@/components/admin/PaymentsTab'
+import DisputesTab from '@/components/admin/DisputesTab'
+import SupportTab from '@/components/admin/SupportTab'
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
@@ -35,35 +42,6 @@ const TABS = [
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
-
-function Pill({ label, tone }: { label: string; tone: 'green' | 'amber' | 'red' | 'blue' | 'gray' }) {
-  const tones = {
-    green: 'bg-emerald-100 text-emerald-700',
-    amber: 'bg-amber-100 text-amber-700',
-    red: 'bg-red-100 text-red-700',
-    blue: 'bg-blue-100 text-blue-700',
-    gray: 'bg-gray-100 text-gray-600',
-  }
-  return <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${tones[tone]}`}>{label}</span>
-}
-
-function approvalTone(s: string): 'green' | 'amber' | 'red' | 'gray' {
-  if (s === 'APPROVED') return 'green'
-  if (s === 'PENDING') return 'amber'
-  if (s === 'REJECTED') return 'red'
-  return 'gray'
-}
-
-function verificationTone(s: string): 'green' | 'amber' | 'red' | 'gray' {
-  if (s === 'VERIFIED') return 'green'
-  if (s === 'PENDING') return 'amber'
-  if (s === 'REJECTED') return 'red'
-  return 'gray'
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 export default function AdminDashboardPage() {
   const router = useRouter()
@@ -91,10 +69,17 @@ export default function AdminDashboardPage() {
   const [resolving, setResolving] = useState<string | null>(null)
   const [resolutionText, setResolutionText] = useState('')
   const [notice, setNotice] = useState('')
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [avatarError, setAvatarError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+
+  const { busy: uploadingAvatar, error: avatarError, handleFile: handleAvatarFile } = useImageUpload({
+    validate: (file) => {
+      if (!file.type.startsWith('image/')) return 'Please choose an image file (JPG, PNG or WebP).'
+      if (file.size > 15 * 1024 * 1024) return 'Image is too large. Please choose a photo under 15MB.'
+      return null
+    },
+    fallbackError: 'Failed to upload your photo. Please try again.',
+  })
 
   const flash = (msg: string) => {
     setNotice(msg)
@@ -242,28 +227,13 @@ export default function AdminDashboardPage() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setAvatarError('')
-    if (!file.type.startsWith('image/')) {
-      setAvatarError('Please choose an image file (JPG, PNG or WebP).')
-      return
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      setAvatarError('Image is too large. Please choose a photo under 15MB.')
-      return
-    }
-    setUploadingAvatar(true)
-    try {
-      const dataUrl = await compressImage(file)
+    await handleAvatarFile(file, async (dataUrl) => {
       const updated = await updateAvatar(dataUrl)
       setUser((u) => (u ? { ...u, ...updated } : u))
       setStoredUser(updated)
       flash('Profile photo updated')
-    } catch (err) {
-      setAvatarError(getApiErrorMessage(err, 'Failed to upload your photo. Please try again.'))
-    } finally {
-      setUploadingAvatar(false)
-      if (avatarInputRef.current) avatarInputRef.current.value = ''
-    }
+    })
+    if (avatarInputRef.current) avatarInputRef.current.value = ''
   }
 
   return (
@@ -414,389 +384,71 @@ export default function AdminDashboardPage() {
             {notice && <span role="status" className="text-sm font-medium text-[#047857] bg-emerald-50 px-3 py-1.5 rounded-lg">{notice}</span>}
           </div>
 
-          {tab === 'overview' && stats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Pending Approvals', value: stats.pendingArtisans, sub: 'artisans awaiting review', color: '#F59E0B', icon: ShieldCheck },
-                { label: 'Total Artisans', value: stats.totalArtisans, sub: 'registered profiles', color: '#047857', icon: Users },
-                { label: 'Registered Users', value: stats.totalUsers, sub: 'customers + artisans + admins', color: '#2563EB', icon: Users },
-                { label: 'Bookings', value: stats.totalBookings, sub: 'all time', color: '#8B5CF6', icon: Calendar },
-                { label: 'Open Disputes', value: stats.openDisputes, sub: 'need resolution', color: '#EF4444', icon: Scale },
-                { label: 'Open Support', value: stats.openSupportMessages, sub: 'messages awaiting reply', color: '#8B5CF6', icon: LifeBuoy },
-                { label: 'Hidden Reviews', value: stats.hiddenReviews, sub: 'moderated out', color: '#6B7280', icon: Star },
-                { label: 'Escrow Held', value: formatNGN(stats.heldEscrow ?? 0), sub: `${stats.heldEscrowCount ?? 0} payments awaiting release`, color: '#D97706', icon: ShieldCheck },
-                { label: 'Revenue', value: formatNGN(stats.revenue), sub: 'successful payments', color: '#047857', icon: CreditCard },
-              ].map((s) => {
-                const Icon = s.icon
-                return (
-                  <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm text-gray-500">{s.label}</p>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}20` }}>
-                        <Icon size={16} style={{ color: s.color }} />
-                      </div>
-                    </div>
-                    <p className="font-display text-2xl font-bold text-gray-900">{s.value}</p>
-                    <p className="text-xs text-gray-500 mt-1">{s.sub}</p>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {tab === 'overview' && stats && <StatsGrid stats={stats} />}
 
           {tab === 'artisans' && (
-            <div>
-              <FilterTabs
-                items={['ALL', 'PENDING', 'APPROVED', 'REJECTED']}
-                active={artisanFilter}
-                onChange={setArtisanFilter}
-                className="mb-4 flex-wrap"
-                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                activeClassName="bg-[#047857] text-white"
-                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
-                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
-              />
-              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {artisans.length === 0 && <p className="p-6 text-sm text-gray-500">No artisans match this filter.</p>}
-                {artisans.map((a) => (
-                  <div key={a.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
-                    <Image
-                      src={a.user.avatar || DEFAULT_AVATAR}
-                      alt={a.user.name}
-                      width={48}
-                      height={48}
-                      className="rounded-xl object-cover shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-gray-900 text-sm">{a.user.name}</p>
-                        <Pill label={a.approvalStatus} tone={approvalTone(a.approvalStatus)} />
-                        <Pill label={a.verificationStatus} tone={verificationTone(a.verificationStatus)} />
-                        <Pill label={a.user.status} tone={a.user.status === 'SUSPENDED' ? 'red' : 'green'} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {a.profession} · {a.user.city || 'No city'} · {formatNGN(a.hourlyRate ?? 0)}/hr · ⭐ {(a.avgRating ?? 0).toFixed(1)} ({a.totalReviews}) · joined {fmtDate(a.createdAt)}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">{a.user.email}</p>
-                    </div>
-                    <div className="flex gap-2 shrink-0 flex-wrap">
-                      {a.approvalStatus !== 'APPROVED' ? (
-                        <button disabled={busyId === a.id} onClick={() => onApprove(a.id, 'APPROVED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#047857] hover:opacity-90 disabled:opacity-50">
-                          <Check size={13} /> Approve
-                        </button>
-                      ) : (
-                        <button disabled={busyId === a.id} onClick={() => onApprove(a.id, 'REJECTED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50">
-                          <X size={13} /> Reject
-                        </button>
-                      )}
-                      {a.verificationDocUrl && (
-                        <a
-                          href={a.verificationDocUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          <FileText size={13} /> View ID
-                        </a>
-                      )}
-                      {a.verificationStatus === 'PENDING' ? (
-                        <>
-                          <button disabled={busyId === a.id} onClick={() => onVerify(a.id, 'VERIFIED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50">
-                            <Check size={13} /> Verify
-                          </button>
-                          <button disabled={busyId === a.id} onClick={() => onVerify(a.id, 'REJECTED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50">
-                            <X size={13} /> Reject
-                          </button>
-                        </>
-                      ) : a.verificationStatus !== 'VERIFIED' ? (
-                        <button disabled={busyId === a.id} onClick={() => onVerify(a.id, 'VERIFIED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50">
-                          <Check size={13} /> Verify
-                        </button>
-                      ) : (
-                        <button disabled={busyId === a.id} onClick={() => onVerify(a.id, 'UNVERIFIED')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50">
-                          <RefreshCcw size={13} /> Unverify
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ArtisansTab
+              artisans={artisans}
+              filter={artisanFilter}
+              onFilterChange={setArtisanFilter}
+              busyId={busyId}
+              onApprove={onApprove}
+              onVerify={onVerify}
+            />
           )}
 
           {tab === 'users' && (
-            <div>
-              <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                <input
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  aria-label="Search users by name or email"
-                  placeholder="Search by name or email…"
-                  className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#047857]"
-                />
-                <FilterTabs
-                  items={['ALL', 'CUSTOMER', 'ARTISAN']}
-                  active={userFilter}
-                  onChange={setUserFilter}
-                  className="flex-wrap"
-                  baseClassName="px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
-                  activeClassName="bg-[#047857] text-white"
-                  inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
-                  renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
-                />
-              </div>
-              <FilterTabs
-                items={['ALL', 'ACTIVE', 'SUSPENDED', 'DELETED']}
-                active={userStatusFilter}
-                onChange={setUserStatusFilter}
-                className="mb-4 flex-wrap"
-                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                activeClassName="bg-[#047857] text-white"
-                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
-                renderLabel={(f) => (f === 'ALL' ? 'All statuses' : f.charAt(0) + f.slice(1).toLowerCase())}
-              />
-              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {users.length === 0 && <p className="p-6 text-sm text-gray-500">No users found.</p>}
-                {users.map((u) => (
-                  <div key={u.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
-                    <Image
-                      src={u.avatar || DEFAULT_AVATAR}
-                      alt={u.name}
-                      width={48}
-                      height={48}
-                      className="rounded-xl object-cover shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-gray-900 text-sm">{u.name}</p>
-                        <Pill label={u.role} tone={u.role === 'ADMIN' ? 'blue' : u.role === 'ARTISAN' ? 'green' : 'gray'} />
-                        <Pill label={u.status} tone={u.status === 'SUSPENDED' ? 'red' : u.status === 'DELETED' ? 'gray' : 'green'} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">{u.email} · {u.city || 'No city'} · joined {fmtDate(u.createdAt)}</p>
-                    </div>
-                    {u.role !== 'ADMIN' && u.id !== user?.id && u.status !== 'DELETED' && (
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          disabled={busyId === u.id}
-                          onClick={() => onUserStatus(u.id, u.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${u.status === 'SUSPENDED' ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-red-600 bg-red-50 hover:bg-red-100'}`}
-                        >
-                          {u.status === 'SUSPENDED' ? 'Reactivate' : 'Suspend'}
-                        </button>
-                        <button
-                          disabled={busyId === u.id}
-                          onClick={() => setConfirmDelete(u)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50"
-                        >
-                          <Trash2 size={13} /> Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <UsersTab
+              users={users}
+              currentUserId={user?.id}
+              userSearch={userSearch}
+              onUserSearch={setUserSearch}
+              roleFilter={userFilter}
+              onRoleFilterChange={setUserFilter}
+              statusFilter={userStatusFilter}
+              onStatusFilterChange={setUserStatusFilter}
+              busyId={busyId}
+              onUserStatus={onUserStatus}
+              onRequestDelete={setConfirmDelete}
+            />
           )}
 
           {tab === 'reviews' && (
-            <div>
-              <FilterTabs
-                items={['ALL', 'APPROVED', 'HIDDEN']}
-                active={reviewFilter}
-                onChange={setReviewFilter}
-                className="mb-4 flex-wrap"
-                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                activeClassName="bg-[#047857] text-white"
-                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
-                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
-              />
-              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {reviews.length === 0 && <p className="p-6 text-sm text-gray-500">No reviews found.</p>}
-                {reviews.map((r) => (
-                  <div key={r.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-gray-900 text-sm">{r.customer.name}</p>
-                        <span className="text-xs text-amber-500 font-semibold">{"⭐".repeat(r.rating)}</span>
-                        <Pill label={r.status} tone={r.status === 'APPROVED' ? 'green' : 'gray'} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">on {r.artisan.profession} — {r.artisan.user.name} · {fmtDate(r.createdAt)}</p>
-                      <p className="text-sm text-gray-600 mt-1.5">{r.comment}</p>
-                      {r.photoUrl && (
-                        <a href={r.photoUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-2">
-                          <Image src={r.photoUrl} alt="Review photo" width={160} height={120} className="h-20 w-32 object-cover rounded-lg border border-gray-100" />
-                        </a>
-                      )}
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      {r.status !== 'APPROVED' ? (
-                        <button disabled={busyId === r.id} onClick={() => onReviewStatus(r.id, 'APPROVED')} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50">
-                          Approve
-                        </button>
-                      ) : (
-                        <button disabled={busyId === r.id} onClick={() => onReviewStatus(r.id, 'HIDDEN')} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50">
-                          Hide
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ReviewsTab
+              reviews={reviews}
+              filter={reviewFilter}
+              onFilterChange={setReviewFilter}
+              busyId={busyId}
+              onReviewStatus={onReviewStatus}
+            />
           )}
 
           {tab === 'bookings' && (
-            <div>
-              <FilterTabs
-                items={['ALL', 'PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED']}
-                active={bookingFilter}
-                onChange={setBookingFilter}
-                className="mb-4 flex-wrap"
-                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                activeClassName="bg-[#047857] text-white"
-                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
-                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
-              />
-              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {bookings.length === 0 && <p className="p-6 text-sm text-gray-500">No bookings found.</p>}
-                {bookings.map((b) => (
-                  <div key={b.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-gray-900 text-sm">{b.customer.name} → {b.artisan.user.name}</p>
-                        <StatusBadge status={(b.status.charAt(0) + b.status.slice(1).toLowerCase()) as 'Pending' | 'Confirmed' | 'Rejected' | 'Completed' | 'Cancelled'} />
-                        <Pill label={b.payment ? `PAID · ${b.payment.status}` : 'UNPAID'} tone={b.payment ? 'green' : 'amber'} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {b.artisan.profession} · {fmtDate(b.date)} at {b.time} · {formatNGN(b.amount)}
-                        {b.description ? ` · “${b.description}”` : ''}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <BookingsTab bookings={bookings} filter={bookingFilter} onFilterChange={setBookingFilter} />
           )}
 
-          {tab === 'payments' && (
-            <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-              {payments.length === 0 && <p className="p-6 text-sm text-gray-500">No payments recorded yet.</p>}
-              {payments.map((p) => (
-                <div key={p.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">{formatNGN(p.amount)}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {p.status} · {p.method || 'n/a'} · ref {p.reference || '—'} · {fmtDate(p.createdAt)}
-                      {p.booking ? ` · for booking ${p.booking.id.slice(-6).toUpperCase()}` : ''}
-                    </p>
-                  </div>
-                  <Pill label={p.status} tone={p.status === 'SUCCESS' ? 'green' : p.status === 'FAILED' ? 'red' : 'amber'} />
-                </div>
-              ))}
-            </div>
-          )}
+          {tab === 'payments' && <PaymentsTab payments={payments} />}
 
           {tab === 'disputes' && (
-            <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-              {disputes.length === 0 && <p className="p-6 text-sm text-gray-500">No disputes found.</p>}
-              {disputes.map((d) => (
-                <div key={d.id} className="p-5">
-                  <div className="flex flex-col md:flex-row md:items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-gray-900 text-sm">{d.user.name} vs {d.booking.artisan.user.name}</p>
-                        <Pill label={d.status} tone={d.status === 'OPEN' ? 'red' : d.status === 'RESOLVED' ? 'green' : 'gray'} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {d.booking.artisan.profession} · booking {d.booking.id.slice(-6).toUpperCase()} · {fmtDate(d.booking.date)} · {formatNGN(d.booking.amount)} · filed {fmtDate(d.createdAt)}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1.5">“{d.reason}”</p>
-                      {d.resolution && <p className="text-sm text-gray-500 mt-1.5">Resolution: {d.resolution}</p>}
-                    </div>
-                  </div>
-                  {d.status === 'OPEN' && (
-                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
-                      {resolving !== d.id ? (
-                        <button
-                          onClick={() => { setResolving(d.id); setResolutionText('') }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#047857] hover:opacity-90"
-                        >
-                          Resolve
-                        </button>
-                      ) : (
-                        <>
-                          <input
-                            value={resolutionText}
-                            onChange={(e) => setResolutionText(e.target.value)}
-                            placeholder="Resolution note…"
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#047857]"
-                          />
-                          <button disabled={busyId === d.id || !resolutionText.trim()} onClick={() => onResolve(d.id, 'RESOLVED')} className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-[#047857] hover:opacity-90 disabled:opacity-50">
-                            Resolve
-                          </button>
-                          <button disabled={busyId === d.id} onClick={() => onResolve(d.id, 'DISMISSED')} className="px-3 py-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50">
-                            Dismiss
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <DisputesTab
+              disputes={disputes}
+              busyId={busyId}
+              resolving={resolving}
+              resolutionText={resolutionText}
+              onResolutionTextChange={setResolutionText}
+              onBeginResolve={(id) => { setResolving(id); setResolutionText('') }}
+              onResolve={onResolve}
+            />
           )}
 
           {tab === 'support' && (
-            <div>
-              <FilterTabs
-                items={['ALL', 'OPEN', 'REPLIED', 'CLOSED']}
-                active={supportFilter}
-                onChange={setSupportFilter}
-                className="mb-4 flex-wrap"
-                baseClassName="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                activeClassName="bg-[#047857] text-white"
-                inactiveClassName="bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
-                renderLabel={(f) => (f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase())}
-              />
-              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {support.length === 0 && <p className="p-6 text-sm text-gray-500">No support messages found.</p>}
-                {support.map((m) => (
-                  <div key={m.id} className="p-5">
-                    <div className="flex flex-col md:flex-row md:items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium text-gray-900 text-sm">{m.subject}</p>
-                          <Pill label={m.status} tone={m.status === 'OPEN' ? 'red' : m.status === 'REPLIED' ? 'amber' : 'gray'} />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {m.name} · {m.email}{m.phone ? ` · ${m.phone}` : ''}{m.user ? ` · account ${m.user.id.slice(0, 8)}` : ' · guest'} · {fmtDate(m.createdAt)}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1.5 whitespace-pre-wrap">“{m.message}”</p>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          disabled={busyId === m.id}
-                          onClick={() => onSupportStatus(m.id, m.status === 'OPEN' ? 'REPLIED' : m.status === 'REPLIED' ? 'OPEN' : 'REPLIED')}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50"
-                        >
-                          {m.status === 'OPEN' ? 'Mark replied' : m.status === 'REPLIED' ? 'Reopen' : 'Reopen'}
-                        </button>
-                        <button
-                          disabled={busyId === m.id}
-                          onClick={() => onSupportStatus(m.id, m.status === 'CLOSED' ? 'OPEN' : 'CLOSED')}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
-                        >
-                          {m.status === 'CLOSED' ? 'Reopen' : 'Close'}
-                        </button>
-                        <a href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject}`)}`} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
-                          Reply
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <SupportTab
+              messages={support}
+              filter={supportFilter}
+              onFilterChange={setSupportFilter}
+              busyId={busyId}
+              onStatus={onSupportStatus}
+            />
           )}
         </div>
       </div>

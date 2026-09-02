@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Calendar, Clock, MessageSquare, Star, Plus, CreditCard, CheckCircle2, AlertCircle, X, Flag, Trash2, Camera, RefreshCw, ShieldCheck, Flame, Coins } from 'lucide-react'
 import { fetchBookings, initializePayment, verifyPayment, updateBookingStatus, raiseDispute, createReview, fetchMyCredits } from '@/lib/api'
-import { formatNGN, getApiErrorMessage } from '@/lib/utils'
+import { formatNGN, getApiErrorMessage, readImageAsDataUrl } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
 import StatusBadge from '@/components/StatusBadge'
 import AuthGuard from '@/components/AuthGuard'
@@ -43,14 +43,6 @@ export default function BookingHistoryPage() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewError, setReviewError] = useState('')
   const reviewPhotoInputRef = useRef<HTMLInputElement>(null)
-
-  const readPhotoAsDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = () => reject(new Error('Could not read the file'))
-      reader.readAsDataURL(file)
-    })
 
   const loadBookings = () => {
     setLoading(true)
@@ -603,7 +595,7 @@ export default function BookingHistoryPage() {
                   if (!file) return
                   setReviewError('')
                   try {
-                    setReviewPhoto(await readPhotoAsDataUrl(file))
+                    setReviewPhoto(await readImageAsDataUrl(file))
                   } catch {
                     setReviewError('Could not read the selected photo. Please try again.')
                   }

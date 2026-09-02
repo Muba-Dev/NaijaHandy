@@ -8,7 +8,8 @@ import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
 import { fetchMe, updateProfile, updateAvatar, changePassword } from '@/lib/api'
 import { DEFAULT_AVATAR } from '@/lib/data'
-import { setStoredUser, getApiErrorMessage, compressImage } from '@/lib/utils'
+import { setStoredUser, getApiErrorMessage } from '@/lib/utils'
+import useImageUpload from '@/hooks/useImageUpload'
 import type { AuthUser } from '@/types'
 
 type SettingsTab = 'personal' | 'security' | 'payment' | 'notifications'
@@ -29,8 +30,6 @@ export default function ProfileSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -73,30 +72,24 @@ export default function ProfileSettingsPage() {
     }
   }
 
+  const { busy: uploading, error: uploadError, handleFile } = useImageUpload({
+    validate: (file) => {
+      if (!file.type.startsWith('image/')) return 'Please choose an image file (JPG, PNG or WebP).'
+      if (file.size > 15 * 1024 * 1024) return 'Image is too large. Please choose a photo under 15MB.'
+      return null
+    },
+    fallbackError: 'Failed to upload your photo. Please try again.',
+  })
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploadError('')
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please choose an image file (JPG, PNG or WebP).')
-      return
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      setUploadError('Image is too large. Please choose a photo under 15MB.')
-      return
-    }
-    setUploading(true)
-    try {
-      const dataUrl = await compressImage(file)
+    await handleFile(file, async (dataUrl) => {
       const updated = await updateAvatar(dataUrl)
       setUser((u) => (u ? { ...u, avatar: updated.avatar } : u))
       setStoredUser(updated)
-    } catch (err) {
-      setUploadError(getApiErrorMessage(err, 'Failed to upload your photo. Please try again.'))
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
+    })
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {

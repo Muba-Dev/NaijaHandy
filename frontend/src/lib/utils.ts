@@ -72,6 +72,18 @@ export function buildWhatsAppLink(phone: string | null | undefined, message: str
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
 }
 
+export function readImageAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => {
+      reader.abort()
+      reject(new Error('Could not read the file'))
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 export function getApiErrorMessage(err: unknown, fallback: string): string {
   if (err && typeof err === 'object' && 'response' in err) {
     const data = (err as { response?: { data?: unknown } }).response?.data
