@@ -14,6 +14,10 @@ export type EscrowStatus = (typeof ESCROW_STATUSES)[number]
 // artisan is gross − PLATFORM_FEE; credits discounts are absorbed by the platform.
 export const PLATFORM_FEE = 500
 
+// Window (in hours) after a booking is confirmed during which a customer may
+// cancel it and receive a full refund. Beyond this the job is committed.
+export const CANCELLATION_GRACE_HOURS = 24
+
 const allowedTransitions: Record<BookingStatus, BookingStatus[]> = {
   PENDING: ['CONFIRMED', 'REJECTED', 'CANCELLED'],
   CONFIRMED: ['COMPLETED', 'CANCELLED'],

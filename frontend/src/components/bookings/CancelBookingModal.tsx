@@ -16,6 +16,12 @@ export default function CancelBookingModal({ booking, cancelling, onCancel, onCl
         Your booking with <span className="font-semibold text-gray-900">{booking.artisan}</span> on{' '}
         {booking.date} at {booking.time} will be cancelled. This can&apos;t be undone.
       </p>
+      {booking.status === 'Confirmed' && (
+        <p className="text-xs text-gray-500 mb-2">
+          Confirmed bookings can only be cancelled within 24 hours of confirmation — if that window has
+          passed, cancellation won&apos;t be allowed.
+        </p>
+      )}
       {booking.paymentStatus === 'PAID' && (
         <p className="flex items-start gap-1.5 text-xs font-medium text-amber-700 mb-4">
           <ShieldCheck size={14} className="shrink-0 mt-0.5" aria-hidden="true" />

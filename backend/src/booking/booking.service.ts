@@ -5,7 +5,7 @@ import { NotificationsService } from '../notifications/notifications.service'
 import { UploadService } from '../upload/upload.service'
 import { CreditsService } from '../credits/credits.service'
 import { PaymentService } from '../payment/payment.service'
-import { BOOKING_STATUSES, canTransitionBookingStatus } from '../domain/booking'
+import { BOOKING_STATUSES, canTransitionBookingStatus, CANCELLATION_GRACE_HOURS } from '../domain/booking'
 
 @Injectable()
 export class BookingService {
@@ -103,7 +103,24 @@ export class BookingService {
       throw new ForbiddenException(`Cannot change booking from ${current.status} to ${status}`)
     }
 
-    const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { status } })
+    // Cancellation grace period: a customer may freely cancel a PENDING booking,
+    // but a CONFIRMED booking can only be cancelled within the window after it
+    // was confirmed (full refund). Legacy/unset timestamps are treated as within
+    // grace so older bookings remain cancellable as before.
+    if (status === 'CANCELLED' && isCustomer && current.status === 'CONFIRMED') {
+      const anchor = current.confirmedAt || current.createdAt
+      const windowMs = CANCELLATION_GRACE_HOURS * 60 * 60 * 1000
+      if (anchor && Date.now() - new Date(anchor).getTime() > windowMs) {
+        throw new ForbiddenException(
+          `Cancellation window of ${CANCELLATION_GRACE_HOURS} hours after confirmation has passed. Please contact support for help.`,
+        )
+      }
+    }
+
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: status === 'CONFIRMED' ? { status, confirmedAt: new Date() } : { status },
+    })
 
     // Escrow lifecycle: completing a paid job releases the held payment to the
     // artisan; cancelling a paid job refunds it to the customer. Release and

@@ -18,7 +18,14 @@ export const JWT_SECRET: string =
 export const FRONTEND_URL = (): string =>
   process.env.FRONTEND_URL || 'http://localhost:3000'
 
-export const PORT = Number(process.env.PORT) || 4000
+// PORT from env or default, then overridden by a `--port N` CLI argument
+// (e.g. `npm run dev -- --port 5000`). CLI wins over env for local convenience.
+const cliPortArg = process.argv.find((a) => a.startsWith('--port='))
+  ?.split('=')[1]
+  ?? process.argv[process.argv.indexOf('--port') + 1]
+const CLI_PORT = cliPortArg ? Number(cliPortArg) : Number.NaN
+
+export const PORT = Number.isInteger(CLI_PORT) && CLI_PORT > 0 ? CLI_PORT : Number(process.env.PORT) || 4000
 
 export const HTTP = {
   rateLimit: {

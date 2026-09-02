@@ -46,6 +46,26 @@ async function bootstrap() {
   // Render build command). No inline ALTER/UPDATE safety net here — the
   // migration history in prisma/migrations is the single source of truth.
 
+  // Graceful shutdown: on SIGTERM/SIGINT let in-flight requests drain before
+  // Prisma disconnects, so deploys/restarts never drop a request mid-write.
+  app.enableShutdownHooks()
+
+  // Hard timeout as a backstop — if graceful shutdown ever stalls, do not hang
+  // the platform's kill signal indefinitely.
+  let shuttingDown = false
+  const forceExitGraceMs = 15_000
+  const onSignal = (signal: string) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    console.log(`Received ${signal}, draining in-flight requests (up to ${forceExitGraceMs}ms)…`)
+    setTimeout(() => {
+      console.error(`Graceful shutdown exceeded ${forceExitGraceMs}ms, forcing exit`)
+      process.exit(1)
+    }, forceExitGraceMs).unref()
+  }
+  process.on('SIGTERM', () => onSignal('SIGTERM'))
+  process.on('SIGINT', () => onSignal('SIGINT'))
+
   await app.listen(PORT)
   console.log(`NaijaHandy API running on http://localhost:${PORT}`)
   if (process.env.NODE_ENV !== 'production') {

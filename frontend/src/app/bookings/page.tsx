@@ -342,6 +342,15 @@ export default function BookingHistoryPage() {
                           <Trash2 size={13} />Cancel Booking
                         </button>
                       )}
+                      {b.status === 'Confirmed' && (
+                        <button
+                          onClick={() => setCancelConfirm(b)}
+                          disabled={cancellingId === b.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 size={13} />Cancel Booking
+                        </button>
+                      )}
                       {b.status === 'Confirmed' || b.status === 'Completed' ? (
                         <button
                           onClick={() => { setDisputeFor(b) }}

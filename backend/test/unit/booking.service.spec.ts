@@ -167,6 +167,53 @@ describe('BookingService', () => {
       await service.updateStatus('c1', 'CUSTOMER', 'b1', 'CANCELLED')
       expect(paymentService.refundEscrow).not.toHaveBeenCalled()
     })
+
+    it('lets a customer cancel a CONFIRMED booking within the grace window', async () => {
+      booking.findUnique.mockResolvedValue({
+        ...baseBooking,
+        status: 'CONFIRMED',
+        paymentStatus: 'PAID',
+        confirmedAt: new Date(Date.now() - 60_000),
+      })
+      booking.update.mockResolvedValue({ id: 'b1', status: 'CANCELLED' })
+      paymentService.refundEscrow.mockResolvedValue({})
+
+      await expect(service.updateStatus('c1', 'CUSTOMER', 'b1', 'CANCELLED')).resolves.toEqual({
+        id: 'b1',
+        status: 'CANCELLED',
+      })
+      expect(paymentService.refundEscrow).toHaveBeenCalledWith('b1')
+    })
+
+    it('blocks a customer from cancelling a CONFIRMED booking after the grace window', async () => {
+      const past = 25 * 60 * 60 * 1000
+      booking.findUnique.mockResolvedValue({
+        ...baseBooking,
+        status: 'CONFIRMED',
+        paymentStatus: 'PAID',
+        confirmedAt: new Date(Date.now() - past),
+      })
+
+      await expect(service.updateStatus('c1', 'CUSTOMER', 'b1', 'CANCELLED')).rejects.toThrow(
+        'Cancellation window of 24 hours after confirmation has passed',
+      )
+      expect(booking.update).not.toHaveBeenCalled()
+      expect(paymentService.refundEscrow).not.toHaveBeenCalled()
+    })
+
+    it('stamps confirmedAt when an artisan confirms a paid booking', async () => {
+      booking.findUnique.mockResolvedValue({ ...baseBooking, paymentStatus: 'PAID' })
+      booking.update.mockResolvedValue({ id: 'b1', status: 'CONFIRMED', confirmedAt: new Date() })
+
+      await service.updateStatus('a1', 'ARTISAN', 'b1', 'CONFIRMED')
+
+      expect(booking.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'b1' },
+          data: expect.objectContaining({ status: 'CONFIRMED', confirmedAt: expect.any(Date) }),
+        }),
+      )
+    })
   })
 
   describe('create', () => {

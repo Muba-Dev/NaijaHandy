@@ -256,6 +256,7 @@ model Booking {
   paymentStatus    String    @default("UNPAID")
   paymentReference String?   @unique
   paidAt           DateTime?
+  confirmedAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
