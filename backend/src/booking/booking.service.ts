@@ -103,6 +103,13 @@ export class BookingService {
       throw new ForbiddenException(`Cannot change booking from ${current.status} to ${status}`)
     }
 
+    // A job is only confirmed once the customer has paid — an artisan cannot
+    // confirm an unpaid booking (this also guarantees the cancellation grace
+    // window / escrow refund logic below only ever deals with paid confirmations).
+    if (status === 'CONFIRMED' && current.paymentStatus !== 'PAID') {
+      throw new ForbiddenException('Booking must be paid before it can be confirmed')
+    }
+
     // Cancellation grace period: a customer may freely cancel a PENDING booking,
     // but a CONFIRMED booking can only be cancelled within the window after it
     // was confirmed (full refund). Legacy/unset timestamps are treated as within

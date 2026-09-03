@@ -22,6 +22,7 @@ import type {
   AuthUser, SupportMessage,
 } from '@/types'
 import StatsGrid from '@/components/admin/stats'
+import AdminNav from '@/components/admin/AdminNav'
 import ArtisansTab from '@/components/admin/ArtisansTab'
 import UsersTab from '@/components/admin/UsersTab'
 import ReviewsTab from '@/components/admin/ReviewsTab'
@@ -176,77 +177,47 @@ export default function AdminDashboardPage() {
     if (tab === 'overview') refreshAll()
   }, [tab, refreshAll])
 
-  const onApprove = async (id: string, approvalStatus: string) => {
+  const runAction = async (id: string, successMsg: string, action: () => Promise<unknown>) => {
     setBusyId(id)
     try {
-      await setArtisanApproval(id, approvalStatus)
-      flash(`Artisan ${approvalStatus === 'APPROVED' ? 'approved' : 'rejected'}`)
+      await action()
+      flash(successMsg)
       loadTab(); refreshAll()
     } catch { flash('Action failed') }
     setBusyId(null)
   }
 
-  const onVerify = async (id: string, verificationStatus: string) => {
-    setBusyId(id)
-    try {
-      await setArtisanVerification(id, verificationStatus)
-      flash(`Identity ${verificationStatus === 'VERIFIED' ? 'verified' : 'unverified'}`)
-      loadTab()
-    } catch { flash('Action failed') }
-    setBusyId(null)
-  }
+  const onApprove = (id: string, approvalStatus: string) =>
+    runAction(id, `Artisan ${approvalStatus === 'APPROVED' ? 'approved' : 'rejected'}`, () =>
+      setArtisanApproval(id, approvalStatus))
 
-  const onUserStatus = async (id: string, status: string) => {
-    setBusyId(id)
-    try {
-      await setUserStatus(id, status)
-      flash(`Account ${status === 'SUSPENDED' ? 'suspended' : 'activated'}`)
-      loadTab(); refreshAll()
-    } catch { flash('Action failed') }
-    setBusyId(null)
-  }
+  const onVerify = (id: string, verificationStatus: string) =>
+    runAction(id, `Identity ${verificationStatus === 'VERIFIED' ? 'verified' : 'unverified'}`, () =>
+      setArtisanVerification(id, verificationStatus))
 
-  const onDeleteUser = async (u: AdminUser) => {
-    setBusyId(u.id)
-    try {
-      await deleteUser(u.id)
+  const onUserStatus = (id: string, status: string) =>
+    runAction(id, `Account ${status === 'SUSPENDED' ? 'suspended' : 'activated'}`, () =>
+      setUserStatus(id, status))
+
+  const onDeleteUser = (u: AdminUser) =>
+    runAction(u.id, `${u.name}'s account has been deleted`, async () => {
       setConfirmDelete(null)
-      flash(`${u.name}'s account has been deleted`)
-      loadTab(); refreshAll()
-    } catch { flash('Failed to delete account') }
-    setBusyId(null)
-  }
+      await deleteUser(u.id)
+    })
 
-  const onReviewStatus = async (id: string, status: string) => {
-    setBusyId(id)
-    try {
-      await setReviewStatus(id, status)
-      flash(`Review ${status === 'HIDDEN' ? 'hidden' : 'approved'}`)
-      loadTab(); refreshAll()
-    } catch { flash('Action failed') }
-    setBusyId(null)
-  }
+  const onReviewStatus = (id: string, status: string) =>
+    runAction(id, `Review ${status === 'HIDDEN' ? 'hidden' : 'approved'}`, () =>
+      setReviewStatus(id, status))
 
-  const onResolve = async (id: string, status: string) => {
-    setBusyId(id)
-    try {
+  const onResolve = (id: string, status: string) =>
+    runAction(id, `Dispute ${status === 'RESOLVED' ? 'resolved' : 'dismissed'}`, async () => {
       await resolveDispute(id, status, resolutionText)
-      flash(`Dispute ${status === 'RESOLVED' ? 'resolved' : 'dismissed'}`)
       setResolving(null); setResolutionText('')
-      loadTab(); refreshAll()
-    } catch { flash('Action failed') }
-    setBusyId(null)
-  }
+    })
 
-  const onSupportStatus = async (id: string, status: SupportMessage['status']) => {
-    setBusyId(id)
-    try {
-      await setSupportMessageStatus(id, status)
-      flash(`Message marked ${status === 'REPLIED' ? 'replied' : status === 'CLOSED' ? 'closed' : 'open'}`)
-      loadTab(); refreshAll()
-    } catch { flash('Action failed') }
-    setBusyId(null)
-  }
+  const onSupportStatus = (id: string, status: SupportMessage['status']) =>
+    runAction(id, `Message marked ${status === 'REPLIED' ? 'replied' : status === 'CLOSED' ? 'closed' : 'open'}`, () =>
+      setSupportMessageStatus(id, status))
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -312,32 +283,7 @@ export default function AdminDashboardPage() {
             {avatarError && <p className="text-xs text-red-600 mt-1" role="alert">{avatarError}</p>}
           </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1" aria-label="Admin console navigation">
-          {TABS.map((t) => {
-            const Icon = t.icon
-            const isActive = t.id === tab
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                aria-pressed={isActive}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${isActive ? 'text-white bg-[#047857]' : 'text-gray-600 hover:bg-gray-50'}`}
-              >
-                <Icon size={16} aria-hidden="true" />
-                {t.label}
-                {t.id === 'artisans' && stats && stats.pendingArtisans > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center">{stats.pendingArtisans}</span>
-                )}
-                {t.id === 'disputes' && stats && stats.openDisputes > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
-                )}
-                {t.id === 'support' && stats && stats.openSupportMessages > 0 && (
-                  <span className="ml-auto w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{stats.openSupportMessages}</span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
+        <AdminNav variant="desktop" tab={tab} tabs={TABS} stats={stats} onTabChange={setTab} />
         <div className="p-3 border-t border-gray-100">
           <button onClick={async () => { await logout(); router.push('/login') }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
             <LogOut size={16} /> Log Out
@@ -369,32 +315,7 @@ export default function AdminDashboardPage() {
             </button>
           </div>
         </div>
-        <nav className="flex gap-1 px-3 pt-2 pb-3 overflow-x-auto border-t border-gray-100" aria-label="Admin console navigation">
-          {TABS.map((t) => {
-            const Icon = t.icon
-            const isActive = t.id === tab
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                aria-pressed={isActive}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'text-[#047857] bg-[#047857]/10' : 'text-gray-600 hover:bg-gray-50'}`}
-              >
-                <Icon size={13} aria-hidden="true" />
-                {t.label}
-                {t.id === 'artisans' && stats && stats.pendingArtisans > 0 && (
-                  <span className="ml-0.5 w-4 h-4 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">{stats.pendingArtisans}</span>
-                )}
-                {t.id === 'disputes' && stats && stats.openDisputes > 0 && (
-                  <span className="ml-0.5 w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">{stats.openDisputes}</span>
-                )}
-                {t.id === 'support' && stats && stats.openSupportMessages > 0 && (
-                  <span className="ml-0.5 w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">{stats.openSupportMessages}</span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
+        <AdminNav variant="mobile" tab={tab} tabs={TABS} stats={stats} onTabChange={setTab} />
       </div>
 
       {/* Main */}

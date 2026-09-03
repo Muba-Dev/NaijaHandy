@@ -7,6 +7,8 @@ import { Heart, MapPin, CheckCircle } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import BackToDashboard from '@/components/BackToDashboard'
 import StarRating from '@/components/StarRating'
+import SkeletonCard from '@/components/ui/SkeletonCard'
+import EmptyState from '@/components/ui/EmptyState'
 import { fetchSavedArtisans, unsaveArtisan } from '@/lib/api'
 import { formatNGN } from '@/lib/utils'
 import { DEFAULT_AVATAR } from '@/lib/data'
@@ -49,7 +51,7 @@ export default function SavedArtisansPage() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+              <SkeletonCard key={i} className="p-5">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl bg-gray-100" />
                   <div className="flex-1 space-y-3">
@@ -57,21 +59,24 @@ export default function SavedArtisansPage() {
                     <div className="h-3 bg-gray-100 rounded w-1/2" />
                   </div>
                 </div>
-              </div>
+              </SkeletonCard>
             ))}
           </div>
         ) : artisans.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <Heart size={40} className="text-gray-300 mx-auto mb-3" aria-hidden="true" />
-            <p className="text-gray-600 font-medium">No saved artisans yet</p>
-            <p className="text-sm text-gray-500 mt-1">Tap the save button on any artisan profile to keep them here.</p>
-            <Link
-              href="/search"
-              className="mt-4 inline-block px-5 py-2 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity"
-            >
-              Browse Artisans
-            </Link>
-          </div>
+          <EmptyState
+            icon={Heart}
+            title="No saved artisans yet"
+            description="Tap the save button on any artisan profile to keep them here."
+            action={
+              <Link
+                href="/search"
+                className="inline-block px-5 py-2 rounded-xl text-white text-sm font-semibold bg-[#047857] hover:opacity-90 transition-opacity"
+              >
+                Browse Artisans
+              </Link>
+            }
+            className="bg-white rounded-2xl border border-gray-100"
+          />
         ) : (
           <div className="space-y-4">
             {artisans.map((a) => (

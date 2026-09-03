@@ -116,6 +116,15 @@ describe('AuthService', () => {
   })
 
   describe('requestEmailVerification', () => {
+    // Deterministic regardless of the ambient .env: force email sending OFF so
+    // the dev-code mock path is always exercised (same pattern as PAYSTACK_MOCK).
+    beforeEach(() => {
+      process.env.EMAIL_ENABLED = 'false'
+    })
+    afterEach(() => {
+      delete process.env.EMAIL_ENABLED
+    })
+
     it('sends a code and returns devCode when email sending is disabled', async () => {
       user.findUnique.mockResolvedValue({ id: 'u1', email: 'vera@example.com', emailVerified: false })
       emailVerificationToken.findFirst.mockResolvedValue(null)
