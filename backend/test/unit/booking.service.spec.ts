@@ -160,6 +160,26 @@ describe('BookingService', () => {
       expect(paymentService.refundEscrow).toHaveBeenCalledWith('b1')
     })
 
+    it('refunds the held escrow when an artisan rejects a paid pending booking', async () => {
+      booking.findUnique.mockResolvedValue({ ...baseBooking, paymentStatus: 'PAID' })
+      booking.update.mockResolvedValue({ id: 'b1', status: 'REJECTED' })
+      paymentService.refundEscrow.mockResolvedValue({})
+
+      await expect(service.updateStatus('a1', 'ARTISAN', 'b1', 'REJECTED')).resolves.toEqual({
+        id: 'b1',
+        status: 'REJECTED',
+      })
+      expect(paymentService.refundEscrow).toHaveBeenCalledWith('b1')
+    })
+
+    it('does not refund escrow for an unpaid rejected booking', async () => {
+      booking.findUnique.mockResolvedValue(baseBooking)
+      booking.update.mockResolvedValue({ id: 'b1', status: 'REJECTED' })
+
+      await service.updateStatus('a1', 'ARTISAN', 'b1', 'REJECTED')
+      expect(paymentService.refundEscrow).not.toHaveBeenCalled()
+    })
+
     it('does not refund escrow for an unpaid cancelled booking', async () => {
       booking.findUnique.mockResolvedValue(baseBooking)
       booking.update.mockResolvedValue({ id: 'b1', status: 'CANCELLED' })

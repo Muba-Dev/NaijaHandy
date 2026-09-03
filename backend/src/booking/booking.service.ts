@@ -159,7 +159,11 @@ export class BookingService {
           : Promise.resolve(),
       ])
     }
-    if (status === 'CANCELLED' && current.paymentStatus === 'PAID') {
+    // A paid booking that is rejected or cancelled (before completion) refunds
+    // the customer's held escrow — rejecting a paid-but-unconfirmed job must not
+    // strand the funds. Completing it instead releases the payment to the artisan
+    // in the COMPLETED branch above.
+    if (['REJECTED', 'CANCELLED'].includes(status) && current.paymentStatus === 'PAID') {
       await this.paymentService.refundEscrow(bookingId)
     }
 
