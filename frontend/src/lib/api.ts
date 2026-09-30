@@ -132,6 +132,7 @@ type RawBooking = {
   date: string
   time: string
   description: string
+  jobPhotoUrls?: string[]
   amount: number
   address?: string | null
   customerPhone?: string | null
@@ -155,6 +156,7 @@ function normalizeBooking(b: RawBooking): Booking {
     dateISO: b.date,
     time: b.time,
     description: b.description,
+    jobPhotoUrls: b.jobPhotoUrls ?? [],
     amount: b.amount,
     address: b.address ?? null,
     customerPhone: b.customerPhone ?? null,
@@ -310,6 +312,11 @@ export async function fetchBookings(): Promise<Booking[]> {
   return data.data.map(normalizeBooking)
 }
 
+export async function fetchBookingAvailability(artisanId: string, date: string): Promise<{ date: string; bookedTimes: string[] }> {
+  const { data } = await api.get('/bookings/availability', { params: { artisanId, date } })
+  return data.data
+}
+
 export async function createBooking(payload: {
   artisanId: string
   date: string
@@ -318,6 +325,8 @@ export async function createBooking(payload: {
   amount: number
   address?: string
   customerPhone?: string
+  isUrgent?: boolean
+  jobPhotos?: string[]
 }) {
   const { data } = await api.post('/bookings', payload)
   return data.data

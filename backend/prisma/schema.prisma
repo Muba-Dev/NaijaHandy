@@ -248,6 +248,7 @@ model Booking {
   date             DateTime
   time             String
   description      String
+  jobPhotoUrls     String[]  @default([])
   amount           Int // NGN
   address          String?
   customerPhone    String?

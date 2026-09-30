@@ -85,6 +85,7 @@ export interface Booking {
   dateISO: string
   time: string
   description: string
+  jobPhotoUrls?: string[]
   amount: number
   address?: string | null
   customerPhone?: string | null

@@ -2,14 +2,20 @@ import { BookingService } from '../../src/booking/booking.service'
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 
 describe('BookingService', () => {
-  const booking = { findUnique: jest.fn(), update: jest.fn(), findFirst: jest.fn(), create: jest.fn() }
+  const booking = { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), findFirst: jest.fn(), create: jest.fn() }
   const dispute = { findFirst: jest.fn(), create: jest.fn() }
   const review = { findUnique: jest.fn() }
   const artisanProfile = { findUnique: jest.fn() }
-  const prisma = { booking, dispute, review, artisanProfile } as any
+  const prisma = {
+    booking,
+    dispute,
+    review,
+    artisanProfile,
+    $transaction: jest.fn((callback: (tx: any) => unknown) => callback({ booking, $queryRaw: jest.fn() })),
+  } as any
   const emailService = { sendBookingStatusEmail: jest.fn() } as any
   const notificationsService = { create: jest.fn() } as any
-  const uploadService = { uploadReviewPhoto: jest.fn() } as any
+  const uploadService = { uploadReviewPhoto: jest.fn(), uploadJobPhoto: jest.fn() } as any
   const creditsService = { award: jest.fn() } as any
   const paymentService = { releaseEscrow: jest.fn(), refundEscrow: jest.fn() } as any
   const service = new BookingService(prisma, emailService, notificationsService, uploadService, creditsService, paymentService)
@@ -27,7 +33,10 @@ describe('BookingService', () => {
     artisan: { id: 'art-1', userId: 'a1', user: { id: 'a1', name: 'Emeka Okafor', email: 'emeka@example.com' } },
   }
 
-  afterEach(() => jest.clearAllMocks())
+  afterEach(() => {
+    jest.clearAllMocks()
+    booking.findFirst.mockReset()
+  })
 
   describe('updateStatus', () => {
     it('throws NotFoundException for a missing booking', async () => {
@@ -269,6 +278,7 @@ describe('BookingService', () => {
           date: expect.any(Date),
           time: '9:00 AM',
           description: 'Fix a leak',
+          jobPhotoUrls: [],
           amount: 17000,
           address: '12 Admiralty Way, Lekki',
           customerPhone: '08012345678',
@@ -296,6 +306,7 @@ describe('BookingService', () => {
           date: expect.any(Date),
           time: '9:00 AM',
           description: 'Fix a leak',
+          jobPhotoUrls: [],
           amount: 17000,
           address: null,
           customerPhone: null,
@@ -330,6 +341,42 @@ describe('BookingService', () => {
         body: expect.any(String),
         link: '/dashboard/artisan/requests',
       })
+    })
+
+    it('uploads and stores job photos on the booking', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ userId: 'a1' })
+      uploadService.uploadJobPhoto.mockResolvedValue('https://cloudinary.com/job-photo.jpg')
+      booking.create.mockResolvedValue({ id: 'b4', jobPhotoUrls: ['https://cloudinary.com/job-photo.jpg'] })
+
+      await service.create('c1', {
+        artisanId: 'art-1',
+        date: '2026-08-20',
+        time: '9:00 AM',
+        description: 'Repair the damaged kitchen pipe',
+        amount: 17000,
+        jobPhotos: ['data:image/jpeg;base64,xxx'],
+      })
+
+      expect(uploadService.uploadJobPhoto).toHaveBeenCalledWith('data:image/jpeg;base64,xxx')
+      expect(booking.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ jobPhotoUrls: ['https://cloudinary.com/job-photo.jpg'] }),
+      })
+    })
+
+    it('rejects a scheduled slot already held by another active booking', async () => {
+      artisanProfile.findUnique.mockResolvedValue({ userId: 'a1' })
+      booking.findFirst.mockResolvedValue({ id: 'existing-booking' })
+
+      await expect(
+        service.create('c1', {
+          artisanId: 'art-1',
+          date: '2026-08-20',
+          time: '9:00 AM',
+          description: 'Repair the damaged kitchen pipe',
+          amount: 17000,
+        }),
+      ).rejects.toThrow('That time slot was just booked')
+      expect(booking.create).not.toHaveBeenCalled()
     })
 
     it('does not notify when the artisan books themselves', async () => {
@@ -391,6 +438,30 @@ describe('BookingService', () => {
           comment: 'Great work!',
           photoUrl: 'https://cloudinary.com/review.jpg',
         },
+      })
+    })
+  })
+
+  describe('getAvailability', () => {
+    it('returns unique booked times for active bookings on that date', async () => {
+      booking.findMany.mockResolvedValue([
+        { time: '9:00 AM' },
+        { time: '9:00 AM' },
+        { time: '2:00 PM' },
+      ])
+
+      await expect(service.getAvailability('art-1', '2026-08-20')).resolves.toEqual({
+        date: '2026-08-20',
+        bookedTimes: ['9:00 AM', '2:00 PM'],
+      })
+      expect(booking.findMany).toHaveBeenCalledWith({
+        where: {
+          artisanId: 'art-1',
+          date: { gte: new Date('2026-08-20T00:00:00.000Z'), lt: new Date('2026-08-21T00:00:00.000Z') },
+          time: { not: 'ASAP' },
+          status: { in: ['PENDING', 'CONFIRMED'] },
+        },
+        select: { time: true },
       })
     })
   })

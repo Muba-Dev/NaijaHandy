@@ -37,6 +37,10 @@ export class UploadService {
     return this.uploadImage(dataUrl, 'naijahandy/reviews', [{ width: 800, height: 600, crop: 'fill' }], 'review photo')
   }
 
+  async uploadJobPhoto(dataUrl: string): Promise<string> {
+    return this.uploadImage(dataUrl, 'naijahandy/job-photos', [{ width: 1200, height: 1200, crop: 'limit' }], 'job photo')
+  }
+
   private async uploadImage(dataUrl: string, folder: string, transformation: Record<string, unknown>[], label: string): Promise<string> {
     const { mime, buffer } = this.parseDataUrl(dataUrl)
 

@@ -7,13 +7,22 @@ import { z } from 'zod'
 
 const createSchema = z.object({
   artisanId: z.string(),
-  date: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string(),
   description: z.string().min(10),
   amount: z.number().int().positive(),
   address: z.string().max(300).optional(),
   customerPhone: z.string().max(30).optional(),
   isUrgent: z.boolean().optional(),
+  jobPhotos: z.array(z.string().max(5_500_000)).max(3).optional().refine(
+    (photos) => !photos || photos.reduce((total, photo) => total + photo.length, 0) <= 5_500_000,
+    'Combined job photos are too large',
+  ),
+})
+
+const availabilitySchema = z.object({
+  artisanId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
 
 const updateSchema = z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELLED']) })
@@ -29,6 +38,17 @@ const reviewSchema = z.object({
 @Controller('api/bookings')
 export class BookingController {
   constructor(private bookingService: BookingService) {}
+
+  @Get('availability')
+  async availability(@Query() query: any) {
+    try {
+      const { artisanId, date } = availabilitySchema.parse(query)
+      return { data: await this.bookingService.getAvailability(artisanId, date) }
+    } catch (err) {
+      if (err instanceof z.ZodError) throw new BadRequestException(err.errors)
+      throw err
+    }
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CUSTOMER')

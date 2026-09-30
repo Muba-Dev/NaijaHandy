@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common'
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { EmailService } from '../email/email.service'
 import { NotificationsService } from '../notifications/notifications.service'
@@ -18,6 +18,29 @@ export class BookingService {
     private paymentService: PaymentService,
   ) {}
 
+  private dateBounds(date: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new BadRequestException('Date must use YYYY-MM-DD format')
+    const start = new Date(`${date}T00:00:00.000Z`)
+    if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== date) {
+      throw new BadRequestException('Invalid booking date')
+    }
+    return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) }
+  }
+
+  async getAvailability(artisanId: string, date: string) {
+    const { start, end } = this.dateBounds(date)
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        artisanId,
+        date: { gte: start, lt: end },
+        time: { not: 'ASAP' },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+      select: { time: true },
+    })
+    return { date, bookedTimes: [...new Set(bookings.map((booking) => booking.time))] }
+  }
+
   async create(userId: string, data: any) {
     const artisanProfile = await this.prisma.artisanProfile.findUnique({
       where: { id: data.artisanId },
@@ -25,18 +48,41 @@ export class BookingService {
     })
     if (!artisanProfile) throw new NotFoundException('Artisan not found')
 
-    const booking = await this.prisma.booking.create({
-      data: {
-        customerId: userId,
-        artisanId: data.artisanId,
-        date: new Date(data.date),
-        time: data.time,
-        description: data.description,
-        amount: data.amount,
-        address: data.address ?? null,
-        customerPhone: data.customerPhone ?? null,
-        isUrgent: data.isUrgent ?? false,
-      },
+    const { start, end } = this.dateBounds(data.date)
+    const date = start
+    const jobPhotoUrls = await Promise.all(
+      (data.jobPhotos ?? []).map((photo: string) => this.uploadService.uploadJobPhoto(photo)),
+    )
+    const booking = await this.prisma.$transaction(async (tx) => {
+      if (data.time !== 'ASAP') {
+        const lockKey = `${data.artisanId}:${data.date}:${data.time}`
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`
+        const existing = await tx.booking.findFirst({
+          where: {
+            artisanId: data.artisanId,
+            date: { gte: start, lt: end },
+            time: data.time,
+            status: { in: ['PENDING', 'CONFIRMED'] },
+          },
+          select: { id: true },
+        })
+        if (existing) throw new ConflictException('That time slot was just booked. Choose another time.')
+      }
+
+      return tx.booking.create({
+        data: {
+          customerId: userId,
+          artisanId: data.artisanId,
+          date,
+          time: data.time,
+          description: data.description,
+          jobPhotoUrls,
+          amount: data.amount,
+          address: data.address ?? null,
+          customerPhone: data.customerPhone ?? null,
+          isUrgent: data.isUrgent ?? false,
+        },
+      })
     })
 
     if (artisanProfile.userId !== userId) {

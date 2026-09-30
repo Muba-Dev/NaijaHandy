@@ -4,6 +4,10 @@ import { login, createBookableArtisan, fillBookingDate } from './support/helpers
 
 const MARKER = `E2E booking ${Date.now()}`
 const API_URL = 'http://localhost:4000/api'
+const PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+)
 
 function futureDate(days = 45): string {
   const d = new Date(Date.now() + days * 86_400_000)
@@ -33,7 +37,45 @@ test.afterAll(async () => {
 })
 
 test.describe('Booking & payment', () => {
-  test('books an artisan and pays through mock Paystack', async ({ page }) => {
+  test('marks an already requested time as unavailable', async ({ page }) => {
+    const artisan = await createBookableArtisan()
+    const customerLogin = await page.request.post(`${API_URL}/auth/login`, {
+      data: { email: 'chisom@example.com', password: 'password123' },
+    })
+    expect(customerLogin.ok()).toBeTruthy()
+    const { accessToken } = (await customerLogin.json()) as { accessToken: string }
+    const date = futureDate(46)
+
+    const created = await page.request.post(`${API_URL}/bookings`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        artisanId: artisan.id,
+        date,
+        time: '10:00 AM',
+        description: `${MARKER} — reserve a time slot`,
+        amount: 17000,
+      },
+    })
+    expect(created.ok()).toBeTruthy()
+    const duplicate = await page.request.post(`${API_URL}/bookings`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        artisanId: artisan.id,
+        date,
+        time: '10:00 AM',
+        description: `${MARKER} — duplicate slot attempt`,
+        amount: 17000,
+      },
+    })
+    expect(duplicate.status()).toBe(409)
+
+    await login(page)
+    await page.goto(`/artisans/${artisan.id}`)
+    await fillBookingDate(page, date)
+    await expect(page.getByRole('option', { name: '10:00 AM — Booked' })).toBeDisabled()
+  })
+
+  test('books an artisan with a job photo and pays through mock Paystack', async ({ page, browser }) => {
     const artisan = await createBookableArtisan()
 
     await login(page)
@@ -43,6 +85,8 @@ test.describe('Booking & payment', () => {
     await fillBookingDate(page, futureDate())
     await page.getByLabel('Time').selectOption({ label: '10:00 AM' })
     await page.getByPlaceholder('Describe the job in detail...').fill(`${MARKER} — install a kitchen tap`)
+    await page.locator('#job-photos').setInputFiles({ name: 'job.png', mimeType: 'image/png', buffer: PNG_BYTES })
+    await expect(page.getByAltText('Job photo 1 preview')).toBeVisible()
     await page.getByRole('button', { name: 'Proceed to Book & Pay' }).click()
 
     await expect(page.getByText('Payment successful — your booking is now paid.')).toBeVisible({ timeout: 30_000 })
@@ -50,6 +94,25 @@ test.describe('Booking & payment', () => {
     const expectedAmount = `₦${(artisan.hourlyRate * 2 + 500).toLocaleString('en-NG')}`
     await expect(page.getByText(expectedAmount).first()).toBeVisible()
     await expect(page.getByText('Paid — held in escrow').first()).toBeVisible()
+
+    const customerToken = await page.evaluate(() => localStorage.getItem('naijahandy_access_token'))
+    const bookingsRes = await page.request.get(`${API_URL}/bookings`, {
+      headers: { Authorization: `Bearer ${customerToken}` },
+    })
+    expect(bookingsRes.ok()).toBeTruthy()
+    const bookings = (await bookingsRes.json()) as { data: Array<{ description: string; jobPhotoUrls: string[] }> }
+    expect(bookings.data.find((booking) => booking.description.includes(`${MARKER} — install a kitchen tap`))?.jobPhotoUrls).toHaveLength(1)
+
+    const artisanPage = await browser.newPage()
+    await artisanPage.goto('/login')
+    await artisanPage.locator('main form input[type="email"]').fill(artisan.email)
+    await artisanPage.locator('main form input[type="password"]').fill('password123')
+    await artisanPage.getByRole('button', { name: 'Log In' }).click()
+    await expect(artisanPage).toHaveURL(/\/dashboard\/artisan/, { timeout: 20_000 })
+    await artisanPage.goto('/dashboard/artisan/requests')
+    const requestCard = artisanPage.locator('div.bg-white.rounded-2xl.border', { hasText: `${MARKER} — install a kitchen tap` })
+    await expect(requestCard.getByAltText('Customer job photo 1')).toBeVisible()
+    await artisanPage.close()
   })
 
   test('pays for an unpaid booking with the Pay Now button', async ({ page }) => {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createBooking, initializePayment, fetchSavedArtisans, saveArtisan, unsaveArtisan, fetchMe, updateProfile } from '@/lib/api'
+import { createBooking, initializePayment, fetchBookingAvailability, fetchSavedArtisans, saveArtisan, unsaveArtisan, fetchMe, updateProfile } from '@/lib/api'
 import { isAuthenticated, getApiErrorMessage, getStoredUser, estimateBookingAmount } from '@/lib/utils'
 import type { Artisan, AuthUser } from '@/types'
 import ProfileHeader from '@/components/artisan/ProfileHeader'
@@ -11,11 +11,16 @@ import ProfileTabs from '@/components/artisan/ProfileTabs'
 import BookingCard from '@/components/artisan/BookingCard'
 
 export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | null }) {
+  const artisanId = artisan?.id
   const router = useRouter()
   const searchParams = useSearchParams()
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('')
+  const [bookedTimes, setBookedTimes] = useState<string[]>([])
+  const [availabilityLoading, setAvailabilityLoading] = useState(false)
+  const [availabilityError, setAvailabilityError] = useState('')
   const [jobDesc, setJobDesc] = useState('')
+  const [jobPhotos, setJobPhotos] = useState<string[]>([])
   const [isUrgent, setIsUrgent] = useState(false)
   const [selectedService, setSelectedService] = useState(() => artisan?.services[0]?.name ?? '')
   const [hours, setHours] = useState(2)
@@ -56,6 +61,31 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
       setSelectedService((current) => current || artisan.services[0].name)
     }
   }, [artisan])
+
+  useEffect(() => {
+    if (!artisanId || !bookingDate) {
+      setBookedTimes([])
+      setAvailabilityError('')
+      setAvailabilityLoading(false)
+      return
+    }
+    let active = true
+    setAvailabilityLoading(true)
+    setAvailabilityError('')
+    fetchBookingAvailability(artisanId, bookingDate)
+      .then(({ bookedTimes: currentBookedTimes }) => {
+        if (!active) return
+        setBookedTimes(currentBookedTimes)
+        setBookingTime((current) => currentBookedTimes.includes(current) ? '' : current)
+      })
+      .catch(() => {
+        if (active) setAvailabilityError('Could not refresh available times. The slot will be checked again when you book.')
+      })
+      .finally(() => {
+        if (active) setAvailabilityLoading(false)
+      })
+    return () => { active = false }
+  }, [artisanId, bookingDate])
 
   useEffect(() => {
     if (searchParams.get('bookagain') !== '1' && searchParams.get('book') !== '1') return
@@ -117,15 +147,16 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
     }
   }
 
-  const buildBookingPayload = () => ({
+  const buildBookingPayload = (instantRequest = false) => ({
     artisanId: artisan.id,
-    date: bookingDate || todayISO(),
-    time: bookingTime || 'ASAP',
+    date: instantRequest ? todayISO() : bookingDate || todayISO(),
+    time: instantRequest ? 'ASAP' : bookingTime || 'ASAP',
     description: jobDesc.trim() || `Booking request for ${selectedService || artisan.profession} service`,
     amount: estimate.total,
     address: jobAddress || undefined,
     customerPhone: contactPhone || undefined,
     isUrgent,
+    jobPhotos: instantRequest ? [] : jobPhotos,
   })
 
   const handleBook = async () => {
@@ -162,7 +193,7 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
     setBookingError('')
     setInstantSent(false)
     try {
-      await createBooking(buildBookingPayload())
+      await createBooking(buildBookingPayload(true))
       persistContact()
       setBookingDate(bookingDate || todayISO())
       setBookingTime(bookingTime || 'ASAP')
@@ -197,6 +228,9 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
               onDateChange={setBookingDate}
               bookingTime={bookingTime}
               onTimeChange={setBookingTime}
+              bookedTimes={bookedTimes}
+              availabilityLoading={availabilityLoading}
+              availabilityError={availabilityError}
               isUrgent={isUrgent}
               onUrgentChange={setIsUrgent}
               contactPhone={contactPhone}
@@ -205,6 +239,8 @@ export default function ArtisanProfileClient({ artisan }: { artisan: Artisan | n
               onAddressChange={setJobAddress}
               jobDesc={jobDesc}
               onDescChange={setJobDesc}
+              jobPhotos={jobPhotos}
+              onJobPhotosChange={setJobPhotos}
               rebookActive={rebookActive}
               bookingSubmitting={bookingSubmitting}
               bookingSuccess={bookingSuccess}

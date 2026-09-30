@@ -124,6 +124,24 @@ export default function JobRequestsPage() {
                       )}
                     </div>
                   )}
+                  {b.jobPhotoUrls && b.jobPhotoUrls.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">Job photos</p>
+                      <div className="flex flex-wrap gap-2">
+                        {b.jobPhotoUrls.map((photo, index) => (
+                          <Image
+                            key={`${b.id}-job-photo-${index}`}
+                            src={photo}
+                            alt={`Customer job photo ${index + 1}`}
+                            width={96}
+                            height={72}
+                            unoptimized={photo.startsWith('data:')}
+                            className="h-[4.5rem] w-24 rounded-lg border border-gray-100 object-cover"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {b.status === 'Pending' && (
                     <div className="flex gap-2 mt-3">
                       <button onClick={() => respond(b.id, 'REJECTED')} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">

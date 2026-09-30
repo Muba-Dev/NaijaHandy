@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import Link from 'next/link'
-import { RefreshCw, Zap, ShieldCheck, MessageSquare } from 'lucide-react'
+import Image from 'next/image'
+import { Camera, RefreshCw, Zap, ShieldCheck, MessageSquare, X } from 'lucide-react'
 import StarRating from '@/components/StarRating'
-import { formatNGN, buildWhatsAppLink, estimateBookingAmount, minServiceRate } from '@/lib/utils'
+import { formatNGN, buildWhatsAppLink, estimateBookingAmount, minServiceRate, compressImage } from '@/lib/utils'
 import type { Artisan } from '@/types'
 
 interface Props {
@@ -14,6 +16,9 @@ interface Props {
   onDateChange: (v: string) => void
   bookingTime: string
   onTimeChange: (v: string) => void
+  bookedTimes: string[]
+  availabilityLoading: boolean
+  availabilityError: string
   isUrgent: boolean
   onUrgentChange: (v: boolean) => void
   contactPhone: string
@@ -22,6 +27,8 @@ interface Props {
   onAddressChange: (v: string) => void
   jobDesc: string
   onDescChange: (v: string) => void
+  jobPhotos: string[]
+  onJobPhotosChange: (v: string[]) => void
   rebookActive: boolean
   bookingSubmitting: boolean
   bookingSuccess: boolean
@@ -35,10 +42,13 @@ export default function BookingCard(props: Props) {
   const {
     artisan, selectedService, onServiceChange, hours, onHoursChange,
     bookingDate, onDateChange, bookingTime, onTimeChange,
+    bookedTimes, availabilityLoading, availabilityError,
     isUrgent, onUrgentChange, contactPhone, onPhoneChange, jobAddress, onAddressChange,
-    jobDesc, onDescChange, rebookActive, bookingSubmitting, bookingSuccess, bookingError,
+    jobDesc, onDescChange, jobPhotos, onJobPhotosChange, rebookActive, bookingSubmitting, bookingSuccess, bookingError,
     instantSent, onInstantRequest, onBook,
   } = props
+  const [photoError, setPhotoError] = useState('')
+  const [compressingPhotos, setCompressingPhotos] = useState(false)
 
   const estimate = estimateBookingAmount(artisan.services, selectedService, hours, artisan.hourlyRate)
   const whatsappLink = buildWhatsAppLink(artisan.phone, `Hello ${artisan.name}! I found you on NaijaHandy and I have a question about your ${artisan.profession} service before I book.`)
@@ -46,6 +56,29 @@ export default function BookingCard(props: Props) {
   const inputCls =
     'w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-[#047857] focus:ring-2 focus:ring-emerald-100'
   const labelCls = 'block text-sm font-medium text-gray-700 mb-1.5'
+
+  const handlePhotoSelection = async (files: FileList | null) => {
+    if (!files?.length) return
+    const selected = Array.from(files)
+    setPhotoError('')
+    if (jobPhotos.length + selected.length > 3) {
+      setPhotoError('Choose up to 3 job photos.')
+      return
+    }
+    if (selected.some((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024)) {
+      setPhotoError('Use JPG, PNG or WebP images under 10MB each.')
+      return
+    }
+    setCompressingPhotos(true)
+    try {
+      const compressed = await Promise.all(selected.map((file) => compressImage(file, 1000, 0.78)))
+      onJobPhotosChange([...jobPhotos, ...compressed])
+    } catch {
+      setPhotoError('Could not process the selected photos. Please try again.')
+    } finally {
+      setCompressingPhotos(false)
+    }
+  }
 
   return (
     <div className="sticky top-20 rounded-3xl border border-gray-100 bg-white p-6 shadow-xl shadow-gray-900/5">
@@ -115,10 +148,13 @@ export default function BookingCard(props: Props) {
               >
                 <option value="">Select time slot</option>
                 <option value="ASAP">ASAP — any time</option>
-                {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
+                {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((t) => {
+                  const booked = bookedTimes.includes(t)
+                  return <option key={t} value={t} disabled={booked}>{booked ? `${t} — Booked` : t}</option>
+                })}
               </select>
+              {availabilityLoading && <p className="mt-1 text-xs text-gray-500" role="status">Checking availability…</p>}
+              {availabilityError && <p className="mt-1 text-xs text-amber-700" role="status">{availabilityError}</p>}
             </div>
 
             <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-red-200 bg-red-50/70 p-3">
@@ -196,6 +232,47 @@ export default function BookingCard(props: Props) {
                 rows={3}
                 className={`${inputCls} resize-none`}
               />
+            </div>
+            <div>
+              <p className={labelCls}>Job photos <span className="font-normal text-gray-500">(optional, up to 3)</span></p>
+              <input
+                id="job-photos"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                disabled={compressingPhotos || jobPhotos.length >= 3}
+                className="sr-only"
+                onChange={(event) => {
+                  void handlePhotoSelection(event.target.files)
+                  event.target.value = ''
+                }}
+              />
+              <label
+                htmlFor="job-photos"
+                className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${compressingPhotos || jobPhotos.length >= 3 ? 'pointer-events-none opacity-50' : ''}`}
+              >
+                <Camera size={15} aria-hidden="true" />
+                {compressingPhotos ? 'Preparing photos…' : 'Add photos'}
+              </label>
+              <p className="mt-1 text-xs text-gray-500">JPG, PNG or WebP. Up to 10MB per original photo.</p>
+              {photoError && <p className="mt-1 text-xs text-red-600" role="alert">{photoError}</p>}
+              {jobPhotos.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {jobPhotos.map((photo, index) => (
+                    <div key={`${index}-${photo.length}`} className="relative">
+                      <Image src={photo} alt={`Job photo ${index + 1} preview`} width={80} height={64} unoptimized className="h-16 w-20 rounded-lg border border-gray-100 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => onJobPhotosChange(jobPhotos.filter((_, photoIndex) => photoIndex !== index))}
+                        aria-label={`Remove job photo ${index + 1}`}
+                        className="absolute -right-1.5 -top-1.5 rounded-full bg-gray-900 p-1 text-white hover:bg-red-600"
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
       </div>
 

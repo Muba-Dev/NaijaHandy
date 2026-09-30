@@ -21,6 +21,16 @@ test.describe('Browsing artisans', () => {
     await expect(page.getByText('Pipe Installation').first()).toBeVisible()
     await expect(page.getByText('+1 more').first()).toBeVisible()
   })
+  test('homepage search combines profession and partial city matching', async ({ page }) => {
+    await page.goto('/')
+    await page.getByLabel('Profession').selectOption({ label: 'Plumbing' })
+    await page.getByLabel('City or area').fill('Lagos')
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+
+    await expect(page).toHaveURL(/\/search\?q=Plumbing&city=Lagos/)
+    await expect(page.getByText('Emeka Okafor')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('No artisans match your filters')).not.toBeVisible()
+  })
 
   test('demo artisan profile shows the not-bookable notice', async ({ page }) => {
     const artisan = await getTopArtisan()

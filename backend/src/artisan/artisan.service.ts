@@ -77,7 +77,7 @@ export class ArtisanService {
     }
 
     const userWhere: Prisma.UserWhereInput = { status: { not: 'DELETED' } }
-    if (city) userWhere.city = String(city)
+    if (city) userWhere.city = { contains: String(city).trim(), mode: 'insensitive' }
 
     const where: Prisma.ArtisanProfileWhereInput = {
       approvalStatus: 'APPROVED',
@@ -155,12 +155,12 @@ export class ArtisanService {
     // just to count unique cities.
     const [profilesStats, jobsCompleted, reviews, totalUsers] = await Promise.all([
       this.prisma.$queryRawUnsafe<{ artisans: number; cities: number }[]>(
-        `SELECT COUNT(*)::int AS "artisans", COUNT(DISTINCT u."city")::int AS "cities"
+        `SELECT COUNT(*) FILTER (WHERE ap."verificationStatus" = 'VERIFIED')::int AS "artisans",
+          COUNT(DISTINCT u."city")::int AS "cities"
          FROM "artisan_profiles" ap
          JOIN "users" u ON u."id" = ap."userId"
          WHERE ap."approvalStatus" = 'APPROVED'
-           AND u."status" <> 'DELETED'
-           AND u."city" IS NOT NULL${demoFilter}`,
+           AND u."status" <> 'DELETED'${demoFilter}`,
       ),
       this.prisma.booking.count({
         where: { status: 'COMPLETED', artisan: { approvalStatus: 'APPROVED', ...this.demoFilterObj(user), user: { is: { status: { not: 'DELETED' } } } } },

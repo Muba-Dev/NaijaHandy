@@ -5,11 +5,13 @@ describe('ArtisanService', () => {
   const artisanProfile = { groupBy: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() }
   const portfolioItem = { create: jest.fn(), findFirst: jest.fn(), delete: jest.fn() }
   const booking = { count: jest.fn(), findMany: jest.fn() }
+  const review = { count: jest.fn() }
+  const user = { count: jest.fn() }
   // Geo search now pre-filters candidates via a SQL bounding-box query; the
   // unit tests exercise the haversine filtering that runs afterwards, so the
   // box just needs to admit the rows the findMany mock returns.
   const prisma = {
-    artisanProfile, portfolioItem, booking,
+    artisanProfile, portfolioItem, booking, review, user,
     $queryRaw: jest.fn().mockResolvedValue([{ id: 'near' }, { id: 'far' }, { id: 'noloc' }]),
     $queryRawUnsafe: jest.fn().mockResolvedValue([{ artisans: 0, cities: 0 }]),
   } as any
@@ -86,6 +88,44 @@ describe('ArtisanService', () => {
       await service.findAll({}, { id: 'admin', role: 'ADMIN', isDemo: false })
       expect(artisanProfile.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: baseWhere }),
+      )
+    })
+  })
+
+  describe('findAll city filtering', () => {
+    it('matches a partial city or area without case sensitivity', async () => {
+      artisanProfile.findMany.mockResolvedValue([])
+      await service.findAll({ city: '  lagos  ' }, undefined)
+
+      expect(artisanProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            user: {
+              status: { not: 'DELETED' },
+              city: { contains: 'lagos', mode: 'insensitive' },
+            },
+          }),
+        }),
+      )
+    })
+  })
+
+  describe('platformStats', () => {
+    it('counts only identity-verified approved artisans', async () => {
+      prisma.$queryRawUnsafe.mockResolvedValueOnce([{ artisans: 7, cities: 4 }])
+      booking.count.mockResolvedValue(12)
+      review.count.mockResolvedValue(9)
+      user.count.mockResolvedValue(20)
+
+      await expect(service.platformStats()).resolves.toEqual({
+        artisans: 7,
+        cities: 4,
+        jobsCompleted: 12,
+        reviews: 9,
+        totalUsers: 20,
+      })
+      expect(prisma.$queryRawUnsafe.mock.calls[0][0]).toContain(
+        `COUNT(*) FILTER (WHERE ap."verificationStatus" = 'VERIFIED')`,
       )
     })
   })
